@@ -29,6 +29,7 @@ cargo build --release
 - ✅ Screenshot capture (PNG/JPEG)
 - ✅ Video recording with configurable FPS
 - ✅ Audio capture (system audio and microphone)
+- ✅ **Idle frame skipping** - automatically skip encoding duplicate frames
 - ✅ Cross-platform support (Linux, macOS, Windows)
 - ✅ Performance optimized (target: <30% CPU)
 - ✅ Intuitive CLI interface

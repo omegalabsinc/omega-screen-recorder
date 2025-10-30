@@ -61,6 +61,10 @@ pub enum Commands {
         /// Video quality (1-10, higher is better)
         #[arg(short, long, default_value = "8")]
         quality: u8,
+
+        /// Disable idle frame skipping (encode all frames even if identical)
+        #[arg(long)]
+        no_skip_idle: bool,
     },
 }
 

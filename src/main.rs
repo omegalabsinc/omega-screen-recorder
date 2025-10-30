@@ -47,6 +47,7 @@ async fn main() -> Result<()> {
             height,
             display,
             quality,
+            no_skip_idle,
         } => {
             log::info!("Starting screen recording...");
             log::info!("  Output: {}", output.display());
@@ -58,6 +59,7 @@ async fn main() -> Result<()> {
             });
             log::info!("  Audio: {}", audio);
             log::info!("  Quality: {}/10", quality);
+            log::info!("  Idle frame skipping: {}", if no_skip_idle { "disabled" } else { "enabled" });
 
             // Validate FPS
             if fps == 0 || fps > 60 {
@@ -129,8 +131,9 @@ async fn main() -> Result<()> {
                 None
             };
 
+            let skip_idle_frames = !no_skip_idle; // Invert because CLI flag disables the feature
             let capture_handle = tokio::spawn(async move {
-                screen_capture.start_capture(frame_tx, duration_opt).await
+                screen_capture.start_capture(frame_tx, duration_opt, skip_idle_frames).await
             });
 
             // Wait for capture to finish

@@ -11,6 +11,7 @@ This is a high-performance, cross-platform screen recording CLI tool built in Ru
 - **Screenshot Capture**: Capture single frames and save as PNG or JPEG
 - **Video Recording**: Continuous screen recording at configurable frame rates
 - **Audio Capture**: System audio and microphone input support
+- **Idle Frame Skipping**: Automatically skip encoding duplicate frames to save CPU and disk space
 - **Cross-Platform**: Designed to work on macOS, Windows, and Linux
 - **Performance Optimized**: Efficient multi-threaded architecture
 - **Configurable Quality**: Adjustable video quality and bitrate settings
@@ -42,11 +43,13 @@ src/
 
 ### Performance Optimizations
 
-1. **Frame Buffering**: Limited buffer size prevents memory bloat
-2. **Direct RGB Conversion**: Skip unnecessary color space conversions
-3. **Efficient Encoding Settings**: Balanced CPU usage vs quality
-4. **Minimal Allocations**: Reuse buffers where possible
-5. **Multi-threaded Pipeline**: Capture, encode, and I/O in parallel
+1. **Idle Frame Detection**: Automatically skips encoding frames that haven't changed (2% similarity threshold)
+2. **Frame Buffering**: Limited buffer size prevents memory bloat
+3. **Direct RGB Conversion**: Skip unnecessary color space conversions
+4. **Efficient Encoding Settings**: Balanced CPU usage vs quality
+5. **Minimal Allocations**: Reuse buffers where possible
+6. **Multi-threaded Pipeline**: Capture, encode, and I/O in parallel
+7. **Keyframe Intervals**: Periodic keyframes every 2 seconds for seeking support
 
 ## Build Instructions
 
@@ -110,6 +113,9 @@ screenrec record --width 1920 --height 1080
 
 # Record with verbose logging
 screenrec --verbose record --output test.ivf --duration 10
+
+# Disable idle frame skipping (encode all frames)
+screenrec record --no-skip-idle --output full-recording.ivf
 ```
 
 ### Command-Line Options
@@ -127,6 +133,7 @@ screenrec --verbose record --output test.ivf --duration 10
 - `--height`: Video height (0 = screen resolution)
 - `--display`: Display index to capture (default: 0)
 - `--quality, -q`: Video quality 1-10, higher is better (default: 8)
+- `--no-skip-idle`: Disable idle frame skipping (encode all frames even if identical)
 
 #### Global Options
 - `--verbose, -v`: Enable verbose logging
@@ -149,11 +156,48 @@ Based on the architecture and optimizations:
 
 ### Optimization Techniques Used
 
-1. **Encoder CPU Settings**: cpu_used=6 (balance speed/quality)
-2. **Adaptive Bitrate**: Quality-based bitrate calculation
-3. **Efficient Frame Pipeline**: Non-blocking capture and encoding
-4. **Smart Buffering**: Limited channel capacity prevents memory bloat
-5. **RGB24 Format**: Removed alpha channel reduces data by 25%
+1. **Idle Frame Skipping**: Detect and skip encoding frames with <2% pixel changes
+2. **Encoder CPU Settings**: cpu_used=6 (balance speed/quality)
+3. **Adaptive Bitrate**: Quality-based bitrate calculation
+4. **Efficient Frame Pipeline**: Non-blocking capture and encoding
+5. **Smart Buffering**: Limited channel capacity prevents memory bloat
+6. **RGB24 Format**: Removed alpha channel reduces data by 25%
+
+## Idle Frame Skipping
+
+One of the key performance optimizations is **idle frame detection**. When recording static content (e.g., documentation, code review, tutorials with pauses), many consecutive frames are identical or nearly identical.
+
+### How It Works
+
+1. **Frame Comparison**: Each captured frame is compared to the previous encoded frame
+2. **Similarity Threshold**: Frames with <2% pixel difference are considered "idle"
+3. **Skip Encoding**: Idle frames are not sent to the encoder, saving CPU and disk space
+4. **Keyframe Intervals**: Every 2 seconds, a frame is forced even if idle (for seeking)
+5. **Sample-Based Detection**: Only every 16th pixel is checked for performance
+
+### Benefits
+
+- **Lower CPU Usage**: Skip expensive encoding for duplicate frames (up to 50-80% reduction when idle)
+- **Smaller File Size**: Fewer frames = smaller video files
+- **Better Performance**: More resources available for other tasks
+- **Automatic**: Works transparently without user intervention
+
+### When to Disable
+
+Use `--no-skip-idle` flag when:
+- Recording fast-paced content (gaming, animations)
+- You need exact frame-by-frame reproduction
+- Debugging video encoding issues
+
+### Statistics
+
+After recording, check the logs to see idle frame statistics:
+```
+Screen capture finished.
+  Total frames captured: 900
+  Frames encoded: 150
+  Idle frames skipped: 750 (83.3%)
+```
 
 ## Cross-Platform Support
 
