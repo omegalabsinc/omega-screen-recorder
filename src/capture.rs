@@ -1,6 +1,5 @@
 use crate::error::{Result, ScreenRecError};
 use scrap::{Capturer, Display};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
@@ -75,7 +74,7 @@ impl ScreenCapture {
             ScreenRecError::CaptureError(format!("Display {} not found", display_index))
         })?;
 
-        let capturer = Capturer::new(*display).map_err(|e| {
+        let capturer = Capturer::new(display.clone()).map_err(|e| {
             ScreenRecError::CaptureError(format!("Failed to create capturer: {}", e))
         })?;
 

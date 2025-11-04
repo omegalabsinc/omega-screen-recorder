@@ -13,7 +13,6 @@ use crate::encoder::VideoEncoder;
 use crate::error::Result;
 use crate::interactions::InteractionTracker;
 use clap::Parser;
-use std::path::PathBuf;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
@@ -154,14 +153,18 @@ async fn main() -> Result<()> {
             };
 
             let skip_idle_frames = !no_skip_idle; // Invert because CLI flag disables the feature
-            let capture_handle = tokio::spawn(async move {
-                screen_capture.start_capture(frame_tx, duration_opt, skip_idle_frames).await
+            // Use spawn_blocking because scrap::Capturer is not Send (contains raw pointers)
+            let capture_handle = tokio::task::spawn_blocking(move || {
+                // Create a new runtime for the blocking task
+                tokio::runtime::Handle::current().block_on(async move {
+                    screen_capture.start_capture(frame_tx, duration_opt, skip_idle_frames).await
+                })
             });
 
             // Wait for capture to finish
-            let _capture_result = capture_handle.await.map_err(|e| {
-                error::ScreenRecError::CaptureError(format!("Capture task failed: {}", e))
-            })??;
+            let _capture_result = capture_handle.await
+                .map_err(|e| error::ScreenRecError::CaptureError(format!("Capture task panicked: {}", e)))?
+                .map_err(|e| error::ScreenRecError::CaptureError(format!("Capture failed: {}", e)))?;
 
             // Wait for encoder to finish and get output directory
             let output_dir = encoder_handle.await.map_err(|e| {

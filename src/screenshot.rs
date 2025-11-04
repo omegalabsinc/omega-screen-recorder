@@ -24,7 +24,7 @@ pub fn capture_screenshot(output_path: &Path, display_index: usize) -> Result<()
     log::info!("Display dimensions: {}x{}", display.width(), display.height());
 
     // Create capturer
-    let mut capturer = Capturer::new(*display).map_err(|e| {
+    let mut capturer = Capturer::new(display.clone()).map_err(|e| {
         ScreenRecError::CaptureError(format!("Failed to create capturer: {}", e))
     })?;
 

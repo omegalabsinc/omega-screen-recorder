@@ -1,8 +1,7 @@
 use crate::cli::AudioSource;
 use crate::error::{Result, ScreenRecError};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, SampleRate, Stream, StreamConfig};
-use std::sync::Arc;
+use cpal::{Device, Stream, StreamConfig};
 use tokio::sync::mpsc;
 
 pub struct AudioSample {
