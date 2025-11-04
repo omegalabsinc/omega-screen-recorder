@@ -23,11 +23,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Initialize logger
-    let log_level = if cli.verbose {
-        "debug"
-    } else {
-        "info"
-    };
+    let log_level = if cli.verbose { "debug" } else { "info" };
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(log_level)).init();
 
     log::info!("🎯 Omega Focus Screen Recorder v0.1.0");
@@ -57,15 +53,28 @@ async fn main() -> Result<()> {
             log::info!("Starting screen recording...");
             log::info!("  Output: {}", output.display());
             log::info!("  FPS: {}", fps);
-            log::info!("  Duration: {}", if duration > 0 {
-                format!("{} seconds", duration)
-            } else {
-                "unlimited (Ctrl+C to stop)".to_string()
-            });
+            log::info!(
+                "  Duration: {}",
+                if duration > 0 {
+                    format!("{} seconds", duration)
+                } else {
+                    "unlimited (Ctrl+C to stop)".to_string()
+                }
+            );
             log::info!("  Audio: {}", audio);
             log::info!("  Quality: {}/10", quality);
-            log::info!("  Idle frame skipping: {}", if no_skip_idle { "disabled" } else { "enabled" });
-            log::info!("  Interaction tracking: {}", if track_interactions { "enabled" } else { "disabled" });
+            log::info!(
+                "  Idle frame skipping: {}",
+                if no_skip_idle { "disabled" } else { "enabled" }
+            );
+            log::info!(
+                "  Interaction tracking: {}",
+                if track_interactions {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
 
             // Validate FPS
             if fps == 0 || fps > 60 {
@@ -76,8 +85,16 @@ async fn main() -> Result<()> {
 
             // Initialize screen capture
             let screen_capture = ScreenCapture::new(display, fps)?;
-            let capture_width = if width > 0 { width as usize } else { screen_capture.width() };
-            let capture_height = if height > 0 { height as usize } else { screen_capture.height() };
+            let capture_width = if width > 0 {
+                width as usize
+            } else {
+                screen_capture.width()
+            };
+            let capture_height = if height > 0 {
+                height as usize
+            } else {
+                screen_capture.height()
+            };
 
             log::info!("Capture resolution: {}x{}", capture_width, capture_height);
 
@@ -99,9 +116,8 @@ async fn main() -> Result<()> {
             let encoder = VideoEncoder::new(&output, capture_width, capture_height, fps, quality)?;
 
             // Start encoder task
-            let encoder_handle = tokio::spawn(async move {
-                encoder::process_frames(frame_rx, encoder).await
-            });
+            let encoder_handle =
+                tokio::spawn(async move { encoder::process_frames(frame_rx, encoder).await });
 
             // Initialize audio capture if requested
             let audio_handle = if audio != cli::AudioSource::None {
@@ -131,11 +147,8 @@ async fn main() -> Result<()> {
 
             // Initialize interaction tracker if requested
             let interaction_tracker = if track_interactions {
-                let tracker = InteractionTracker::new(
-                    capture_width,
-                    capture_height,
-                    track_mouse_moves,
-                );
+                let tracker =
+                    InteractionTracker::new(capture_width, capture_height, track_mouse_moves);
 
                 // Start tracking in a separate thread
                 let tracker_handle = tracker.start()?;
@@ -164,23 +177,32 @@ async fn main() -> Result<()> {
             };
 
             let skip_idle_frames = !no_skip_idle; // Invert because CLI flag disables the feature
-            // Run capture in a separate OS thread (not tokio thread) because Capturer is not Send
+                                                  // Run capture in a separate OS thread (not tokio thread) because Capturer is not Send
             let capture_handle = std::thread::spawn(move || {
                 screen_capture.start_capture_sync(frame_tx_std, duration_opt, skip_idle_frames)
             });
 
             // Wait for capture to finish
-            let _capture_result = capture_handle.join()
-                .map_err(|e| error::ScreenRecError::CaptureError(format!("Capture thread panicked: {:?}", e)))?
-                .map_err(|e| error::ScreenRecError::CaptureError(format!("Capture failed: {}", e)))?;
+            let _capture_result = capture_handle
+                .join()
+                .map_err(|e| {
+                    error::ScreenRecError::CaptureError(format!("Capture thread panicked: {:?}", e))
+                })?
+                .map_err(|e| {
+                    error::ScreenRecError::CaptureError(format!("Capture failed: {}", e))
+                })?;
 
             // Wait for bridge to finish
             let _ = bridge_handle.await;
 
             // Wait for encoder to finish and get output directory
-            let output_dir = encoder_handle.await.map_err(|e| {
+            let artifacts = encoder_handle.await.map_err(|e| {
                 error::ScreenRecError::EncodingError(format!("Encoder task failed: {}", e))
             })??;
+            let encoder::RecordingOutput {
+                frames_dir,
+                video_file,
+            } = artifacts;
 
             // Wait for audio processing if it was started
             if let Some(handle) = audio_handle {
@@ -189,8 +211,7 @@ async fn main() -> Result<()> {
 
             // Save interaction data if tracking was enabled
             if let Some((tracker, _handle)) = interaction_tracker {
-                // Create interaction data file path
-                let interactions_path = output_dir.join("interactions.json");
+                let interactions_path = frames_dir.join("interactions.json");
 
                 log::info!("Saving interaction data...");
                 if let Err(e) = tracker.save(&interactions_path) {
@@ -200,10 +221,19 @@ async fn main() -> Result<()> {
                 }
             }
 
-            println!("✅ Frames saved to: {}", output_dir.display());
-            println!("📹 To create video, run:");
-            println!("   cd {} && ./convert.sh (Mac/Linux)", output_dir.display());
-            println!("   cd {} && convert.bat (Windows)", output_dir.display());
+            println!("✅ Frames saved to: {}", frames_dir.display());
+
+            if let Some(video_path) = &video_file {
+                println!("🎬 Video saved to: {}", video_path.display());
+                println!(
+                    "ℹ️  Conversion script is still available at {}",
+                    frames_dir.display()
+                );
+            } else {
+                println!("📹 To create video, run:");
+                println!("   cd {} && ./convert.sh (Mac/Linux)", frames_dir.display());
+                println!("   cd {} && convert.bat (Windows)", frames_dir.display());
+            }
             log::info!("Recording completed successfully");
         }
     }

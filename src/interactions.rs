@@ -208,13 +208,17 @@ impl InteractionTracker {
         let mouse_events = self
             .mouse_events
             .lock()
-            .map_err(|e| ScreenRecError::ConfigError(format!("Failed to lock mouse events: {}", e)))?
+            .map_err(|e| {
+                ScreenRecError::ConfigError(format!("Failed to lock mouse events: {}", e))
+            })?
             .clone();
 
         let keyboard_events = self
             .keyboard_events
             .lock()
-            .map_err(|e| ScreenRecError::ConfigError(format!("Failed to lock keyboard events: {}", e)))?
+            .map_err(|e| {
+                ScreenRecError::ConfigError(format!("Failed to lock keyboard events: {}", e))
+            })?
             .clone();
 
         // Count different event types

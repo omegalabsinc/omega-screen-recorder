@@ -1,0 +1,6331 @@
+{
+  "duration_ms": 120855,
+  "screen_width": 1920,
+  "screen_height": 1080,
+  "mouse_events": [
+    {
+      "timestamp_ms": 371,
+      "x": 994.0234375,
+      "y": 778.26953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 411,
+      "x": 1007.21484375,
+      "y": 819.2734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 449,
+      "x": 1017.2421875,
+      "y": 854.265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 501,
+      "x": 1004.234375,
+      "y": 854.11328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 551,
+      "x": 976.0,
+      "y": 851.69921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 590,
+      "x": 961.9921875,
+      "y": 858.30078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 749,
+      "x": 958.96875,
+      "y": 853.6953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 789,
+      "x": 961.953125,
+      "y": 858.71484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 827,
+      "x": 990.9375,
+      "y": 865.41796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 867,
+      "x": 1108.02734375,
+      "y": 837.89453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 908,
+      "x": 1403.40234375,
+      "y": 749.87109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 945,
+      "x": 1696.80078125,
+      "y": 660.48046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 990,
+      "x": 1919.98046875,
+      "y": 580.7421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1027,
+      "x": 1919.98046875,
+      "y": 526.890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1065,
+      "x": 1919.98046875,
+      "y": 506.60546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1349,
+      "x": 1918.18359375,
+      "y": 506.5703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1390,
+      "x": 1783.5859375,
+      "y": 594.73046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1427,
+      "x": 1504.203125,
+      "y": 677.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1467,
+      "x": 1283.33984375,
+      "y": 730.58203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1505,
+      "x": 1186.01953125,
+      "y": 756.96875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1627,
+      "x": 1173.1875,
+      "y": 761.66015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1673,
+      "x": 1086.1171875,
+      "y": 765.0625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1711,
+      "x": 1047.09765625,
+      "y": 771.58984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1817,
+      "x": 1045.87109375,
+      "y": 769.13671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1860,
+      "x": 1049.03515625,
+      "y": 758.109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1899,
+      "x": 1038.61328125,
+      "y": 777.52734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1939,
+      "x": 1015.55078125,
+      "y": 846.55859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 1977,
+      "x": 979.19921875,
+      "y": 919.29296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2017,
+      "x": 968.9609375,
+      "y": 945.296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2079,
+      "x": 967.32421875,
+      "y": 947.328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2121,
+      "x": 949.921875,
+      "y": 913.7890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2157,
+      "x": 894.90234375,
+      "y": 885.5,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2199,
+      "x": 809.8359375,
+      "y": 898.47265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2239,
+      "x": 764.8125,
+      "y": 911.6640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2349,
+      "x": 764.8046875,
+      "y": 912.8828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2391,
+      "x": 800.8203125,
+      "y": 910.00390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2427,
+      "x": 883.8671875,
+      "y": 895.640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 2465,
+      "x": 926.86328125,
+      "y": 891.16796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 3456,
+      "x": 927.67578125,
+      "y": 889.52734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 3771,
+      "x": 929.70703125,
+      "y": 889.1171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4076,
+      "x": 930.921875,
+      "y": 889.5234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4113,
+      "x": 927.24609375,
+      "y": 890.7421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4153,
+      "x": 918.1796875,
+      "y": 892.3046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4202,
+      "x": 851.12890625,
+      "y": 907.671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4241,
+      "x": 792.08984375,
+      "y": 913.80859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4277,
+      "x": 768.0703125,
+      "y": 908.84375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4342,
+      "x": 758.5390625,
+      "y": 899.3125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4375,
+      "x": 756.08203125,
+      "y": 895.23046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4419,
+      "x": 755.0703125,
+      "y": 889.1875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4477,
+      "x": 758.88671875,
+      "y": 877.13671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4511,
+      "x": 760.51171875,
+      "y": 873.0546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4555,
+      "x": 760.51171875,
+      "y": 867.9921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4593,
+      "x": 759.69140625,
+      "y": 865.12890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4641,
+      "x": 757.640625,
+      "y": 863.8984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4808,
+      "x": 756.40625,
+      "y": 864.3046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4847,
+      "x": 825.43359375,
+      "y": 869.65234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4885,
+      "x": 900.47265625,
+      "y": 858.765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 4925,
+      "x": 923.44921875,
+      "y": 857.60546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 5099,
+      "x": 933.28125,
+      "y": 860.60546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 5139,
+      "x": 998.3046875,
+      "y": 867.94140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 5177,
+      "x": 1103.3828125,
+      "y": 862.90625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 5217,
+      "x": 1154.390625,
+      "y": 853.0546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7341,
+      "x": 1125.578125,
+      "y": 859.6875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7379,
+      "x": 988.4453125,
+      "y": 875.23046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7423,
+      "x": 797.75390625,
+      "y": 882.30859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7461,
+      "x": 674.63671875,
+      "y": 884.046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7501,
+      "x": 636.59765625,
+      "y": 881.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7539,
+      "x": 633.734375,
+      "y": 880.9140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7579,
+      "x": 630.05859375,
+      "y": 878.86328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7679,
+      "x": 629.640625,
+      "y": 878.04296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7729,
+      "x": 706.6875,
+      "y": 871.15625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7761,
+      "x": 785.734375,
+      "y": 862.82421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7883,
+      "x": 794.9453125,
+      "y": 863.23046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7926,
+      "x": 890.0078125,
+      "y": 859.37890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 7965,
+      "x": 1037.1328125,
+      "y": 841.85546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8008,
+      "x": 1158.23046875,
+      "y": 830.00390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8043,
+      "x": 1217.25,
+      "y": 828.52734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8081,
+      "x": 1270.26171875,
+      "y": 830.0,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8125,
+      "x": 1347.3046875,
+      "y": 826.48828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8163,
+      "x": 1498.4375,
+      "y": 800.04296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8201,
+      "x": 1694.171875,
+      "y": 740.1953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8241,
+      "x": 1820.80078125,
+      "y": 683.28125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8279,
+      "x": 1885.2890625,
+      "y": 636.12109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8321,
+      "x": 1919.98046875,
+      "y": 608.35546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8357,
+      "x": 1919.98046875,
+      "y": 604.2734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8397,
+      "x": 1919.98046875,
+      "y": 600.19140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8439,
+      "x": 1919.98046875,
+      "y": 598.9609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8557,
+      "x": 1909.875,
+      "y": 607.6953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8595,
+      "x": 1888.9921875,
+      "y": 620.12109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8639,
+      "x": 1881.96875,
+      "y": 625.33203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8827,
+      "x": 1880.57421875,
+      "y": 626.93359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8865,
+      "x": 1846.515625,
+      "y": 638.8515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 8985,
+      "x": 1822.03125,
+      "y": 660.41015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9023,
+      "x": 1797.03125,
+      "y": 670.1328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9067,
+      "x": 1793.4375,
+      "y": 668.28125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9110,
+      "x": 1795.0625,
+      "y": 665.01171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9149,
+      "x": 1797.90625,
+      "y": 662.55859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9192,
+      "x": 1800.75,
+      "y": 658.4765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9227,
+      "x": 1802.375,
+      "y": 654.80078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9265,
+      "x": 1803.1875,
+      "y": 651.53125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9493,
+      "x": 1804.0,
+      "y": 649.890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9527,
+      "x": 1806.03125,
+      "y": 649.0703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9565,
+      "x": 1808.46875,
+      "y": 647.83984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9713,
+      "x": 1810.09375,
+      "y": 646.19921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9759,
+      "x": 1813.75,
+      "y": 643.74609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9791,
+      "x": 1822.75390625,
+      "y": 637.81640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9831,
+      "x": 1830.73828125,
+      "y": 632.203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9876,
+      "x": 1843.78515625,
+      "y": 612.5390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9913,
+      "x": 1856.9921875,
+      "y": 594.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9951,
+      "x": 1859.8359375,
+      "y": 590.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 9993,
+      "x": 1862.6796875,
+      "y": 587.3046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10029,
+      "x": 1865.9296875,
+      "y": 583.22265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10076,
+      "x": 1867.5546875,
+      "y": 580.359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10108,
+      "x": 1870.3984375,
+      "y": 576.27734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10147,
+      "x": 1873.21875,
+      "y": 570.234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10185,
+      "x": 1873.625,
+      "y": 566.15234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10224,
+      "x": 1874.03125,
+      "y": 562.0703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10267,
+      "x": 1873.62109375,
+      "y": 558.80078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10305,
+      "x": 1873.01953125,
+      "y": 553.73828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10345,
+      "x": 1874.23828125,
+      "y": 550.46875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10400,
+      "x": 1876.26953125,
+      "y": 547.19921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10427,
+      "x": 1880.33203125,
+      "y": 543.1171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10471,
+      "x": 1886.35546875,
+      "y": 538.26953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10509,
+      "x": 1892.04296875,
+      "y": 532.5625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10547,
+      "x": 1894.88671875,
+      "y": 530.10546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10591,
+      "x": 1897.32421875,
+      "y": 527.6484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10629,
+      "x": 1899.35546875,
+      "y": 525.6015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10757,
+      "x": 1900.16796875,
+      "y": 523.5546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10801,
+      "x": 1900.57421875,
+      "y": 520.69140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 10867,
+      "x": 1900.57421875,
+      "y": 518.640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 11319,
+      "x": 1900.98046875,
+      "y": 516.58984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 11365,
+      "x": 1900.98046875,
+      "y": 514.5390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 11410,
+      "x": 1902.13671875,
+      "y": 499.5078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 11447,
+      "x": 1903.6796875,
+      "y": 486.48046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 11496,
+      "x": 1904.0859375,
+      "y": 483.6171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 11600,
+      "x": 1904.4921875,
+      "y": 481.56640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 11809,
+      "x": 1900.2421875,
+      "y": 483.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12067,
+      "x": 1898.6015625,
+      "y": 485.60546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12251,
+      "x": 1896.55078125,
+      "y": 486.41796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12658,
+      "x": 1865.97265625,
+      "y": 518.96875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12695,
+      "x": 1733.4453125,
+      "y": 608.89453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12745,
+      "x": 1578.91796875,
+      "y": 679.875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12777,
+      "x": 1491.140625,
+      "y": 715.625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12815,
+      "x": 1446.1171875,
+      "y": 734.6640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12859,
+      "x": 1440.07421875,
+      "y": 737.67578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12897,
+      "x": 1436.8046875,
+      "y": 740.51953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12940,
+      "x": 1432.72265625,
+      "y": 743.36328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 12975,
+      "x": 1429.046875,
+      "y": 745.39453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 13015,
+      "x": 1424.58203125,
+      "y": 750.4375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 13059,
+      "x": 1421.71875,
+      "y": 754.5,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 13093,
+      "x": 1419.26171875,
+      "y": 757.75,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 13131,
+      "x": 1416.8046875,
+      "y": 760.59375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 13187,
+      "x": 1415.1640625,
+      "y": 762.625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24500,
+      "x": 1448.98046875,
+      "y": 774.921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24531,
+      "x": 1580.0859375,
+      "y": 788.57421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24575,
+      "x": 1755.24609375,
+      "y": 770.66796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24610,
+      "x": 1919.98046875,
+      "y": 743.71484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24649,
+      "x": 1919.98046875,
+      "y": 737.16796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24689,
+      "x": 1887.453125,
+      "y": 754.484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24727,
+      "x": 1848.921875,
+      "y": 804.30859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24809,
+      "x": 1845.79296875,
+      "y": 809.31640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24847,
+      "x": 1846.765625,
+      "y": 805.5234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24887,
+      "x": 1844.30859375,
+      "y": 807.5546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24933,
+      "x": 1829.68359375,
+      "y": 802.46484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 24973,
+      "x": 1762.640625,
+      "y": 799.52734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25013,
+      "x": 1631.51171875,
+      "y": 801.28125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25051,
+      "x": 1502.390625,
+      "y": 816.6875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25090,
+      "x": 1423.33203125,
+      "y": 832.37109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25283,
+      "x": 1404.49609375,
+      "y": 833.76953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25327,
+      "x": 1416.484375,
+      "y": 830.84765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25365,
+      "x": 1490.109375,
+      "y": 797.5390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25405,
+      "x": 1655.92578125,
+      "y": 735.16796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25443,
+      "x": 1754.328125,
+      "y": 691.890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25483,
+      "x": 1849.7421875,
+      "y": 659.140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25525,
+      "x": 1919.98046875,
+      "y": 645.27734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25561,
+      "x": 1919.98046875,
+      "y": 640.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25599,
+      "x": 1919.98046875,
+      "y": 638.1171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25643,
+      "x": 1918.96875,
+      "y": 633.4609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25681,
+      "x": 1918.1484375,
+      "y": 629.37890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25725,
+      "x": 1917.73828125,
+      "y": 625.296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25759,
+      "x": 1914.46875,
+      "y": 621.21484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25799,
+      "x": 1909.62109375,
+      "y": 615.171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25842,
+      "x": 1907.16796875,
+      "y": 611.49609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25877,
+      "x": 1906.7578125,
+      "y": 594.4609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25915,
+      "x": 1914.8125,
+      "y": 551.44140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 25981,
+      "x": 1913.17578125,
+      "y": 539.390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26025,
+      "x": 1909.9296875,
+      "y": 534.328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26064,
+      "x": 1909.109375,
+      "y": 530.65234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26211,
+      "x": 1908.69921875,
+      "y": 531.05078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26301,
+      "x": 1906.6484375,
+      "y": 531.05078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26441,
+      "x": 1905.0078125,
+      "y": 531.046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26885,
+      "x": 1899.34765625,
+      "y": 549.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26925,
+      "x": 1861.33203125,
+      "y": 617.77734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 26963,
+      "x": 1738.375,
+      "y": 734.91796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 27008,
+      "x": 1556.6953125,
+      "y": 825.69140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 27041,
+      "x": 1355.14453125,
+      "y": 878.4765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 27085,
+      "x": 1208.0,
+      "y": 873.4453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 27123,
+      "x": 1162.1328125,
+      "y": 858.3671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 27175,
+      "x": 1160.3046875,
+      "y": 852.73046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 27502,
+      "x": 1162.7421875,
+      "y": 853.9453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 28983,
+      "x": 1163.5546875,
+      "y": 856.3828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29026,
+      "x": 1165.9921875,
+      "y": 858.8203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29165,
+      "x": 1209.8203125,
+      "y": 862.46484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29201,
+      "x": 1233.94140625,
+      "y": 872.04296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29267,
+      "x": 1196.9140625,
+      "y": 855.078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29311,
+      "x": 1149.88671875,
+      "y": 841.265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29349,
+      "x": 1066.81640625,
+      "y": 843.11328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29390,
+      "x": 947.703125,
+      "y": 848.265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29431,
+      "x": 862.6328125,
+      "y": 840.34765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29474,
+      "x": 843.59375,
+      "y": 836.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29909,
+      "x": 835.37890625,
+      "y": 834.125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29941,
+      "x": 753.98828125,
+      "y": 808.3671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 29981,
+      "x": 627.7421875,
+      "y": 753.18359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30024,
+      "x": 456.56640625,
+      "y": 738.92578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30063,
+      "x": 357.48046875,
+      "y": 753.57421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30107,
+      "x": 332.84765625,
+      "y": 754.97265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30208,
+      "x": 362.85546875,
+      "y": 752.26953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30243,
+      "x": 457.91796875,
+      "y": 737.83984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30281,
+      "x": 589.02734375,
+      "y": 739.48828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30323,
+      "x": 632.02734375,
+      "y": 737.16796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30445,
+      "x": 637.8515625,
+      "y": 737.5703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30483,
+      "x": 652.35546875,
+      "y": 763.25390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30526,
+      "x": 680.0078125,
+      "y": 786.8046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30561,
+      "x": 729.015625,
+      "y": 795.07421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30601,
+      "x": 780.02734375,
+      "y": 788.265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 30641,
+      "x": 802.0234375,
+      "y": 778.73046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 33826,
+      "x": 793.6015625,
+      "y": 773.515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 33863,
+      "x": 732.08984375,
+      "y": 737.03125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 33908,
+      "x": 650.6015625,
+      "y": 716.24609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 33945,
+      "x": 593.5625,
+      "y": 718.4921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34025,
+      "x": 620.35546875,
+      "y": 714.06640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34061,
+      "x": 709.4140625,
+      "y": 701.0546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34108,
+      "x": 724.015625,
+      "y": 701.0546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34147,
+      "x": 722.41796875,
+      "y": 715.25390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34192,
+      "x": 714.61328125,
+      "y": 752.25390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34225,
+      "x": 715.48046875,
+      "y": 761.2578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34267,
+      "x": 719.54296875,
+      "y": 765.3203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34340,
+      "x": 721.98046875,
+      "y": 767.3515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34375,
+      "x": 722.79296875,
+      "y": 769.3828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34625,
+      "x": 715.390625,
+      "y": 767.58984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34659,
+      "x": 658.3515625,
+      "y": 751.5234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34699,
+      "x": 577.28515625,
+      "y": 742.203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34739,
+      "x": 514.2421875,
+      "y": 743.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34777,
+      "x": 498.59375,
+      "y": 742.0234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34873,
+      "x": 505.72265625,
+      "y": 752.65234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34913,
+      "x": 544.0234375,
+      "y": 775.02734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34951,
+      "x": 581.0234375,
+      "y": 785.41796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 34991,
+      "x": 587.046875,
+      "y": 785.0078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35160,
+      "x": 589.078125,
+      "y": 785.41015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35361,
+      "x": 575.78515625,
+      "y": 760.65625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35399,
+      "x": 515.46875,
+      "y": 720.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35442,
+      "x": 454.42578125,
+      "y": 705.8515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35477,
+      "x": 433.79296875,
+      "y": 700.58984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35611,
+      "x": 462.58203125,
+      "y": 709.9296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35649,
+      "x": 517.59765625,
+      "y": 717.23828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35693,
+      "x": 535.63671875,
+      "y": 718.05078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35731,
+      "x": 538.75,
+      "y": 738.6640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35774,
+      "x": 525.8125,
+      "y": 793.68359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35817,
+      "x": 523.7890625,
+      "y": 815.3203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35858,
+      "x": 526.6328125,
+      "y": 817.3515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35908,
+      "x": 529.4765625,
+      "y": 817.7578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35957,
+      "x": 533.1328125,
+      "y": 818.5703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 35999,
+      "x": 535.1640625,
+      "y": 820.6015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 36040,
+      "x": 537.6015625,
+      "y": 821.8203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38065,
+      "x": 538.8203125,
+      "y": 823.4453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38109,
+      "x": 540.0390625,
+      "y": 825.8828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38151,
+      "x": 543.58984375,
+      "y": 834.88671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38191,
+      "x": 550.19921875,
+      "y": 845.890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38229,
+      "x": 551.41796875,
+      "y": 849.953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38275,
+      "x": 551.82421875,
+      "y": 853.203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38308,
+      "x": 577.828125,
+      "y": 856.76171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38347,
+      "x": 646.859375,
+      "y": 853.6328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38385,
+      "x": 739.91796875,
+      "y": 851.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38425,
+      "x": 792.9296875,
+      "y": 845.8046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38509,
+      "x": 792.51171875,
+      "y": 846.2109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38557,
+      "x": 789.2421875,
+      "y": 846.6171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38591,
+      "x": 785.56640625,
+      "y": 846.6171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38642,
+      "x": 783.109375,
+      "y": 846.6171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38677,
+      "x": 770.08203125,
+      "y": 850.4765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38717,
+      "x": 731.05859375,
+      "y": 856.96484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38758,
+      "x": 710.42578125,
+      "y": 856.96484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38842,
+      "x": 714.4140625,
+      "y": 856.96484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38877,
+      "x": 738.41796875,
+      "y": 855.0625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38915,
+      "x": 787.42578125,
+      "y": 860.53125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 38958,
+      "x": 807.421875,
+      "y": 865.8828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 41831,
+      "x": 807.0078125,
+      "y": 865.0625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 54975,
+      "x": 834.06640625,
+      "y": 837.125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55017,
+      "x": 986.4765625,
+      "y": 697.4375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55058,
+      "x": 1073.171875,
+      "y": 631.015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55092,
+      "x": 1106.91015625,
+      "y": 606.48046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55135,
+      "x": 1136.66796875,
+      "y": 577.61328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55190,
+      "x": 1137.6875,
+      "y": 578.1796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55229,
+      "x": 1125.1796875,
+      "y": 615.17578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55267,
+      "x": 1119.6171875,
+      "y": 624.796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55365,
+      "x": 1129.015625,
+      "y": 665.02734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55406,
+      "x": 1157.79296875,
+      "y": 786.12109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55447,
+      "x": 1100.2421875,
+      "y": 994.2421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55490,
+      "x": 1072.25,
+      "y": 1079.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55860,
+      "x": 1016.703125,
+      "y": 1078.18359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55894,
+      "x": 1022.390625,
+      "y": 1072.0703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55931,
+      "x": 1026.8125,
+      "y": 1066.02734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 55974,
+      "x": 1041.22265625,
+      "y": 1041.80859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56009,
+      "x": 1037.140625,
+      "y": 1042.21484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56178,
+      "x": 1038.35546875,
+      "y": 1043.83984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56215,
+      "x": 1040.79296875,
+      "y": 1045.05859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56261,
+      "x": 1045.59765625,
+      "y": 1046.46875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56301,
+      "x": 1069.59765625,
+      "y": 1051.50390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56340,
+      "x": 1102.58984375,
+      "y": 1057.56640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56496,
+      "x": 1107.1875,
+      "y": 1057.96875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56536,
+      "x": 1103.91796875,
+      "y": 1055.51171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56577,
+      "x": 1101.0546875,
+      "y": 1054.69140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56617,
+      "x": 1096.97265625,
+      "y": 1054.69140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56656,
+      "x": 1091.91015625,
+      "y": 1054.69140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56693,
+      "x": 1088.640625,
+      "y": 1054.28125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56734,
+      "x": 1085.37109375,
+      "y": 1053.4609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56793,
+      "x": 1082.1015625,
+      "y": 1053.4609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56827,
+      "x": 1068.09765625,
+      "y": 1058.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56866,
+      "x": 1062.0546875,
+      "y": 1060.2578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56906,
+      "x": 1058.37890625,
+      "y": 1060.6640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56943,
+      "x": 1055.515625,
+      "y": 1061.0703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 56984,
+      "x": 1047.87890625,
+      "y": 1062.828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57023,
+      "x": 1036.89453125,
+      "y": 1064.0234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57085,
+      "x": 1005.88671875,
+      "y": 1062.44140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57127,
+      "x": 1000.04296875,
+      "y": 1061.08203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57165,
+      "x": 997.9921875,
+      "y": 1060.26171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57209,
+      "x": 995.9453125,
+      "y": 1059.44140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57275,
+      "x": 993.48828125,
+      "y": 1059.03125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57313,
+      "x": 988.42578125,
+      "y": 1056.19140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57357,
+      "x": 981.40234375,
+      "y": 1053.56640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57395,
+      "x": 970.375,
+      "y": 1051.8046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57442,
+      "x": 967.51171875,
+      "y": 1051.39453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57482,
+      "x": 965.0546875,
+      "y": 1051.80078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57527,
+      "x": 960.97265625,
+      "y": 1052.20703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57559,
+      "x": 957.296875,
+      "y": 1052.20703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57597,
+      "x": 954.83984375,
+      "y": 1050.9765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57640,
+      "x": 952.3828125,
+      "y": 1049.74609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57675,
+      "x": 948.70703125,
+      "y": 1049.3359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57715,
+      "x": 945.03125,
+      "y": 1049.7421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 57810,
+      "x": 942.984375,
+      "y": 1049.73828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60177,
+      "x": 941.75,
+      "y": 1050.14453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60233,
+      "x": 967.75390625,
+      "y": 1059.453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60277,
+      "x": 996.734375,
+      "y": 1058.29296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60315,
+      "x": 1043.7421875,
+      "y": 1050.0078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60358,
+      "x": 1098.7578125,
+      "y": 1048.53125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60397,
+      "x": 1107.3984375,
+      "y": 1049.6875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60435,
+      "x": 1109.8359375,
+      "y": 1049.6875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60479,
+      "x": 1112.2734375,
+      "y": 1049.27734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60526,
+      "x": 1115.5234375,
+      "y": 1048.45703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60567,
+      "x": 1120.56640625,
+      "y": 1047.85546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60609,
+      "x": 1125.609375,
+      "y": 1047.03515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 60645,
+      "x": 1128.453125,
+      "y": 1046.625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 61578,
+      "x": 1131.69921875,
+      "y": 1043.3671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 61615,
+      "x": 1137.85546875,
+      "y": 1036.35546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 61794,
+      "x": 1135.40234375,
+      "y": 1036.34765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 61831,
+      "x": 1138.05078125,
+      "y": 1020.3359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 61927,
+      "x": 1137.23046875,
+      "y": 1018.69921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 61967,
+      "x": 1109.19921875,
+      "y": 1034.80859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62009,
+      "x": 1008.109375,
+      "y": 1049.65234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62049,
+      "x": 955.07421875,
+      "y": 1038.75390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62091,
+      "x": 949.640625,
+      "y": 1034.9453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62131,
+      "x": 952.890625,
+      "y": 1030.86328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62175,
+      "x": 957.52734375,
+      "y": 1028.625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62350,
+      "x": 955.890625,
+      "y": 1026.578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62396,
+      "x": 952.62109375,
+      "y": 1024.9375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 62427,
+      "x": 948.5390625,
+      "y": 1024.52734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63184,
+      "x": 946.0859375,
+      "y": 1024.1171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63231,
+      "x": 970.0859375,
+      "y": 1021.796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63273,
+      "x": 1005.08203125,
+      "y": 1016.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63309,
+      "x": 1030.05859375,
+      "y": 1016.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63359,
+      "x": 1033.4765625,
+      "y": 1017.140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63397,
+      "x": 1037.1328125,
+      "y": 1017.140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63435,
+      "x": 1041.1953125,
+      "y": 1016.73046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63475,
+      "x": 1045.2578125,
+      "y": 1015.91015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 63513,
+      "x": 1048.9140625,
+      "y": 1015.08984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 64175,
+      "x": 1050.5390625,
+      "y": 1013.453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 64233,
+      "x": 1157.99609375,
+      "y": 778.50390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 64274,
+      "x": 1228.62109375,
+      "y": 679.41015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 64311,
+      "x": 1241.8828125,
+      "y": 664.3203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 78710,
+      "x": 1234.7421875,
+      "y": 522.5703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 78747,
+      "x": 1171.64453125,
+      "y": 356.34765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 78792,
+      "x": 743.58203125,
+      "y": 201.625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 78983,
+      "x": 723.16015625,
+      "y": 180.609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79023,
+      "x": 714.734375,
+      "y": 184.37109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79061,
+      "x": 715.9140625,
+      "y": 204.3671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79101,
+      "x": 743.78515625,
+      "y": 273.78125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79140,
+      "x": 778.7890625,
+      "y": 375.52734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79179,
+      "x": 844.65625,
+      "y": 494.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79223,
+      "x": 912.91015625,
+      "y": 581.73828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79261,
+      "x": 925.234375,
+      "y": 590.45703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79542,
+      "x": 892.58984375,
+      "y": 582.4609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79577,
+      "x": 769.46875,
+      "y": 565.40625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79615,
+      "x": 632.3359375,
+      "y": 554.9375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79658,
+      "x": 569.2890625,
+      "y": 558.86328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79739,
+      "x": 570.09765625,
+      "y": 561.70703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79779,
+      "x": 665.16015625,
+      "y": 566.7578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79817,
+      "x": 883.1875,
+      "y": 526.3515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 79857,
+      "x": 913.9921875,
+      "y": 506.08203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80009,
+      "x": 846.55859375,
+      "y": 479.51171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80047,
+      "x": 803.8515625,
+      "y": 481.1875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80091,
+      "x": 794.1484375,
+      "y": 516.18359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80125,
+      "x": 811.5390625,
+      "y": 593.2265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80165,
+      "x": 856.734375,
+      "y": 691.91015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80208,
+      "x": 911.73828125,
+      "y": 736.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80247,
+      "x": 972.765625,
+      "y": 740.14453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80309,
+      "x": 984.9609375,
+      "y": 738.984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80597,
+      "x": 1002.3515625,
+      "y": 732.11328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80641,
+      "x": 1143.46875,
+      "y": 704.24609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80679,
+      "x": 1336.6484375,
+      "y": 660.953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80723,
+      "x": 1539.8359375,
+      "y": 619.2109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80758,
+      "x": 1684.95703125,
+      "y": 594.640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80811,
+      "x": 1715.171875,
+      "y": 587.765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80897,
+      "x": 1712.71484375,
+      "y": 587.765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80941,
+      "x": 1696.49609375,
+      "y": 594.45703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 80975,
+      "x": 1519.63671875,
+      "y": 653.8515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81015,
+      "x": 1188.125,
+      "y": 703.80859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81057,
+      "x": 930.29296875,
+      "y": 728.30859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81097,
+      "x": 823.1953125,
+      "y": 744.94921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81135,
+      "x": 790.55078125,
+      "y": 753.8203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81609,
+      "x": 791.36328125,
+      "y": 751.7734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81647,
+      "x": 767.7578125,
+      "y": 604.44921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81685,
+      "x": 705.1015625,
+      "y": 553.203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81725,
+      "x": 640.0546875,
+      "y": 551.453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81767,
+      "x": 564.61328125,
+      "y": 598.61328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81809,
+      "x": 495.70703125,
+      "y": 692.9296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81858,
+      "x": 499.81640625,
+      "y": 757.0078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81891,
+      "x": 580.21484375,
+      "y": 785.45703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81931,
+      "x": 641.23828125,
+      "y": 788.4609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 81974,
+      "x": 653.265625,
+      "y": 788.05078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 82781,
+      "x": 657.08203125,
+      "y": 796.25390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 82826,
+      "x": 671.59375,
+      "y": 853.2734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 82859,
+      "x": 699.08984375,
+      "y": 936.671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 82901,
+      "x": 807.078125,
+      "y": 1005.109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 82941,
+      "x": 922.16796875,
+      "y": 1008.66796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 82979,
+      "x": 991.19921875,
+      "y": 982.65234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83026,
+      "x": 1028.66015625,
+      "y": 940.59765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83160,
+      "x": 1036.6171875,
+      "y": 914.16015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83197,
+      "x": 1013.9375,
+      "y": 913.41015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83241,
+      "x": 1006.09375,
+      "y": 915.31640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83279,
+      "x": 993.52734375,
+      "y": 855.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83317,
+      "x": 945.1171875,
+      "y": 729.0390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83358,
+      "x": 880.875,
+      "y": 664.35546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83395,
+      "x": 853.87109375,
+      "y": 655.53125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83723,
+      "x": 849.21484375,
+      "y": 656.53515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83759,
+      "x": 736.10546875,
+      "y": 652.9140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83801,
+      "x": 574.94140625,
+      "y": 621.15625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 83841,
+      "x": 495.87890625,
+      "y": 609.92578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84026,
+      "x": 488.6484375,
+      "y": 609.92578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84063,
+      "x": 484.97265625,
+      "y": 606.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84105,
+      "x": 474.73046875,
+      "y": 584.234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84145,
+      "x": 444.73046875,
+      "y": 521.19140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84183,
+      "x": 436.2109375,
+      "y": 502.96484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84783,
+      "x": 459.0,
+      "y": 498.18359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84824,
+      "x": 624.1484375,
+      "y": 475.07421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84861,
+      "x": 729.2265625,
+      "y": 460.08984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84901,
+      "x": 767.2421875,
+      "y": 457.25390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 84981,
+      "x": 758.953125,
+      "y": 376.19140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85025,
+      "x": 747.8046875,
+      "y": 295.125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85065,
+      "x": 740.28125,
+      "y": 258.10546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85107,
+      "x": 740.5234375,
+      "y": 237.11328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85161,
+      "x": 741.3359375,
+      "y": 233.26953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85201,
+      "x": 743.93359375,
+      "y": 209.24609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85241,
+      "x": 756.21875,
+      "y": 174.23046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85279,
+      "x": 757.8203125,
+      "y": 169.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85435,
+      "x": 756.66015625,
+      "y": 201.58203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85475,
+      "x": 768.0078125,
+      "y": 252.58984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85513,
+      "x": 783.61328125,
+      "y": 331.63671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85557,
+      "x": 834.234375,
+      "y": 550.12890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85595,
+      "x": 848.578125,
+      "y": 725.28515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85635,
+      "x": 854.953125,
+      "y": 804.328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85909,
+      "x": 854.953125,
+      "y": 812.52734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85949,
+      "x": 867.00390625,
+      "y": 677.3984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 85992,
+      "x": 845.48046875,
+      "y": 484.19921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86027,
+      "x": 801.640625,
+      "y": 374.453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86065,
+      "x": 784.2109375,
+      "y": 293.38671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86108,
+      "x": 771.703125,
+      "y": 256.37109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86143,
+      "x": 767.9765625,
+      "y": 248.328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86183,
+      "x": 765.11328125,
+      "y": 245.46484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86224,
+      "x": 761.84375,
+      "y": 242.1953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86274,
+      "x": 758.57421875,
+      "y": 241.375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86311,
+      "x": 754.4921875,
+      "y": 239.328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86357,
+      "x": 744.171875,
+      "y": 229.9765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86407,
+      "x": 736.515625,
+      "y": 220.61328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86443,
+      "x": 734.05859375,
+      "y": 217.34375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86591,
+      "x": 732.421875,
+      "y": 215.296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86799,
+      "x": 730.37109375,
+      "y": 215.69921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86899,
+      "x": 676.1015625,
+      "y": 226.1015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86940,
+      "x": 528.953125,
+      "y": 231.31640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 86981,
+      "x": 453.89453125,
+      "y": 231.31640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87065,
+      "x": 450.87109375,
+      "y": 230.49609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87183,
+      "x": 452.90234375,
+      "y": 229.67578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87223,
+      "x": 455.74609375,
+      "y": 231.70703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87399,
+      "x": 472.609375,
+      "y": 252.28125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87440,
+      "x": 595.5859375,
+      "y": 412.4765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87477,
+      "x": 778.6328125,
+      "y": 692.671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87515,
+      "x": 862.1953125,
+      "y": 868.2734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 87557,
+      "x": 880.08984375,
+      "y": 921.60546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 88126,
+      "x": 880.90234375,
+      "y": 923.23046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90161,
+      "x": 882.52734375,
+      "y": 921.18359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90201,
+      "x": 937.546875,
+      "y": 907.11328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90243,
+      "x": 1056.640625,
+      "y": 891.80859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90279,
+      "x": 1169.72265625,
+      "y": 874.94921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90317,
+      "x": 1232.75,
+      "y": 858.6015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90373,
+      "x": 1237.76171875,
+      "y": 855.47265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90694,
+      "x": 1238.57421875,
+      "y": 854.2421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90735,
+      "x": 1544.96484375,
+      "y": 648.7109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90777,
+      "x": 1919.98046875,
+      "y": 418.8125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90817,
+      "x": 1919.98046875,
+      "y": 360.4140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90858,
+      "x": 1919.98046875,
+      "y": 360.6953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90895,
+      "x": 1919.98046875,
+      "y": 363.1328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90933,
+      "x": 1917.9375,
+      "y": 367.1953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 90999,
+      "x": 1915.07421875,
+      "y": 369.2265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91039,
+      "x": 1912.8359375,
+      "y": 377.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91117,
+      "x": 1900.671875,
+      "y": 452.28515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91157,
+      "x": 1896.76953125,
+      "y": 489.28515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91207,
+      "x": 1882.82421875,
+      "y": 534.29296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91241,
+      "x": 1879.26171875,
+      "y": 546.28125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91281,
+      "x": 1878.25,
+      "y": 553.28515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91385,
+      "x": 1880.6875,
+      "y": 551.23828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91425,
+      "x": 1883.53125,
+      "y": 547.15625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91463,
+      "x": 1886.375,
+      "y": 543.07421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91503,
+      "x": 1889.6015625,
+      "y": 538.01171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91542,
+      "x": 1891.2265625,
+      "y": 533.9296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91659,
+      "x": 1892.4453125,
+      "y": 531.47265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91697,
+      "x": 1893.6640625,
+      "y": 527.390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91745,
+      "x": 1895.015625,
+      "y": 520.328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 91787,
+      "x": 1896.234375,
+      "y": 516.24609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92211,
+      "x": 1896.640625,
+      "y": 513.7890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92251,
+      "x": 1896.640625,
+      "y": 510.11328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92296,
+      "x": 1896.640625,
+      "y": 506.84375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92329,
+      "x": 1895.8203125,
+      "y": 502.76171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92367,
+      "x": 1895.8203125,
+      "y": 499.8984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92407,
+      "x": 1895.8203125,
+      "y": 496.22265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92447,
+      "x": 1895.8203125,
+      "y": 492.953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92547,
+      "x": 1896.6328125,
+      "y": 490.90234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92593,
+      "x": 1897.0390625,
+      "y": 488.4453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92643,
+      "x": 1897.0390625,
+      "y": 486.39453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 92826,
+      "x": 1897.4453125,
+      "y": 484.75390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 93151,
+      "x": 1887.00390625,
+      "y": 493.35546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 93195,
+      "x": 1738.5625,
+      "y": 604.5703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 93233,
+      "x": 1518.265625,
+      "y": 717.296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 93275,
+      "x": 1385.1328125,
+      "y": 746.73828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 93313,
+      "x": 1330.09375,
+      "y": 754.609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95031,
+      "x": 1327.640625,
+      "y": 756.640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95203,
+      "x": 1326.41015625,
+      "y": 759.078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95283,
+      "x": 1327.62890625,
+      "y": 762.328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95389,
+      "x": 1362.01953125,
+      "y": 740.0546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95431,
+      "x": 1627.453125,
+      "y": 637.33203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95474,
+      "x": 1919.98046875,
+      "y": 519.79296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95509,
+      "x": 1919.98046875,
+      "y": 461.234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95549,
+      "x": 1919.98046875,
+      "y": 445.83984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95669,
+      "x": 1917.7734375,
+      "y": 443.41015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95718,
+      "x": 1910.515625,
+      "y": 436.53125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95747,
+      "x": 1910.10546875,
+      "y": 433.66796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95795,
+      "x": 1909.28515625,
+      "y": 430.8046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95856,
+      "x": 1908.0546875,
+      "y": 428.7578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95895,
+      "x": 1905.19140625,
+      "y": 428.34765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 95948,
+      "x": 1903.9609375,
+      "y": 426.70703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96136,
+      "x": 1902.3203125,
+      "y": 427.10546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96173,
+      "x": 1881.16015625,
+      "y": 436.80078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96211,
+      "x": 1740.5625,
+      "y": 503.48046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96251,
+      "x": 1442.1484375,
+      "y": 607.7578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96289,
+      "x": 1202.86328125,
+      "y": 714.8046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96335,
+      "x": 1078.30859375,
+      "y": 773.44921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96547,
+      "x": 1056.69140625,
+      "y": 781.48828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96587,
+      "x": 1058.72265625,
+      "y": 784.33203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96663,
+      "x": 1059.53515625,
+      "y": 788.15625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96715,
+      "x": 1061.16015625,
+      "y": 790.1875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 96761,
+      "x": 1062.78515625,
+      "y": 793.03125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97011,
+      "x": 1063.19140625,
+      "y": 796.44921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97053,
+      "x": 1063.59765625,
+      "y": 799.29296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97245,
+      "x": 1063.59765625,
+      "y": 801.32421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97487,
+      "x": 1061.95703125,
+      "y": 803.35546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97661,
+      "x": 1057.6328125,
+      "y": 821.55859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97701,
+      "x": 1039.83984375,
+      "y": 910.61328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97739,
+      "x": 989.79296875,
+      "y": 1011.3515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97779,
+      "x": 970.58984375,
+      "y": 1054.82421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 97931,
+      "x": 970.1796875,
+      "y": 1057.66796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 98083,
+      "x": 970.171875,
+      "y": 1057.66015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 98229,
+      "x": 969.7578125,
+      "y": 1056.4296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 98294,
+      "x": 970.5703125,
+      "y": 1055.19921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99299,
+      "x": 972.578125,
+      "y": 1051.76171875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99339,
+      "x": 1026.66015625,
+      "y": 980.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99377,
+      "x": 1071.64453125,
+      "y": 903.4296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99415,
+      "x": 1080.78515625,
+      "y": 891.3515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99459,
+      "x": 1082.41015625,
+      "y": 887.67578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99575,
+      "x": 1084.44140625,
+      "y": 886.03515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99615,
+      "x": 1122.45703125,
+      "y": 874.9609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99658,
+      "x": 1282.12890625,
+      "y": 814.390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99693,
+      "x": 1549.53515625,
+      "y": 663.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99731,
+      "x": 1868.6640625,
+      "y": 494.8359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99775,
+      "x": 1919.98046875,
+      "y": 415.56640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99813,
+      "x": 1919.98046875,
+      "y": 400.34375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99857,
+      "x": 1919.98046875,
+      "y": 397.88671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99929,
+      "x": 1919.98046875,
+      "y": 388.24609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 99975,
+      "x": 1919.98046875,
+      "y": 351.2265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100007,
+      "x": 1919.98046875,
+      "y": 336.19921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100047,
+      "x": 1910.9765625,
+      "y": 307.19140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100085,
+      "x": 1899.3125,
+      "y": 250.15234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100159,
+      "x": 1888.234375,
+      "y": 180.07421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100199,
+      "x": 1883.578125,
+      "y": 180.04296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100238,
+      "x": 1842.8046875,
+      "y": 214.515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100277,
+      "x": 1786.08203125,
+      "y": 246.38671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100315,
+      "x": 1749.0625,
+      "y": 259.09375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100357,
+      "x": 1670.0,
+      "y": 274.61328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100393,
+      "x": 1488.8125,
+      "y": 283.4453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100433,
+      "x": 1263.05078125,
+      "y": 268.46484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100475,
+      "x": 1012.734375,
+      "y": 268.3515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100515,
+      "x": 729.296875,
+      "y": 284.37890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100557,
+      "x": 681.24609375,
+      "y": 275.30859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100608,
+      "x": 680.42578125,
+      "y": 273.66796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100643,
+      "x": 680.42578125,
+      "y": 264.64453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100684,
+      "x": 669.734375,
+      "y": 250.5078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100725,
+      "x": 612.6953125,
+      "y": 234.5,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100763,
+      "x": 538.640625,
+      "y": 208.03515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100807,
+      "x": 518.625,
+      "y": 199.30078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 100907,
+      "x": 515.76171875,
+      "y": 197.6640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101294,
+      "x": 514.125,
+      "y": 198.47265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101333,
+      "x": 546.30078125,
+      "y": 309.80078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101375,
+      "x": 549.83203125,
+      "y": 480.95703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101411,
+      "x": 549.8046875,
+      "y": 636.09375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101449,
+      "x": 561.30859375,
+      "y": 701.125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101490,
+      "x": 565.84765625,
+      "y": 711.15234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101527,
+      "x": 567.06640625,
+      "y": 716.1953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101567,
+      "x": 569.09765625,
+      "y": 719.0390625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101609,
+      "x": 588.11328125,
+      "y": 727.47265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101649,
+      "x": 689.18359375,
+      "y": 743.96484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101691,
+      "x": 798.265625,
+      "y": 743.984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 101727,
+      "x": 859.2890625,
+      "y": 743.62890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113571,
+      "x": 1096.2109375,
+      "y": 739.56640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113597,
+      "x": 1919.98046875,
+      "y": 566.8359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113635,
+      "x": 1919.98046875,
+      "y": 482.44921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113717,
+      "x": 1901.8125,
+      "y": 480.12109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113755,
+      "x": 1584.87890625,
+      "y": 604.13671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113803,
+      "x": 1515.12890625,
+      "y": 524.1328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113845,
+      "x": 1437.375,
+      "y": 454.44921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113885,
+      "x": 1314.84765625,
+      "y": 404.48046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 113927,
+      "x": 1209.5546875,
+      "y": 372.61328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114108,
+      "x": 1207.75390625,
+      "y": 369.7734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114149,
+      "x": 1207.75390625,
+      "y": 365.69140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114191,
+      "x": 1196.95703125,
+      "y": 332.6796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114227,
+      "x": 1182.71875,
+      "y": 281.64453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114408,
+      "x": 1174.0390625,
+      "y": 279.97265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114447,
+      "x": 1113.59375,
+      "y": 310.296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114485,
+      "x": 1068.76171875,
+      "y": 339.69921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114525,
+      "x": 1051.91015625,
+      "y": 350.1484375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114563,
+      "x": 1048.234375,
+      "y": 350.9609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114601,
+      "x": 1044.96484375,
+      "y": 350.9609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114646,
+      "x": 1039.90234375,
+      "y": 350.9609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114683,
+      "x": 1025.89453125,
+      "y": 353.66015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114724,
+      "x": 1011.88671875,
+      "y": 356.95703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 114761,
+      "x": 1008.6171875,
+      "y": 357.36328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115011,
+      "x": 1010.8046875,
+      "y": 355.9375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115056,
+      "x": 1044.8046875,
+      "y": 383.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115093,
+      "x": 1112.8671875,
+      "y": 446.6328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115131,
+      "x": 1226.7890625,
+      "y": 517.2578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115176,
+      "x": 1352.3671875,
+      "y": 557.19140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115209,
+      "x": 1403.265625,
+      "y": 574.078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115265,
+      "x": 1405.703125,
+      "y": 576.109375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115307,
+      "x": 1408.546875,
+      "y": 575.6953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115377,
+      "x": 1418.78515625,
+      "y": 568.93359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115417,
+      "x": 1419.78125,
+      "y": 566.31640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115456,
+      "x": 1402.75,
+      "y": 567.234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115495,
+      "x": 1316.53515625,
+      "y": 509.41015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115533,
+      "x": 1175.70703125,
+      "y": 438.99609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115573,
+      "x": 1060.0859375,
+      "y": 394.7578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115611,
+      "x": 1009.0546875,
+      "y": 379.25,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115658,
+      "x": 988.19921875,
+      "y": 368.5546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115710,
+      "x": 987.375,
+      "y": 366.1015625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115833,
+      "x": 989.40625,
+      "y": 367.72265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115878,
+      "x": 1003.00390625,
+      "y": 420.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115911,
+      "x": 1022.5546875,
+      "y": 513.796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115951,
+      "x": 1055.890625,
+      "y": 589.59765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 115990,
+      "x": 1104.84375,
+      "y": 656.05078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116027,
+      "x": 1150.44140625,
+      "y": 697.4453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116073,
+      "x": 1176.44921875,
+      "y": 708.140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116251,
+      "x": 1179.24609375,
+      "y": 699.140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116291,
+      "x": 1182.390625,
+      "y": 689.13671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116441,
+      "x": 1184.828125,
+      "y": 685.4609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116499,
+      "x": 1188.078125,
+      "y": 684.23046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116540,
+      "x": 1192.140625,
+      "y": 680.9609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116577,
+      "x": 1194.984375,
+      "y": 678.9140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116617,
+      "x": 1202.6015625,
+      "y": 673.7734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116657,
+      "x": 1245.6015625,
+      "y": 663.796875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116699,
+      "x": 1370.69921875,
+      "y": 656.859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116741,
+      "x": 1477.78125,
+      "y": 643.45703125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 116779,
+      "x": 1538.80078125,
+      "y": 634.26953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117539,
+      "x": 1528.0078125,
+      "y": 634.265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117575,
+      "x": 1464.9609375,
+      "y": 622.23828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117613,
+      "x": 1319.8203125,
+      "y": 620.6328125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117656,
+      "x": 1114.60546875,
+      "y": 636.98046875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117693,
+      "x": 964.84375,
+      "y": 676.89453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117731,
+      "x": 885.20703125,
+      "y": 744.73828125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117773,
+      "x": 845.390625,
+      "y": 840.80859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117809,
+      "x": 857.75,
+      "y": 920.26953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117847,
+      "x": 921.67578125,
+      "y": 976.13671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117890,
+      "x": 992.70703125,
+      "y": 980.65234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117925,
+      "x": 1059.046875,
+      "y": 949.81640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 117965,
+      "x": 1085.7109375,
+      "y": 917.85546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 118008,
+      "x": 1086.546875,
+      "y": 882.84375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 118047,
+      "x": 1084.5,
+      "y": 879.57421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 118101,
+      "x": 1083.26953125,
+      "y": 878.34375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 118427,
+      "x": 1081.21875,
+      "y": 877.93359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 118823,
+      "x": 1079.578125,
+      "y": 878.74609375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119073,
+      "x": 1082.015625,
+      "y": 878.3359375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119260,
+      "x": 1103.890625,
+      "y": 792.03125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119293,
+      "x": 1152.17578125,
+      "y": 618.671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119333,
+      "x": 1173.8046875,
+      "y": 521.58984375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119376,
+      "x": 1149.37890625,
+      "y": 455.60546875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119411,
+      "x": 1121.6875,
+      "y": 426.03125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119449,
+      "x": 1068.65625,
+      "y": 408.78515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119493,
+      "x": 961.984375,
+      "y": 358.05078125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119527,
+      "x": 826.140625,
+      "y": 317.76953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119567,
+      "x": 733.05859375,
+      "y": 317.734375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119606,
+      "x": 635.9765625,
+      "y": 329.265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119649,
+      "x": 610.359375,
+      "y": 330.54296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119827,
+      "x": 636.765625,
+      "y": 335.05859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119859,
+      "x": 640.75390625,
+      "y": 334.0234375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119897,
+      "x": 609.53515625,
+      "y": 324.671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119942,
+      "x": 474.16015625,
+      "y": 289.7578125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 119975,
+      "x": 306.98828125,
+      "y": 245.3203125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120015,
+      "x": 159.83984375,
+      "y": 259.2265625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120057,
+      "x": 47.02734375,
+      "y": 310.05859375,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120097,
+      "x": 18.5546875,
+      "y": 355.31640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120135,
+      "x": 21.03515625,
+      "y": 404.32421875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120181,
+      "x": 24.26171875,
+      "y": 406.9296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120224,
+      "x": 50.62109375,
+      "y": 383.8515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120259,
+      "x": 81.14453125,
+      "y": 338.4296875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120299,
+      "x": 79.5078125,
+      "y": 329.1953125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120424,
+      "x": 77.8671875,
+      "y": 328.78515625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120467,
+      "x": 74.59765625,
+      "y": 329.59765625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120506,
+      "x": 71.328125,
+      "y": 330.81640625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120545,
+      "x": 67.24609375,
+      "y": 331.62890625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120583,
+      "x": 63.1640625,
+      "y": 332.44140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120623,
+      "x": 59.89453125,
+      "y": 332.44140625,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120673,
+      "x": 59.88671875,
+      "y": 330.39453125,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120735,
+      "x": 58.65625,
+      "y": 330.38671875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120793,
+      "x": 57.42578125,
+      "y": 331.19921875,
+      "event_type": "move",
+      "button": null
+    },
+    {
+      "timestamp_ms": 120845,
+      "x": 60.84375,
+      "y": 333.61328125,
+      "event_type": "move",
+      "button": null
+    }
+  ],
+  "keyboard_events": [
+    {
+      "timestamp_ms": 14777,
+      "key": "S",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 14829,
+      "key": "S",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 14964,
+      "key": "T",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 15054,
+      "key": "T",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 15204,
+      "key": "A",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 15309,
+      "key": "A",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 15444,
+      "key": "R",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 15504,
+      "key": "R",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 15623,
+      "key": "T",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 15684,
+      "key": "T",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 15804,
+      "key": "E",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 15879,
+      "key": "E",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 16013,
+      "key": "D",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 16089,
+      "key": "D",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 16105,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 16178,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 16284,
+      "key": "S",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 16358,
+      "key": "S",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 16424,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 16448,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 16989,
+      "key": "E",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 17034,
+      "key": "E",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 17143,
+      "key": "E",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 17214,
+      "key": "P",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 17231,
+      "key": "E",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 17258,
+      "key": "P",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 17429,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 17483,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 17634,
+      "key": "F",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 17708,
+      "key": "F",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 17742,
+      "key": "O",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 17828,
+      "key": "O",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 17876,
+      "key": "R",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 17964,
+      "key": "R",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 18040,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 18099,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 18526,
+      "key": "2",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 18578,
+      "key": "2",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 18594,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 18668,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 18789,
+      "key": "M",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 18894,
+      "key": "M",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 18976,
+      "key": "I",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19014,
+      "key": "I",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19119,
+      "key": "N",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19181,
+      "key": "N",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19284,
+      "key": "S",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19359,
+      "key": "S",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19404,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19478,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19525,
+      "key": "A",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19629,
+      "key": "N",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19645,
+      "key": "A",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19703,
+      "key": "N",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19751,
+      "key": "D",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19809,
+      "key": "D",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19853,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 19913,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 19974,
+      "key": "T",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 20033,
+      "key": "T",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 20063,
+      "key": "H",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 20138,
+      "key": "H",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 20177,
+      "key": "E",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 20259,
+      "key": "E",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 20409,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 20440,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 20770,
+      "key": "Backspace",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 20844,
+      "key": "Backspace",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 21024,
+      "key": "N",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 21084,
+      "key": "N",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 21189,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 21264,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 22389,
+      "key": "C",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 22494,
+      "key": "C",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 22524,
+      "key": "H",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 22599,
+      "key": "H",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 22616,
+      "key": "E",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 22727,
+      "key": "E",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 22843,
+      "key": "C",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 22978,
+      "key": "K",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 22993,
+      "key": "C",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 23033,
+      "key": "K",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 23199,
+      "key": "S",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 23259,
+      "key": "S",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 23634,
+      "key": "Backspace",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 23694,
+      "key": "Backspace",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 23934,
+      "key": "Enter",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 23978,
+      "key": "Enter",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 28362,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 28569,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 28693,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 28753,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 42880,
+      "key": "O",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 42943,
+      "key": "O",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 43030,
+      "key": "N",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 43109,
+      "key": "N",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 43179,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 43242,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 43299,
+      "key": "Y",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 43359,
+      "key": "Y",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 43434,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 43508,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 43600,
+      "key": "A",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 43725,
+      "key": "A",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 43884,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 43959,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 44034,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 44125,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 44214,
+      "key": "O",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 44306,
+      "key": "O",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 44379,
+      "key": "W",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 44459,
+      "key": "W",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 44499,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 44575,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 45474,
+      "key": ".",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 45564,
+      "key": ".",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 45730,
+      "key": "P",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 45792,
+      "key": "P",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 45984,
+      "key": "4",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 46059,
+      "key": "4",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 46124,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 46179,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 46764,
+      "key": "Backspace",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 46809,
+      "key": "Backspace",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 46884,
+      "key": "Backspace",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 46959,
+      "key": "Backspace",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 47035,
+      "key": "Backspace",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 47125,
+      "key": "Backspace",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 47846,
+      "key": "M",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 47908,
+      "key": "M",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 48009,
+      "key": "P",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 48084,
+      "key": "P",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 48295,
+      "key": "4",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 48374,
+      "key": "4",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 48414,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 48474,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 48609,
+      "key": "F",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 48659,
+      "key": "F",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 48684,
+      "key": "I",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 48761,
+      "key": "I",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 48867,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 48941,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 48973,
+      "key": "E",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 49029,
+      "key": "E",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 49149,
+      "key": "S",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 49224,
+      "key": "S",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 49256,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 49314,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 49374,
+      "key": "F",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 49449,
+      "key": "F",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 49495,
+      "key": "O",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 49573,
+      "key": "O",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 49599,
+      "key": "R",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 49692,
+      "key": "R",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 49734,
+      "key": "Space",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 49794,
+      "key": "Space",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 50410,
+      "key": "U",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 50485,
+      "key": "U",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 50624,
+      "key": "P",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 50695,
+      "key": "P",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 50800,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 50877,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 50981,
+      "key": "O",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 51059,
+      "key": "O",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 51430,
+      "key": "A",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 51535,
+      "key": "A",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 51551,
+      "key": "D",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 51624,
+      "key": "D",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 52179,
+      "key": "Enter",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 52274,
+      "key": "Enter",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 88408,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 88676,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 88870,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 88915,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 89305,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 89351,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 89455,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 89606,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 89666,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 89741,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 89920,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 90042,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 94541,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 94632,
+      "key": "`",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 94765,
+      "key": "`",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 94885,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 96956,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 97151,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 97240,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 97437,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 97582,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 97645,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 98245,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 98306,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 98396,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 98651,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 98771,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 98861,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 109796,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 109931,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 110098,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 110576,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 110681,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 110801,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 110876,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 110981,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 111118,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 111161,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 111358,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 111490,
+      "key": "T",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 111595,
+      "key": "T",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 111626,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 112331,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 112390,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 112451,
+      "key": "O",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 112559,
+      "key": "O",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 112577,
+      "key": "C",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 112660,
+      "key": "C",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 112744,
+      "key": "A",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 112858,
+      "key": "A",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 112876,
+      "key": "L",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 112931,
+      "key": "L",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 117011,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 117226,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 117341,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 117392,
+      "key": "MetaLeft",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 118195,
+      "key": "MetaLeft",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 118393,
+      "key": "Tab",
+      "event_type": "press"
+    },
+    {
+      "timestamp_ms": 118512,
+      "key": "Tab",
+      "event_type": "release"
+    },
+    {
+      "timestamp_ms": 118742,
+      "key": "MetaLeft",
+      "event_type": "release"
+    }
+  ],
+  "metadata": {
+    "started_at": "2025-11-04T15:27:55.448475-05:00",
+    "total_mouse_moves": 738,
+    "total_mouse_clicks": 0,
+    "total_keyboard_events": 230
+  }
+}

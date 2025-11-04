@@ -17,16 +17,27 @@ pub fn capture_screenshot(output_path: &Path, display_index: usize) -> Result<()
         ));
     }
 
-    let display = *displays.get(display_index).ok_or_else(|| {
+    if display_index >= displays.len() {
+        return Err(ScreenRecError::CaptureError(format!(
+            "Display {} not found (only {} displays available)",
+            display_index,
+            displays.len()
+        )));
+    }
+
+    let display = displays.into_iter().nth(display_index).ok_or_else(|| {
         ScreenRecError::CaptureError(format!("Display {} not found", display_index))
     })?;
 
-    log::info!("Display dimensions: {}x{}", display.width(), display.height());
+    log::info!(
+        "Display dimensions: {}x{}",
+        display.width(),
+        display.height()
+    );
 
     // Create capturer
-    let mut capturer = Capturer::new(display).map_err(|e| {
-        ScreenRecError::CaptureError(format!("Failed to create capturer: {}", e))
-    })?;
+    let mut capturer = Capturer::new(display)
+        .map_err(|e| ScreenRecError::CaptureError(format!("Failed to create capturer: {}", e)))?;
 
     let width = capturer.width();
     let height = capturer.height();

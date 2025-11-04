@@ -93,7 +93,10 @@ impl std::str::FromStr for AudioSource {
             "system" => Ok(AudioSource::System),
             "mic" => Ok(AudioSource::Mic),
             "both" => Ok(AudioSource::Both),
-            _ => Err(format!("Invalid audio source: {}. Use: none, system, mic, or both", s)),
+            _ => Err(format!(
+                "Invalid audio source: {}. Use: none, system, mic, or both",
+                s
+            )),
         }
     }
 }

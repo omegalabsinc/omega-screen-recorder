@@ -30,14 +30,16 @@ impl AudioCapture {
             AudioSource::None => return Ok(None),
             AudioSource::Mic | AudioSource::Both => {
                 // For microphone, use default input device
-                host.default_input_device()
-                    .ok_or_else(|| ScreenRecError::AudioError("No input device found".to_string()))?
+                host.default_input_device().ok_or_else(|| {
+                    ScreenRecError::AudioError("No input device found".to_string())
+                })?
             }
             AudioSource::System => {
                 // For system audio, try to get loopback device
                 // Note: System audio capture is tricky on some platforms
-                host.default_input_device()
-                    .ok_or_else(|| ScreenRecError::AudioError("No input device found".to_string()))?
+                host.default_input_device().ok_or_else(|| {
+                    ScreenRecError::AudioError("No input device found".to_string())
+                })?
             }
         };
 
@@ -68,7 +70,11 @@ impl AudioCapture {
         let sample_rate = self.config.sample_rate.0;
         let channels = self.config.channels;
 
-        log::info!("Starting audio capture at {} Hz, {} channels", sample_rate, channels);
+        log::info!(
+            "Starting audio capture at {} Hz, {} channels",
+            sample_rate,
+            channels
+        );
 
         let stream = self
             .device
@@ -97,11 +103,13 @@ impl AudioCapture {
                 },
                 None,
             )
-            .map_err(|e| ScreenRecError::AudioError(format!("Failed to build audio stream: {}", e)))?;
+            .map_err(|e| {
+                ScreenRecError::AudioError(format!("Failed to build audio stream: {}", e))
+            })?;
 
-        stream
-            .play()
-            .map_err(|e| ScreenRecError::AudioError(format!("Failed to play audio stream: {}", e)))?;
+        stream.play().map_err(|e| {
+            ScreenRecError::AudioError(format!("Failed to play audio stream: {}", e))
+        })?;
 
         Ok(stream)
     }

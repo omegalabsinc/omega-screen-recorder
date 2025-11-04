@@ -37,7 +37,10 @@ impl Frame {
             let b_diff = (self.data[idx + 2] as i32 - other.data[idx + 2] as i32).abs();
 
             // If any component differs significantly, count it
-            if r_diff > max_diff_threshold || g_diff > max_diff_threshold || b_diff > max_diff_threshold {
+            if r_diff > max_diff_threshold
+                || g_diff > max_diff_threshold
+                || b_diff > max_diff_threshold
+            {
                 diff_count += 1;
             }
         }
@@ -76,12 +79,13 @@ impl ScreenCapture {
             )));
         }
 
-        log::info!("Screen capture configured for display {} @ {}fps", display_index, fps);
-
-        Ok(Self {
+        log::info!(
+            "Screen capture configured for display {} @ {}fps",
             display_index,
-            fps,
-        })
+            fps
+        );
+
+        Ok(Self { display_index, fps })
     }
 
     fn get_display_size(&self) -> Result<(usize, usize)> {
@@ -122,11 +126,22 @@ impl ScreenCapture {
             ScreenRecError::CaptureError(format!("Failed to enumerate displays: {}", e))
         })?;
 
-        let display = displays.get(self.display_index).ok_or_else(|| {
-            ScreenRecError::CaptureError(format!("Display {} not found", self.display_index))
-        })?;
+        if self.display_index >= displays.len() {
+            return Err(ScreenRecError::CaptureError(format!(
+                "Display {} not found (only {} displays available)",
+                self.display_index,
+                displays.len()
+            )));
+        }
 
-        let mut capturer = Capturer::new(*display).map_err(|e| {
+        let display = displays
+            .into_iter()
+            .nth(self.display_index)
+            .ok_or_else(|| {
+                ScreenRecError::CaptureError(format!("Display {} not found", self.display_index))
+            })?;
+
+        let mut capturer = Capturer::new(display).map_err(|e| {
             ScreenRecError::CaptureError(format!("Failed to create capturer: {}", e))
         })?;
 
@@ -145,8 +160,15 @@ impl ScreenCapture {
 
         if skip_idle {
             log::info!("Starting screen capture with idle frame detection...");
-            log::info!("  Similarity threshold: {:.1}%", similarity_threshold * 100.0);
-            log::info!("  Keyframe interval: {} frames ({} seconds)", keyframe_interval, keyframe_interval / self.fps as u64);
+            log::info!(
+                "  Similarity threshold: {:.1}%",
+                similarity_threshold * 100.0
+            );
+            log::info!(
+                "  Keyframe interval: {} frames ({} seconds)",
+                keyframe_interval,
+                keyframe_interval / self.fps as u64
+            );
         } else {
             log::info!("Starting screen capture (idle frame skipping disabled)...");
         }
@@ -189,7 +211,8 @@ impl ScreenCapture {
                         let is_keyframe = frame_count % keyframe_interval == 0;
 
                         // Check if frame is different enough from previous
-                        let is_different = !captured_frame.is_similar_to(prev_frame, similarity_threshold);
+                        let is_different =
+                            !captured_frame.is_similar_to(prev_frame, similarity_threshold);
 
                         if is_keyframe || is_different {
                             if is_keyframe && !is_different {
@@ -199,8 +222,12 @@ impl ScreenCapture {
                         } else {
                             skipped_count += 1;
                             if skipped_count % (self.fps as u64) == 0 {
-                                log::debug!("Skipped {} idle frames (total: {}, sent: {})",
-                                    skipped_count, frame_count, frame_count - skipped_count);
+                                log::debug!(
+                                    "Skipped {} idle frames (total: {}, sent: {})",
+                                    skipped_count,
+                                    frame_count,
+                                    frame_count - skipped_count
+                                );
                             }
                             false
                         }
@@ -220,8 +247,12 @@ impl ScreenCapture {
 
                     frame_count += 1;
                     if frame_count % (self.fps as u64) == 0 {
-                        log::debug!("Captured {} frames ({} sent, {} skipped)",
-                            frame_count, frame_count - skipped_count, skipped_count);
+                        log::debug!(
+                            "Captured {} frames ({} sent, {} skipped)",
+                            frame_count,
+                            frame_count - skipped_count,
+                            skipped_count
+                        );
                     }
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -255,7 +286,11 @@ impl ScreenCapture {
         log::info!("Screen capture finished.");
         log::info!("  Total frames captured: {}", frame_count);
         log::info!("  Frames encoded: {}", sent_frames);
-        log::info!("  Idle frames skipped: {} ({:.1}%)", skipped_count, skip_percentage);
+        log::info!(
+            "  Idle frames skipped: {} ({:.1}%)",
+            skipped_count,
+            skip_percentage
+        );
         Ok(())
     }
 }
