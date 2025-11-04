@@ -17,11 +17,12 @@ cargo build --release
 # Take a screenshot
 ./target/release/screenrec screenshot --output screenshot.png
 
-# Record a 10-second video
-./target/release/screenrec record --duration 10 --output recording.ivf
+# Record a 10-second video (saves frames)
+./target/release/screenrec record --duration 10 --output myrecording
 
-# Record with custom settings
-./target/release/screenrec record --fps 30 --quality 8 --audio system
+# Convert frames to video
+cd myrecording.frames && ./convert.sh   # Mac/Linux
+cd myrecording.frames && convert.bat     # Windows
 ```
 
 ### Features Implemented
@@ -35,13 +36,15 @@ cargo build --release
 - ✅ Performance optimized (target: <30% CPU)
 - ✅ Intuitive CLI interface
 - ✅ Comprehensive error handling
-- ✅ VP8 encoding with IVF container
+- ✅ Frame sequence output with auto-generated conversion scripts
+- ✅ No system dependencies - works everywhere!
 
 ### Architecture Highlights
 
 - **Async/concurrent design** using Tokio
 - **Channel-based pipeline** for frame and audio data
-- **Pure Rust VP8 encoding** (no FFmpeg dependency)
+- **Image sequence output** - no complex encoding dependencies
+- **Auto-generated conversion scripts** for easy video creation
 - **Cross-platform screen capture** via scrap library
 - **Interaction tracking** - capture mouse/keyboard events with timestamps
 - **Modular code structure** with clear separation of concerns
