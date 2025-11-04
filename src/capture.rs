@@ -51,14 +51,13 @@ impl Frame {
 }
 
 pub struct ScreenCapture {
-    capturer: Capturer,
-    width: usize,
-    height: usize,
+    display_index: usize,
     fps: u32,
 }
 
 impl ScreenCapture {
     pub fn new(display_index: usize, fps: u32) -> Result<Self> {
+        // Just validate that the display exists
         let displays = Display::all().map_err(|e| {
             ScreenRecError::CaptureError(format!("Failed to enumerate displays: {}", e))
         })?;
@@ -69,33 +68,40 @@ impl ScreenCapture {
             ));
         }
 
-        let display = displays.get(display_index).ok_or_else(|| {
-            ScreenRecError::CaptureError(format!("Display {} not found", display_index))
-        })?;
+        if display_index >= displays.len() {
+            return Err(ScreenRecError::CaptureError(format!(
+                "Display {} not found (only {} displays available)",
+                display_index,
+                displays.len()
+            )));
+        }
 
-        let capturer = Capturer::new(display.clone()).map_err(|e| {
-            ScreenRecError::CaptureError(format!("Failed to create capturer: {}", e))
-        })?;
-
-        let width = capturer.width();
-        let height = capturer.height();
-
-        log::info!("Screen capture initialized: {}x{} @ {}fps", width, height, fps);
+        log::info!("Screen capture configured for display {} @ {}fps", display_index, fps);
 
         Ok(Self {
-            capturer,
-            width,
-            height,
+            display_index,
             fps,
         })
     }
 
+    fn get_display_size(&self) -> Result<(usize, usize)> {
+        let displays = Display::all().map_err(|e| {
+            ScreenRecError::CaptureError(format!("Failed to enumerate displays: {}", e))
+        })?;
+
+        let display = displays.get(self.display_index).ok_or_else(|| {
+            ScreenRecError::CaptureError(format!("Display {} not found", self.display_index))
+        })?;
+
+        Ok((display.width(), display.height()))
+    }
+
     pub fn width(&self) -> usize {
-        self.width
+        self.get_display_size().map(|(w, _)| w).unwrap_or(1920)
     }
 
     pub fn height(&self) -> usize {
-        self.height
+        self.get_display_size().map(|(_, h)| h).unwrap_or(1080)
     }
 
     pub fn fps(&self) -> u32 {
@@ -106,11 +112,27 @@ impl ScreenCapture {
     /// Skips idle frames (frames that are very similar to the previous frame) if skip_idle is true
     /// This runs synchronously in a blocking thread
     pub fn start_capture_sync(
-        mut self,
+        self,
         tx: std::sync::mpsc::Sender<Frame>,
         duration: Option<Duration>,
         skip_idle: bool,
     ) -> Result<()> {
+        // Create capturer inside this thread (can't be moved between threads)
+        let displays = Display::all().map_err(|e| {
+            ScreenRecError::CaptureError(format!("Failed to enumerate displays: {}", e))
+        })?;
+
+        let display = displays.get(self.display_index).ok_or_else(|| {
+            ScreenRecError::CaptureError(format!("Display {} not found", self.display_index))
+        })?;
+
+        let mut capturer = Capturer::new(*display).map_err(|e| {
+            ScreenRecError::CaptureError(format!("Failed to create capturer: {}", e))
+        })?;
+
+        let width = capturer.width();
+        let height = capturer.height();
+
         let frame_duration = Duration::from_micros(1_000_000 / self.fps as u64);
         let start_time = Instant::now();
         let mut frame_count = 0u64;
@@ -141,10 +163,10 @@ impl ScreenCapture {
             }
 
             // Capture frame
-            match self.capturer.frame() {
+            match capturer.frame() {
                 Ok(frame) => {
                     // Convert BGRA to RGB (removing alpha channel for better compression)
-                    let mut rgb_data = Vec::with_capacity(self.width * self.height * 3);
+                    let mut rgb_data = Vec::with_capacity(width * height * 3);
                     for chunk in frame.chunks_exact(4) {
                         rgb_data.push(chunk[2]); // R
                         rgb_data.push(chunk[1]); // G
@@ -153,8 +175,8 @@ impl ScreenCapture {
 
                     let captured_frame = Frame {
                         data: rgb_data,
-                        width: self.width,
-                        height: self.height,
+                        width,
+                        height,
                         timestamp: start_time.elapsed(),
                     };
 
