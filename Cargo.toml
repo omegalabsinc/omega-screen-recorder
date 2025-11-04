@@ -54,7 +54,7 @@ chrono = "0.4"
 crossbeam-channel = "0.5"
 
 # VP8/VP9 encoding
-vpx-encode = "0.6"
+vpx-encode = { version = "0.6", features = ["generate"] }
 
 # Ctrl+C handling
 ctrlc = "3.4"
