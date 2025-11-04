@@ -13,6 +13,7 @@ use crate::encoder::VideoEncoder;
 use crate::error::Result;
 use crate::interactions::InteractionTracker;
 use clap::Parser;
+use std::sync::mpsc as std_mpsc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
@@ -81,8 +82,18 @@ async fn main() -> Result<()> {
             log::info!("Capture resolution: {}x{}", capture_width, capture_height);
 
             // Create channels for frame and audio data
-            let (frame_tx, frame_rx) = mpsc::channel(60); // Buffer up to 2 seconds of frames at 30fps
+            let (frame_tx_std, frame_rx_std) = std_mpsc::channel(); // Sync channel for capture thread
+            let (frame_tx, frame_rx) = mpsc::channel(60); // Async channel for encoder
             let (audio_tx, audio_rx) = mpsc::channel(1000);
+
+            // Bridge: sync receiver -> async sender
+            let bridge_handle = tokio::spawn(async move {
+                while let Ok(frame) = frame_rx_std.recv() {
+                    if frame_tx.send(frame).await.is_err() {
+                        break;
+                    }
+                }
+            });
 
             // Initialize video encoder
             let encoder = VideoEncoder::new(&output, capture_width, capture_height, fps, quality)?;
@@ -153,18 +164,18 @@ async fn main() -> Result<()> {
             };
 
             let skip_idle_frames = !no_skip_idle; // Invert because CLI flag disables the feature
-            // Use spawn_blocking because scrap::Capturer is not Send (contains raw pointers)
-            let capture_handle = tokio::task::spawn_blocking(move || {
-                // Create a new runtime for the blocking task
-                tokio::runtime::Handle::current().block_on(async move {
-                    screen_capture.start_capture(frame_tx, duration_opt, skip_idle_frames).await
-                })
+            // Run capture in a separate OS thread (not tokio thread) because Capturer is not Send
+            let capture_handle = std::thread::spawn(move || {
+                screen_capture.start_capture_sync(frame_tx_std, duration_opt, skip_idle_frames)
             });
 
             // Wait for capture to finish
-            let _capture_result = capture_handle.await
-                .map_err(|e| error::ScreenRecError::CaptureError(format!("Capture task panicked: {}", e)))?
+            let _capture_result = capture_handle.join()
+                .map_err(|e| error::ScreenRecError::CaptureError(format!("Capture thread panicked: {:?}", e)))?
                 .map_err(|e| error::ScreenRecError::CaptureError(format!("Capture failed: {}", e)))?;
+
+            // Wait for bridge to finish
+            let _ = bridge_handle.await;
 
             // Wait for encoder to finish and get output directory
             let output_dir = encoder_handle.await.map_err(|e| {

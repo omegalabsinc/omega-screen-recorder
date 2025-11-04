@@ -1,7 +1,6 @@
 use crate::error::{Result, ScreenRecError};
 use scrap::{Capturer, Display};
 use std::time::{Duration, Instant};
-use tokio::sync::mpsc;
 
 #[derive(Clone)]
 pub struct Frame {
@@ -105,9 +104,10 @@ impl ScreenCapture {
 
     /// Start capturing frames and send them through the channel
     /// Skips idle frames (frames that are very similar to the previous frame) if skip_idle is true
-    pub async fn start_capture(
+    /// This runs synchronously in a blocking thread
+    pub fn start_capture_sync(
         mut self,
-        tx: mpsc::Sender<Frame>,
+        tx: std::sync::mpsc::Sender<Frame>,
         duration: Option<Duration>,
         skip_idle: bool,
     ) -> Result<()> {
@@ -189,7 +189,7 @@ impl ScreenCapture {
 
                     if should_send {
                         // Send frame through channel
-                        if tx.send(captured_frame.clone()).await.is_err() {
+                        if tx.send(captured_frame.clone()).is_err() {
                             log::warn!("Frame receiver dropped, stopping capture");
                             break;
                         }
@@ -204,7 +204,7 @@ impl ScreenCapture {
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // Frame not ready yet, wait a bit
-                    tokio::time::sleep(Duration::from_millis(1)).await;
+                    std::thread::sleep(Duration::from_millis(1));
                     continue;
                 }
                 Err(e) => {
@@ -219,7 +219,7 @@ impl ScreenCapture {
             // Maintain frame rate
             let elapsed = frame_start.elapsed();
             if elapsed < frame_duration {
-                tokio::time::sleep(frame_duration - elapsed).await;
+                std::thread::sleep(frame_duration - elapsed);
             }
         }
 
