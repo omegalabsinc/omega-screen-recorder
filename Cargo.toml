@@ -41,6 +41,7 @@ cfg-if = "1.0"
 
 # Image handling
 image = "0.24"
+half = "=2.4.1"  # Lock to version compatible with rustc 1.80
 
 # Logging
 log = "0.4"
