@@ -23,6 +23,7 @@ scrap = "0.5"
 
 # Audio capture
 cpal = "0.15"
+coreaudio-sys = "=0.2.15"  # Lock to version that doesn't require edition2024
 
 # Video encoding and muxing
 mp4 = "0.14"
