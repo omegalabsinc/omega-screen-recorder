@@ -1,0 +1,78 @@
+name: Build Screenrec Binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build ${{ matrix.runner }} 
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-13
+            platform: darwin
+            arch: x64
+          - runner: macos-14
+            platform: darwin
+            arch: arm64
+          - runner: windows-2022
+            platform: windows
+            arch: x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Package binary (macOS)
+        if: runner.os == 'macOS'
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          BIN_PATH=target/release/screenrec
+          chmod +x "$BIN_PATH"
+          ARCHIVE="screenrec-${PLATFORM}-${ARCH}.tar.gz"
+          tar -czf "$ARCHIVE" -C target/release screenrec
+          shasum -a 256 "$ARCHIVE" > "${ARCHIVE}.sha256"
+          echo "ARCHIVE_FILE=$ARCHIVE" >> "$GITHUB_ENV"
+          echo "CHECKSUM_FILE=${ARCHIVE}.sha256" >> "$GITHUB_ENV"
+
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+        shell: powershell
+        run: |
+          $binPath = "target/release/screenrec.exe"
+          $archive = "screenrec-$Env:PLATFORM-$Env:ARCH.zip"
+          Compress-Archive -Path $binPath -DestinationPath $archive -Force
+          Get-FileHash $archive -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $archive" } | Set-Content "$archive.sha256"
+          Add-Content -Path $Env:GITHUB_ENV -Value "ARCHIVE_FILE=$archive"
+          Add-Content -Path $Env:GITHUB_ENV -Value "CHECKSUM_FILE=$archive.sha256"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenrec-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            ${{ env.ARCHIVE_FILE }}
+            ${{ env.CHECKSUM_FILE }}
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.ARCHIVE_FILE }}
+            ${{ env.CHECKSUM_FILE }}

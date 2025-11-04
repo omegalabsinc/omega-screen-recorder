@@ -45,3 +45,4 @@ config.toml
 tmp/
 temp/
 *.tmp
+node_modules/

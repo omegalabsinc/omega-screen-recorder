@@ -25,6 +25,15 @@ cd myrecording.frames && ./convert.sh   # Mac/Linux
 cd myrecording.frames && convert.bat     # Windows
 ```
 
+### Install via npm (macOS / Windows)
+
+```bash
+npm install -g @omega/screenrec-cli
+screenrec record --duration 10 --audio none
+```
+
+> The npm package bundles platform-specific binaries. See `npm/screenrec-cli/README.md` for publishing instructions.
+
 ### Features Implemented
 
 - ✅ Screenshot capture (PNG/JPEG)

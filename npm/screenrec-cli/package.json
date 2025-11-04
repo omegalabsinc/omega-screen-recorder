@@ -1,0 +1,47 @@
+{
+  "name": "@omega/screenrec-cli",
+  "version": "0.1.0",
+  "description": "Omega Focus screen recorder packaged for Node.js users.",
+  "bin": {
+    "screenrec": "./bin/screenrec.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "doctor": "node scripts/doctor.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "scripts",
+    "prebuilt",
+    "README.md",
+    "../LICENSE"
+  ],
+  "os": [
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OmegaLabs/omega-screen-recorder-1"
+  },
+  "author": "Omega Labs",
+  "license": "MIT",
+  "keywords": [
+    "screen-recorder",
+    "screen-capture",
+    "rust",
+    "cli"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1",
+    "tar": "^6.2.0"
+  }
+}
