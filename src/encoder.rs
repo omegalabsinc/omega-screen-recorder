@@ -1,20 +1,19 @@
 use crate::audio::AudioSample;
 use crate::capture::Frame;
 use crate::error::{Result, ScreenRecError};
-use std::fs::File;
+use image::{ImageBuffer, RgbImage};
+use std::fs::{self, File};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::sync::mpsc;
-use vpx_encode::{Config, Encoder, Image};
 
 pub struct VideoEncoder {
-    encoder: Encoder,
-    output_file: File,
+    output_dir: PathBuf,
     frame_count: u64,
     width: usize,
     height: usize,
     fps: u32,
-    ivf_header_written: bool,
+    manifest_file: File,
 }
 
 impl VideoEncoder {
@@ -23,191 +22,183 @@ impl VideoEncoder {
         width: usize,
         height: usize,
         fps: u32,
-        quality: u8,
+        _quality: u8,
     ) -> Result<Self> {
         log::info!(
-            "Initializing video encoder: {}x{} @ {}fps, quality: {}",
+            "Initializing frame storage: {}x{} @ {}fps",
             width,
             height,
-            fps,
-            quality
+            fps
         );
 
-        // Validate quality
-        let quality = quality.clamp(1, 10);
+        // Create output directory for frames
+        let output_dir = output_path.with_extension("frames");
+        fs::create_dir_all(&output_dir)?;
 
-        // Create encoder config
-        let mut config = Config::new(width, height, fps);
+        // Create manifest file
+        let manifest_path = output_dir.join("manifest.txt");
+        let mut manifest_file = File::create(&manifest_path)?;
 
-        // Configure for performance and quality
-        // Lower quality value = better quality but larger file
-        let target_bitrate = match quality {
-            1..=3 => width * height * fps as usize / 10,  // Low quality
-            4..=6 => width * height * fps as usize / 6,   // Medium quality
-            7..=8 => width * height * fps as usize / 4,   // High quality
-            _ => width * height * fps as usize / 3,       // Very high quality
-        };
+        // Write manifest header
+        writeln!(manifest_file, "# Screen Recording Manifest")?;
+        writeln!(manifest_file, "width={}", width)?;
+        writeln!(manifest_file, "height={}", height)?;
+        writeln!(manifest_file, "fps={}", fps)?;
+        writeln!(manifest_file, "format=jpeg")?;
+        writeln!(manifest_file, "# Frame list (one per line):")?;
 
-        config.set_target_bitrate(target_bitrate);
-        config.set_cpu_used(6); // Balance between speed and quality (0-16, higher = faster)
-
-        // Create encoder
-        let encoder = Encoder::new(config).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to create encoder: {:?}", e))
-        })?;
-
-        // Create output file
-        let output_file = File::create(output_path).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to create output file: {}", e))
-        })?;
+        log::info!("Saving frames to: {:?}", output_dir);
 
         Ok(Self {
-            encoder,
-            output_file,
+            output_dir,
             frame_count: 0,
             width,
             height,
             fps,
-            ivf_header_written: false,
+            manifest_file,
         })
     }
 
-    fn write_ivf_header(&mut self) -> Result<()> {
-        // IVF file format header
-        // https://wiki.multimedia.cx/index.php/IVF
-        let mut header = Vec::new();
-
-        // File signature: "DKIF"
-        header.extend_from_slice(b"DKIF");
-
-        // Version (2 bytes): 0
-        header.extend_from_slice(&[0, 0]);
-
-        // Header size (2 bytes): 32
-        header.extend_from_slice(&[32, 0]);
-
-        // Codec FourCC (4 bytes): "VP80" for VP8
-        header.extend_from_slice(b"VP80");
-
-        // Width (2 bytes, little-endian)
-        header.extend_from_slice(&(self.width as u16).to_le_bytes());
-
-        // Height (2 bytes, little-endian)
-        header.extend_from_slice(&(self.height as u16).to_le_bytes());
-
-        // Frame rate (4 bytes, little-endian)
-        header.extend_from_slice(&self.fps.to_le_bytes());
-
-        // Time scale (4 bytes, little-endian)
-        header.extend_from_slice(&1u32.to_le_bytes());
-
-        // Number of frames (4 bytes, little-endian) - will be updated at the end
-        header.extend_from_slice(&0u32.to_le_bytes());
-
-        // Unused (4 bytes)
-        header.extend_from_slice(&[0, 0, 0, 0]);
-
-        self.output_file.write_all(&header).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to write IVF header: {}", e))
-        })?;
-
-        self.ivf_header_written = true;
-        Ok(())
-    }
-
-    fn write_frame(&mut self, data: &[u8], timestamp: u64) -> Result<()> {
-        // IVF frame header (12 bytes)
-        let mut frame_header = Vec::new();
-
-        // Frame size (4 bytes, little-endian)
-        frame_header.extend_from_slice(&(data.len() as u32).to_le_bytes());
-
-        // Timestamp (8 bytes, little-endian)
-        frame_header.extend_from_slice(&timestamp.to_le_bytes());
-
-        self.output_file.write_all(&frame_header).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to write frame header: {}", e))
-        })?;
-
-        self.output_file.write_all(data).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to write frame data: {}", e))
-        })?;
-
-        Ok(())
-    }
-
     pub fn encode_frame(&mut self, frame: Frame) -> Result<()> {
-        // Write IVF header on first frame
-        if !self.ivf_header_written {
-            self.write_ivf_header()?;
-        }
+        // Create image from RGB data
+        let img: RgbImage = ImageBuffer::from_raw(
+            self.width as u32,
+            self.height as u32,
+            frame.data,
+        )
+        .ok_or_else(|| ScreenRecError::EncodingError("Failed to create image buffer".to_string()))?;
 
-        // Create image for encoder
-        let image = Image::from_rgb_bytes(self.width, self.height, &frame.data).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to create image: {:?}", e))
-        })?;
+        // Save frame as JPEG
+        let frame_filename = format!("frame_{:08}.jpg", self.frame_count);
+        let frame_path = self.output_dir.join(&frame_filename);
 
-        // Encode frame
-        let packets = self
-            .encoder
-            .encode(self.frame_count as i64, &image)
-            .map_err(|e| {
-                ScreenRecError::EncodingError(format!("Failed to encode frame: {:?}", e))
-            })?;
+        img.save_with_format(&frame_path, image::ImageFormat::Jpeg)
+            .map_err(|e| ScreenRecError::EncodingError(format!("Failed to save frame: {}", e)))?;
 
-        // Write encoded packets
-        for packet in packets {
-            self.write_frame(packet.data, self.frame_count)?;
-        }
+        // Write to manifest
+        writeln!(self.manifest_file, "{}", frame_filename)?;
 
         self.frame_count += 1;
 
         if self.frame_count % (self.fps as u64) == 0 {
-            log::debug!("Encoded {} frames", self.frame_count);
+            log::debug!("Saved {} frames", self.frame_count);
         }
 
         Ok(())
     }
 
-    pub fn finish(mut self) -> Result<()> {
+    pub fn finish(mut self) -> Result<PathBuf> {
         log::info!("Finishing encoding, total frames: {}", self.frame_count);
 
-        // Flush remaining frames
-        loop {
-            match self.encoder.flush() {
-                Ok(packets) => {
-                    if packets.is_empty() {
-                        break;
-                    }
-                    for packet in packets {
-                        self.write_frame(packet.data, self.frame_count)?;
-                        self.frame_count += 1;
-                    }
-                }
-                Err(e) => {
-                    log::warn!("Flush error: {:?}", e);
-                    break;
-                }
-            }
+        // Finalize manifest
+        writeln!(self.manifest_file, "# Total frames: {}", self.frame_count)?;
+        self.manifest_file.flush()?;
+
+        // Create conversion script
+        self.create_conversion_script()?;
+
+        log::info!("Frames saved to: {:?}", self.output_dir);
+        log::info!("Run convert.sh (Mac/Linux) or convert.bat (Windows) to create video");
+
+        Ok(self.output_dir)
+    }
+
+    fn create_conversion_script(&self) -> Result<()> {
+        // Create bash script for Mac/Linux
+        let bash_script = format!(
+            r#"#!/bin/bash
+# Screen Recording Conversion Script
+# This script converts the captured frames to a video file
+
+OUTPUT_FILE="../recording.mp4"
+FPS={}
+WIDTH={}
+HEIGHT={}
+
+echo "Converting frames to video..."
+echo "Output: $OUTPUT_FILE"
+
+# Check if ffmpeg is installed
+if ! command -v ffmpeg &> /dev/null; then
+    echo "Error: ffmpeg is not installed"
+    echo "Install with: brew install ffmpeg (macOS) or apt-get install ffmpeg (Linux)"
+    exit 1
+fi
+
+# Convert frames to video
+ffmpeg -framerate $FPS -pattern_type glob -i 'frame_*.jpg' \
+    -c:v libx264 -preset medium -crf 23 \
+    -pix_fmt yuv420p -s ${{WIDTH}}x${{HEIGHT}} \
+    "$OUTPUT_FILE" -y
+
+if [ $? -eq 0 ]; then
+    echo "✅ Video created: $OUTPUT_FILE"
+    echo "Duration: $(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$OUTPUT_FILE") seconds"
+else
+    echo "❌ Conversion failed"
+    exit 1
+fi
+"#,
+            self.fps, self.width, self.height
+        );
+
+        let bash_path = self.output_dir.join("convert.sh");
+        let mut bash_file = File::create(&bash_path)?;
+        bash_file.write_all(bash_script.as_bytes())?;
+
+        // Make executable on Unix
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&bash_path)?.permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&bash_path, perms)?;
         }
 
-        // Update frame count in header
-        use std::io::Seek;
-        self.output_file.seek(std::io::SeekFrom::Start(24)).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to seek to frame count: {}", e))
-        })?;
+        // Create batch script for Windows
+        let bat_script = format!(
+            r#"@echo off
+REM Screen Recording Conversion Script
+REM This script converts the captured frames to a video file
 
-        self.output_file
-            .write_all(&(self.frame_count as u32).to_le_bytes())
-            .map_err(|e| {
-                ScreenRecError::EncodingError(format!("Failed to update frame count: {}", e))
-            })?;
+set OUTPUT_FILE=..\recording.mp4
+set FPS={}
+set WIDTH={}
+set HEIGHT={}
 
-        self.output_file.flush().map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to flush output file: {}", e))
-        })?;
+echo Converting frames to video...
+echo Output: %OUTPUT_FILE%
 
-        log::info!("Encoding finished successfully");
+REM Check if ffmpeg is installed
+where ffmpeg >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo Error: ffmpeg is not installed
+    echo Download from: https://ffmpeg.org/download.html
+    exit /b 1
+)
+
+REM Convert frames to video
+ffmpeg -framerate %FPS% -i frame_%%08d.jpg ^
+    -c:v libx264 -preset medium -crf 23 ^
+    -pix_fmt yuv420p -s %WIDTH%x%HEIGHT% ^
+    "%OUTPUT_FILE%" -y
+
+if %ERRORLEVEL% EQU 0 (
+    echo Video created: %OUTPUT_FILE%
+) else (
+    echo Conversion failed
+    exit /b 1
+)
+"#,
+            self.fps, self.width, self.height
+        );
+
+        let bat_path = self.output_dir.join("convert.bat");
+        let mut bat_file = File::create(&bat_path)?;
+        bat_file.write_all(bat_script.as_bytes())?;
+
+        log::info!("Created conversion scripts: convert.sh and convert.bat");
+
         Ok(())
     }
 }
@@ -216,18 +207,17 @@ impl VideoEncoder {
 pub async fn process_frames(
     mut rx: mpsc::Receiver<Frame>,
     mut encoder: VideoEncoder,
-) -> Result<()> {
+) -> Result<PathBuf> {
     log::info!("Starting frame processing");
 
     while let Some(frame) = rx.recv().await {
         encoder.encode_frame(frame)?;
     }
 
-    encoder.finish()?;
-    Ok(())
+    encoder.finish()
 }
 
-/// Process audio samples (currently just logs them, can be extended to mux with video)
+/// Process audio samples (currently just logs them, can be extended to save audio file)
 pub async fn process_audio(mut rx: mpsc::Receiver<AudioSample>) -> Result<()> {
     log::info!("Starting audio processing");
 

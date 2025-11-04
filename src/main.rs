@@ -159,12 +159,12 @@ async fn main() -> Result<()> {
             });
 
             // Wait for capture to finish
-            let capture_result = capture_handle.await.map_err(|e| {
+            let _capture_result = capture_handle.await.map_err(|e| {
                 error::ScreenRecError::CaptureError(format!("Capture task failed: {}", e))
             })??;
 
-            // Wait for encoder to finish
-            let encoder_result = encoder_handle.await.map_err(|e| {
+            // Wait for encoder to finish and get output directory
+            let output_dir = encoder_handle.await.map_err(|e| {
                 error::ScreenRecError::EncodingError(format!("Encoder task failed: {}", e))
             })??;
 
@@ -176,7 +176,7 @@ async fn main() -> Result<()> {
             // Save interaction data if tracking was enabled
             if let Some((tracker, _handle)) = interaction_tracker {
                 // Create interaction data file path
-                let interactions_path = output.with_extension("interactions.json");
+                let interactions_path = output_dir.join("interactions.json");
 
                 log::info!("Saving interaction data...");
                 if let Err(e) = tracker.save(&interactions_path) {
@@ -186,7 +186,10 @@ async fn main() -> Result<()> {
                 }
             }
 
-            println!("✅ Recording saved to: {}", output.display());
+            println!("✅ Frames saved to: {}", output_dir.display());
+            println!("📹 To create video, run:");
+            println!("   cd {} && ./convert.sh (Mac/Linux)", output_dir.display());
+            println!("   cd {} && convert.bat (Windows)", output_dir.display());
             log::info!("Recording completed successfully");
         }
     }

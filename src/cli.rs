@@ -30,8 +30,8 @@ pub enum Commands {
 
     /// Record screen video with audio
     Record {
-        /// Output file path (supports .mp4, .webm)
-        #[arg(short, long, default_value = "recording.webm")]
+        /// Output directory name (frames will be saved here)
+        #[arg(short, long, default_value = "recording")]
         output: PathBuf,
 
         /// Recording duration in seconds (0 for manual stop)
