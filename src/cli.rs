@@ -65,6 +65,14 @@ pub enum Commands {
         /// Disable idle frame skipping (encode all frames even if identical)
         #[arg(long)]
         no_skip_idle: bool,
+
+        /// Track mouse and keyboard interactions
+        #[arg(long)]
+        track_interactions: bool,
+
+        /// Track mouse movements (generates more data, only with --track-interactions)
+        #[arg(long)]
+        track_mouse_moves: bool,
     },
 }
 

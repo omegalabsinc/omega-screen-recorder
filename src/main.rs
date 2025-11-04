@@ -3,6 +3,7 @@ mod capture;
 mod cli;
 mod encoder;
 mod error;
+mod interactions;
 mod screenshot;
 
 use crate::audio::AudioCapture;
@@ -10,7 +11,9 @@ use crate::capture::ScreenCapture;
 use crate::cli::{Cli, Commands};
 use crate::encoder::VideoEncoder;
 use crate::error::Result;
+use crate::interactions::InteractionTracker;
 use clap::Parser;
+use std::path::PathBuf;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
@@ -48,6 +51,8 @@ async fn main() -> Result<()> {
             display,
             quality,
             no_skip_idle,
+            track_interactions,
+            track_mouse_moves,
         } => {
             log::info!("Starting screen recording...");
             log::info!("  Output: {}", output.display());
@@ -60,6 +65,7 @@ async fn main() -> Result<()> {
             log::info!("  Audio: {}", audio);
             log::info!("  Quality: {}/10", quality);
             log::info!("  Idle frame skipping: {}", if no_skip_idle { "disabled" } else { "enabled" });
+            log::info!("  Interaction tracking: {}", if track_interactions { "enabled" } else { "disabled" });
 
             // Validate FPS
             if fps == 0 || fps > 60 {
@@ -113,6 +119,22 @@ async fn main() -> Result<()> {
                 None
             };
 
+            // Initialize interaction tracker if requested
+            let interaction_tracker = if track_interactions {
+                let tracker = InteractionTracker::new(
+                    capture_width,
+                    capture_height,
+                    track_mouse_moves,
+                );
+
+                // Start tracking in a separate thread
+                let tracker_handle = tracker.start()?;
+
+                Some((tracker, tracker_handle))
+            } else {
+                None
+            };
+
             // Set up Ctrl+C handler for graceful shutdown
             let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
             let r = running.clone();
@@ -149,6 +171,19 @@ async fn main() -> Result<()> {
             // Wait for audio processing if it was started
             if let Some(handle) = audio_handle {
                 let _ = handle.await;
+            }
+
+            // Save interaction data if tracking was enabled
+            if let Some((tracker, _handle)) = interaction_tracker {
+                // Create interaction data file path
+                let interactions_path = output.with_extension("interactions.json");
+
+                log::info!("Saving interaction data...");
+                if let Err(e) = tracker.save(&interactions_path) {
+                    log::error!("Failed to save interaction data: {}", e);
+                } else {
+                    println!("✅ Interactions saved to: {}", interactions_path.display());
+                }
             }
 
             println!("✅ Recording saved to: {}", output.display());

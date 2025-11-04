@@ -30,6 +30,7 @@ cargo build --release
 - ✅ Video recording with configurable FPS
 - ✅ Audio capture (system audio and microphone)
 - ✅ **Idle frame skipping** - automatically skip encoding duplicate frames
+- ✅ **Interaction tracking** - capture mouse clicks, movements, and keyboard events
 - ✅ Cross-platform support (Linux, macOS, Windows)
 - ✅ Performance optimized (target: <30% CPU)
 - ✅ Intuitive CLI interface
@@ -42,6 +43,7 @@ cargo build --release
 - **Channel-based pipeline** for frame and audio data
 - **Pure Rust VP8 encoding** (no FFmpeg dependency)
 - **Cross-platform screen capture** via scrap library
+- **Interaction tracking** - capture mouse/keyboard events with timestamps
 - **Modular code structure** with clear separation of concerns
 
 See [SOLUTION.md](SOLUTION.md) for comprehensive documentation including:
