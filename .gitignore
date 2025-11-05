@@ -40,9 +40,11 @@ config.toml
 
 # Logs
 *.log
+.env
 
 # Temporary files
 tmp/
 temp/
 *.tmp
 node_modules/
+package-lock.json

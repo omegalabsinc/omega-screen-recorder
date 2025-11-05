@@ -25,14 +25,14 @@ cd myrecording.frames && ./convert.sh   # Mac/Linux
 cd myrecording.frames && convert.bat     # Windows
 ```
 
-### Install via npm (macOS / Windows)
+### Install via npm (Windows x64 — macOS via custom binary)
 
 ```bash
 npm install -g @omega/screenrec-cli
 screenrec record --duration 10 --audio none
 ```
 
-> The npm package bundles platform-specific binaries. See `npm/screenrec-cli/README.md` for publishing instructions.
+> The npm package bundles a Windows x64 binary today. macOS users can set `SCREENREC_BINARY_PATH` (pointing to their own build) until signed artifacts ship; see `npm/screenrec-cli/README.md` for details.
 
 ### Features Implemented
 

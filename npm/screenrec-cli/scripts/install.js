@@ -30,7 +30,17 @@ const destPath = path.join(destDir, binaryName);
     await fs.promises.mkdir(destDir, { recursive: true });
 
     if (!platform || !arch) {
-      throw new Error(`Unsupported platform or architecture: ${process.platform}-${process.arch}`);
+      throw new Error(
+        `Unsupported platform or architecture: ${process.platform}-${process.arch}. ` +
+          'Set SCREENREC_BINARY_PATH to use a custom build.',
+      );
+    }
+
+    if (process.platform !== 'win32') {
+      console.warn(
+        `No official prebuilt binary is bundled for ${process.platform} yet. ` +
+          'Provide your own via SCREENREC_BINARY_PATH or publish platform assets.',
+      );
     }
 
     if (await fileExists(destPath)) {

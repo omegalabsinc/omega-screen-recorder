@@ -4,17 +4,17 @@ This checklist helps you validate and ship the Node.js wrapper for the screen re
 
 ---
 
-## 1. Prepare binaries
+## 1. Prepare binaries (Windows required, macOS optional for v2)
 
 ### 1.1 Build locally (recommended when you have the hardware)
 
-- [ ] **macOS arm64** (Apple Silicon)  
+- [ ] Optional: **macOS arm64** (Apple Silicon)  
   ```bash
   cargo build --release
   cp target/release/screenrec npm/screenrec-cli/prebuilt/darwin-arm64/screenrec
   codesign --force --deep --sign - npm/screenrec-cli/prebuilt/darwin-arm64/screenrec
   ```
-- [ ] **macOS x64** (Intel or Rosetta VM) – same commands, copy to `prebuilt/darwin-x64/screenrec`
+- [ ] Optional: **macOS x64** (Intel or Rosetta VM) – same commands, copy to `prebuilt/darwin-x64/screenrec`
 - [ ] **Windows x64** (MSVC toolchain)  
   ```powershell
   cargo build --release
@@ -24,11 +24,11 @@ This checklist helps you validate and ship the Node.js wrapper for the screen re
 - [ ] Instead of raw binaries, you may place archives named `screenrec-<platform>-<arch>.tar.gz` (macOS) or `screenrec-<platform>-<arch>.zip` (Windows) inside `prebuilt/`
 - [ ] After staging files, verify permissions (`chmod +x`) and hashes as needed
 
-### 1.2 If you don’t have the target machines
+### 1.2 If you don’t have the target machines (Windows runner required)
 
 - [ ] Set up a GitHub Actions workflow or other CI service with macOS and Windows runners
 - [ ] Use the provided workflow `.github/workflows/build-binaries.yml` (runs on `workflow_dispatch` or tag pushes) or adapt it for your CI
-- [ ] Generate release artifacts (binaries or archives) in CI and either:
+- [ ] Generate Windows release artifacts (binaries or archives) in CI and either:
   - Download them and drop into `prebuilt/<platform>-<arch>/`, **or**
   - Publish them to GitHub Releases/CDN and record the base URL
 - [ ] When using hosted assets, export `SCREENREC_BINARY_BASE_URL=https://…/releases/download/vX.Y.Z` before `npm install`/`npm publish` so the installer fetches the right archive
@@ -58,7 +58,7 @@ This checklist helps you validate and ship the Node.js wrapper for the screen re
 - [ ] Execute `npx screenrec --help`
 - [ ] Run a short recording to confirm permissions/output
 
-## 4. macOS validation
+## 4. macOS validation (optional for v1, required before mac release)
 
 - [ ] On macOS arm64 host, run `npm install`
 - [ ] Confirm Gatekeeper permissions (codesign or notarize if needed)
@@ -85,11 +85,11 @@ If you plan to skip bundling binaries in the npm tarball:
 
 ### Manual
 
-- [ ] Bump version in `npm/screenrec-cli/package.json`
+- [ ] Bump version in `npm/screenrec-cli/package.json` (and Rust crate version if desired)
 - [ ] Run `npm pack` to inspect the tarball contents
 - [ ] Ensure `dist/screenrec` exists for each platform or that download URL is available
 - [ ] Publish: `npm publish --access public`
-- [ ] After publishing, test fresh install: `npm install -g @omega/screenrec-cli`
+- [ ] After publishing, test a fresh install: `npm install -g @omega/screenrec-cli`
 
 ### Automated (GitHub Actions)
 

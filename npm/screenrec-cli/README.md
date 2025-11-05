@@ -15,10 +15,10 @@ screenrec --output ./captures/session --duration 120 --audio none
 
 This package expects a prebuilt screen recorder binary for each supported platform:
 
-| Platform            | Archive/Binary                               |
-| ------------------- | --------------------------------------------- |
-| macOS (arm64/x64)   | `prebuilt/darwin-<arch>/screenrec` or `*.tar.gz` |
-| Windows (x64/arm64) | `prebuilt/windows-<arch>/screenrec.exe` or `*.zip` |
+| Platform            | Archive/Binary                               | Status                 |
+| ------------------- | --------------------------------------------- | ---------------------- |
+| macOS (arm64/x64)   | `prebuilt/darwin-<arch>/screenrec` or `*.tar.gz` | bring-your-own binary  |
+| Windows (x64/arm64) | `prebuilt/windows-<arch>/screenrec.exe` or `*.zip` | official binary bundled |
 
 When publishing, populate the `prebuilt/` directory with the correct assets or host them on a CDN/GitHub release and set `SCREENREC_BINARY_BASE_URL` before `npm publish`.
 
@@ -40,6 +40,7 @@ During `npm install` the script will:
 1. Build the Rust binary with `cargo build --release`.
 2. Copy the binary into `npm/screenrec-cli/prebuilt/<platform>-<arch>/`.
 3. Run `npm install` in this directory to fetch JS dependencies.
-4. From `npm/screenrec-cli` run `npm publish` (after version bump).
+4. From `npm/screenrec-cli` run `npm publish` (after version bump).  
+   *Note: until signing is resolved, only Windows binaries are published. macOS users should provide their own build via `SCREENREC_BINARY_PATH`.*
 
 See the root repository README for CLI usage instructions.
