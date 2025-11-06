@@ -234,10 +234,10 @@ screenrec config --clear
     - Without `--audio-device`: Defaults to built-in microphone (`:1`)
     - With `--audio-device`: Uses the specified device (e.g., `--audio-device ":1"` for built-in mic, `:2` for external mic)
   - **Windows**:
-    - Without `--audio-device`: Defaults to default microphone (`audio=default`)
+    - Without `--audio-device`: Defaults to default microphone (`audio=Microphone Array (Intel® Smart Sound Technology for Digital Microphones)`)
     - With `--audio-device`: 
-      - macOS-style indices are supported: `--audio-device ":1"` converts to `audio=default`
-      - For specific devices, use full device name: `--audio-device "audio=Microphone (Realtek Audio)"`
+      - macOS-style indices are supported: `--audio-device ":1"` converts to `audio=Microphone Array (Intel® Smart Sound Technology for Digital Microphones)`
+      - For specific devices, use full device name: `--audio-device "audio=Microphone Array (Intel® Smart Sound Technology for Digital Microphones)"`
       - To list available devices: `ffmpeg -f dshow -list_devices true -i dummy`
 - **System audio** (`--audio system`):
   - **macOS**: Requires a loopback device (e.g., BlackHole, Loopback). 

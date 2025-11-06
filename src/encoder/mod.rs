@@ -208,17 +208,97 @@ fn build_ffmpeg_cmd(
 ) -> Command {
     let mut cmd = Command::new("ffmpeg");
     cmd.arg("-y");
-    cmd.args(["-f", "gdigrab", "-framerate", &fps.to_string(), "-i", "desktop"]);
-    if let Some(d) = duration { cmd.arg("-t").arg(d.to_string()); }
     
-    // Video encoding - map video stream first
+    // All inputs must come first before any mapping or encoding options
+    // Video input
+    cmd.args(["-f", "gdigrab", "-framerate", &fps.to_string(), "-i", "desktop"]);
+    
+    // Audio input (if needed)
+    if !matches!(audio, AudioSource::None) {
+        // Build DirectShow device string
+        // Windows DirectShow format: audio=Device Name
+        // Note: Rust Command handles spaces in arguments automatically, no quotes needed
+        // Note: Windows doesn't support numeric indices like macOS - device names must be provided
+        let dev = if let Some(d) = audio_device {
+            // Check if it's macOS-style format (starts with :)
+            if d.starts_with(':') {
+                // Windows DirectShow doesn't support numeric indices reliably
+                // Convert :0 to system audio, :1 to microphone pattern matching
+                match d {
+                    ":0" => match audio {
+                        AudioSource::System => "audio=virtual-audio-capturer".to_string(),
+                        _ => "audio=virtual-audio-capturer".to_string(),
+                    },
+                    ":1" => {
+                        // For :1 (microphone), use common microphone device name
+                        // Note: DirectShow requires exact device name - if this doesn't work,
+                        // pass the full device name from `ffmpeg -f dshow -list_devices true -i dummy`
+                        match audio {
+                            AudioSource::Mic => {
+                                // Try common microphone name patterns
+                                // DirectShow may match partial names, but full name is more reliable
+                                // Note: No quotes needed - Rust Command handles spaces in arguments
+                                "audio=Microphone Array (Intel® Smart Sound Technology for Digital Microphones)".to_string()
+                            },
+                            _ => "audio=Microphone Array (Intel® Smart Sound Technology for Digital Microphones)".to_string(),
+                        }
+                    },
+                    _ => {
+                        // For other indices, use default based on audio source
+                        match audio {
+                            AudioSource::Mic => "audio=Microphone Array".to_string(),
+                            AudioSource::System => "audio=virtual-audio-capturer".to_string(),
+                            _ => "audio=Microphone Array".to_string(),
+                        }
+                    }
+                }
+            } else {
+                // Not a macOS-style index, treat as device name
+                if d.starts_with("audio=") {
+                    d.to_string()
+                } else {
+                    // Format as audio=DeviceName
+                    // Note: No quotes needed - Rust Command handles spaces in arguments automatically
+                    format!("audio={}", d)
+                }
+            }
+        } else {
+            // No device specified, use defaults
+            match audio {
+                AudioSource::System => "audio=virtual-audio-capturer".to_string(),
+                AudioSource::Mic => {
+                    // Default to microphone array pattern
+                    // Note: No quotes needed - Rust Command handles spaces in arguments
+                    "audio=Microphone Array (Intel® Smart Sound Technology for Digital Microphones)".to_string()
+                },
+                _ => "audio=virtual-audio-capturer".to_string(),
+            }
+        };
+        
+        // Audio input is separate on Windows (input 1), video is input 0
+        cmd.args(["-f", "dshow", "-i", &dev]);
+    }
+    
+    // Duration option (applies to all inputs)
+    if let Some(d) = duration { 
+        cmd.arg("-t").arg(d.to_string()); 
+    }
+    
+    // Now add all mapping and encoding options (after all inputs)
+    // Map video stream
     cmd.args(["-map", "0:v:0"]);
     
-    // Apply resolution scaling if specified (after mapping)
+    // Map audio stream if audio is enabled
+    if !matches!(audio, AudioSource::None) {
+        cmd.args(["-map", "1:a:0"]);
+    }
+    
+    // Apply resolution scaling if specified
     if let Some(res) = resolution {
         cmd.args(["-vf", &format!("scale={}", res)]);
     }
     
+    // Video encoding
     match format {
         OutputFormat::WebM => {
             // WebM requires VP8/VP9/AV1 - use VP9 with real-time encoding settings
@@ -235,7 +315,15 @@ fn build_ffmpeg_cmd(
         }
         OutputFormat::Mp4 => {
             // MP4 uses H.264
-            cmd.args(["-vcodec", "h264_nvenc", "-b:v", "5M", "-pix_fmt", "yuv420p"]);
+            // Use libx264 (software encoder) for better compatibility
+            // Falls back automatically if hardware encoders unavailable
+            cmd.args([
+                "-vcodec", "libx264",
+                "-preset", "fast",  // Fast preset for real-time encoding
+                "-tune", "zerolatency",  // Zero latency tuning for real-time
+                "-b:v", "5M",
+                "-pix_fmt", "yuv420p"
+            ]);
         }
     }
     
@@ -243,55 +331,6 @@ fn build_ffmpeg_cmd(
     if matches!(audio, AudioSource::None) {
         cmd.arg("-an");
     } else {
-        // Build DirectShow device string
-        // Windows DirectShow format: audio="Device Name" or audio=default
-        // Note: Windows doesn't support numeric indices like macOS, so we convert common cases
-        let dev = if let Some(d) = audio_device {
-            // Check if it's macOS-style format (starts with :)
-            if d.starts_with(':') {
-                // Convert macOS-style indices to Windows defaults
-                // :0 = system audio (virtual-audio-capturer)
-                // :1 = default microphone
-                match d.as_str() {
-                    ":0" => match audio {
-                        AudioSource::System => "audio=virtual-audio-capturer".to_string(),
-                        _ => "audio=virtual-audio-capturer".to_string(),
-                    },
-                    ":1" => "audio=default".to_string(), // Default mic
-                    _ => {
-                        // For other indices, use default based on audio source
-                        // Note: Windows DirectShow requires actual device names for specific devices
-                        // Users should list devices: ffmpeg -f dshow -list_devices true -i dummy
-                        match audio {
-                            AudioSource::Mic => "audio=default".to_string(),
-                            AudioSource::System => "audio=virtual-audio-capturer".to_string(),
-                            _ => "audio=default".to_string(),
-                        }
-                    }
-                }
-            } else {
-                // Not a macOS-style index, treat as device name
-                if d.starts_with("audio=") {
-                    d.to_string()
-                } else {
-                    format!("audio={}", d)
-                }
-            }
-        } else {
-            // No device specified, use defaults
-            match audio {
-                AudioSource::System => "audio=virtual-audio-capturer".to_string(),
-                AudioSource::Mic => "audio=default".to_string(), // Default mic input
-                _ => "audio=virtual-audio-capturer".to_string(),
-            }
-        };
-        
-        // Audio input is separate on Windows (input 1), video is input 0
-        cmd.args(["-f", "dshow", "-i", &dev]);
-        
-        // Map audio from the second input (dshow audio input)
-        cmd.args(["-map", "1:a:0"]);
-        
         // Apply audio filters for better quality - resample to 48kHz
         cmd.args(["-af", "aresample=48000"]);
         
