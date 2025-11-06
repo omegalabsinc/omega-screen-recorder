@@ -214,15 +214,23 @@ Your CLI might look something like this:
 # Take a screenshot
 screenrec screenshot --output ~/Desktop/screenshot.png
 
-# Record with microphone (defaults to built-in mic :1 on macOS)
+# Record with microphone (Make sure you read the notes on audio mentioned below.)
+#macOS (defaults to built-in mic :1 on macOS)
 screenrec record --output video.mp4 --audio mic --fps 30
+#windows (default microphone)
+screenrec.exe record --output video.mp4 --audio mic --fps 30
 
 # Record with microphone using explicit device
+#macOS
 screenrec record --output video.mp4 --audio mic --audio-device ":1" --fps 30
+#windows
 screenrec.exe record --audio mic --audio-device "audio=Microphone Array (Intel® Smart Sound Technology for Digital Microphones)" --fps 30 --resolution 1920X1080 --output .\video_demo.mp4
 
 # Record video with system audio(defaults to blackhole :0)
+#MacOS
 screenrec record --output ~/Desktop/video.mp4 --audio system --duration 60
+#Windows
+screenrec.exe record --audio system --audio-device "audio=virtual-audio-capturer" --output .\video_demo.mp4
 
 # Configure settings
 screenrec config --resolution 1920x1080 --fps 30 --codec h264
