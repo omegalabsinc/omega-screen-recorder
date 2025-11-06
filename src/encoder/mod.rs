@@ -243,17 +243,54 @@ fn build_ffmpeg_cmd(
     if matches!(audio, AudioSource::None) {
         cmd.arg("-an");
     } else {
-        // Use device directly - default to virtual-audio-capturer for system audio
+        // Build DirectShow device string
+        // Windows DirectShow format: audio="Device Name" or audio=default
+        // Note: Windows doesn't support numeric indices like macOS, so we convert common cases
         let dev = if let Some(d) = audio_device {
-            d.to_string()
+            // Check if it's macOS-style format (starts with :)
+            if d.starts_with(':') {
+                // Convert macOS-style indices to Windows defaults
+                // :0 = system audio (virtual-audio-capturer)
+                // :1 = default microphone
+                match d.as_str() {
+                    ":0" => match audio {
+                        AudioSource::System => "audio=virtual-audio-capturer".to_string(),
+                        _ => "audio=virtual-audio-capturer".to_string(),
+                    },
+                    ":1" => "audio=default".to_string(), // Default mic
+                    _ => {
+                        // For other indices, use default based on audio source
+                        // Note: Windows DirectShow requires actual device names for specific devices
+                        // Users should list devices: ffmpeg -f dshow -list_devices true -i dummy
+                        match audio {
+                            AudioSource::Mic => "audio=default".to_string(),
+                            AudioSource::System => "audio=virtual-audio-capturer".to_string(),
+                            _ => "audio=default".to_string(),
+                        }
+                    }
+                }
+            } else {
+                // Not a macOS-style index, treat as device name
+                if d.starts_with("audio=") {
+                    d.to_string()
+                } else {
+                    format!("audio={}", d)
+                }
+            }
         } else {
+            // No device specified, use defaults
             match audio {
                 AudioSource::System => "audio=virtual-audio-capturer".to_string(),
                 AudioSource::Mic => "audio=default".to_string(), // Default mic input
                 _ => "audio=virtual-audio-capturer".to_string(),
             }
         };
+        
+        // Audio input is separate on Windows (input 1), video is input 0
         cmd.args(["-f", "dshow", "-i", &dev]);
+        
+        // Map audio from the second input (dshow audio input)
+        cmd.args(["-map", "1:a:0"]);
         
         // Apply audio filters for better quality - resample to 48kHz
         cmd.args(["-af", "aresample=48000"]);

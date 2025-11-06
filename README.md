@@ -230,14 +230,24 @@ screenrec config --clear
 ### Notes on Audio
 - All audio capture is handled directly by ffmpeg via platform-native APIs (avfoundation on macOS, dshow on Windows).
 - **Microphone input** (`--audio mic`):
-  - **Without `--audio-device`**: Defaults to built-in microphone (`:1` on macOS, `default` on Windows).
-  - **With `--audio-device`**: Uses the specified device (e.g., `--audio-device ":1"` for built-in mic, `:2` for external mic on macOS).
+  - **macOS**: 
+    - Without `--audio-device`: Defaults to built-in microphone (`:1`)
+    - With `--audio-device`: Uses the specified device (e.g., `--audio-device ":1"` for built-in mic, `:2` for external mic)
+  - **Windows**:
+    - Without `--audio-device`: Defaults to default microphone (`audio=default`)
+    - With `--audio-device`: 
+      - macOS-style indices are supported: `--audio-device ":1"` converts to `audio=default`
+      - For specific devices, use full device name: `--audio-device "audio=Microphone (Realtek Audio)"`
+      - To list available devices: `ffmpeg -f dshow -list_devices true -i dummy`
 - **System audio** (`--audio system`):
   - **macOS**: Requires a loopback device (e.g., BlackHole, Loopback). 
     - First, list available devices: `ffmpeg -f avfoundation -list_devices true -i ""`
     - Defaults to `:0` (typically BlackHole if installed), or specify: `--audio system --audio-device ":0"`
     - **Note**: Without a loopback device, system audio capture may not work. Consider installing BlackHole or Loopback.
-  - **Windows**: Defaults to `virtual-audio-capturer` for system audio, or specify: `--audio system --audio-device "audio=virtual-audio-capturer"`
+  - **Windows**: 
+    - Defaults to `virtual-audio-capturer` for system audio
+    - macOS-style `:0` is supported and converts to `audio=virtual-audio-capturer`
+    - For specific devices, use full device name: `--audio-device "audio=virtual-audio-capturer"`
 
 ### A/V Sync
 - Audio and video are automatically synchronized by ffmpeg when using the same input source.
