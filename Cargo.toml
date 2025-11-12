@@ -25,7 +25,8 @@ scrap = "0.5"
 cpal = "0.15"
 coreaudio-sys = "=0.2.15"  # Lock to version that doesn't require edition2024
 
-# Video frame storage (removed vpx-encode for cross-platform simplicity)
+# Video encoding
+ffmpeg-next = "7.0"
 
 # Serialization for config files
 serde = { version = "1.0", features = ["derive"] }

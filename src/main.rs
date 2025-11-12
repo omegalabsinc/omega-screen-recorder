@@ -46,7 +46,6 @@ async fn main() -> Result<()> {
             height,
             display,
             quality,
-            no_skip_idle,
             track_interactions,
             track_mouse_moves,
         } => {
@@ -63,10 +62,6 @@ async fn main() -> Result<()> {
             );
             log::info!("  Audio: {}", audio);
             log::info!("  Quality: {}/10", quality);
-            log::info!(
-                "  Idle frame skipping: {}",
-                if no_skip_idle { "disabled" } else { "enabled" }
-            );
             log::info!(
                 "  Interaction tracking: {}",
                 if track_interactions {
@@ -169,17 +164,16 @@ async fn main() -> Result<()> {
                 error::ScreenRecError::ConfigError(format!("Failed to set Ctrl+C handler: {}", e))
             })?;
 
-            // Start screen capture
-            let duration_opt = if duration > 0 {
-                Some(Duration::from_secs(duration))
+            // Calculate target frames based on duration and fps
+            let target_frames = if duration > 0 {
+                Some(duration * fps as u64)
             } else {
                 None
             };
 
-            let skip_idle_frames = !no_skip_idle; // Invert because CLI flag disables the feature
-                                                  // Run capture in a separate OS thread (not tokio thread) because Capturer is not Send
+            // Run capture in a separate OS thread (not tokio thread) because Capturer is not Send
             let capture_handle = std::thread::spawn(move || {
-                screen_capture.start_capture_sync(frame_tx_std, duration_opt, skip_idle_frames)
+                screen_capture.start_capture_sync(frame_tx_std, target_frames)
             });
 
             // Wait for capture to finish
@@ -195,14 +189,11 @@ async fn main() -> Result<()> {
             // Wait for bridge to finish
             let _ = bridge_handle.await;
 
-            // Wait for encoder to finish and get output directory
+            // Wait for encoder to finish and get video file
             let artifacts = encoder_handle.await.map_err(|e| {
                 error::ScreenRecError::EncodingError(format!("Encoder task failed: {}", e))
             })??;
-            let encoder::RecordingOutput {
-                frames_dir,
-                video_file,
-            } = artifacts;
+            let encoder::RecordingOutput { video_file } = artifacts;
 
             // Wait for audio processing if it was started
             if let Some(handle) = audio_handle {
@@ -211,7 +202,11 @@ async fn main() -> Result<()> {
 
             // Save interaction data if tracking was enabled
             if let Some((tracker, _handle)) = interaction_tracker {
-                let interactions_path = frames_dir.join("interactions.json");
+                let interactions_path = if let Some(parent) = video_file.parent() {
+                    parent.join("interactions.json")
+                } else {
+                    std::path::PathBuf::from("interactions.json")
+                };
 
                 log::info!("Saving interaction data...");
                 if let Err(e) = tracker.save(&interactions_path) {
@@ -221,19 +216,7 @@ async fn main() -> Result<()> {
                 }
             }
 
-            println!("✅ Frames saved to: {}", frames_dir.display());
-
-            if let Some(video_path) = &video_file {
-                println!("🎬 Video saved to: {}", video_path.display());
-                println!(
-                    "ℹ️  Conversion script is still available at {}",
-                    frames_dir.display()
-                );
-            } else {
-                println!("📹 To create video, run:");
-                println!("   cd {} && ./convert.sh (Mac/Linux)", frames_dir.display());
-                println!("   cd {} && convert.bat (Windows)", frames_dir.display());
-            }
+            println!("✅ Video saved to: {}", video_file.display());
             log::info!("Recording completed successfully");
         }
     }

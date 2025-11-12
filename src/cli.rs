@@ -62,10 +62,6 @@ pub enum Commands {
         #[arg(short, long, default_value = "8")]
         quality: u8,
 
-        /// Disable idle frame skipping (encode all frames even if identical)
-        #[arg(long)]
-        no_skip_idle: bool,
-
         /// Track mouse and keyboard interactions
         #[arg(long)]
         track_interactions: bool,

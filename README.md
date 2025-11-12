@@ -17,12 +17,8 @@ cargo build --release
 # Take a screenshot
 ./target/release/screenrec screenshot --output screenshot.png
 
-# Record a 10-second video (saves frames)
-./target/release/screenrec record --duration 10 --output myrecording
-
-# Convert frames to video
-cd myrecording.frames && ./convert.sh   # Mac/Linux
-cd myrecording.frames && convert.bat     # Windows
+# Record a 10-second video (saves as MP4)
+./target/release/screenrec record --duration 10 --output myrecording.mp4
 ```
 
 ### Install via npm (Windows x64 — macOS via custom binary)
@@ -38,22 +34,21 @@ screenrec record --duration 10 --audio none
 
 - ✅ Screenshot capture (PNG/JPEG)
 - ✅ Video recording with configurable FPS
+- ✅ **Direct MP4 encoding** - saves recordings directly as MP4 files using H.264 codec
 - ✅ Audio capture (system audio and microphone)
-- ✅ **Idle frame skipping** - automatically skip encoding duplicate frames
 - ✅ **Interaction tracking** - capture mouse clicks, movements, and keyboard events
 - ✅ Cross-platform support (Linux, macOS, Windows)
 - ✅ Performance optimized (target: <30% CPU)
 - ✅ Intuitive CLI interface
 - ✅ Comprehensive error handling
-- ✅ Frame sequence output with auto-generated conversion scripts
-- ✅ No system dependencies - works everywhere!
+- ✅ Requires FFmpeg libraries for MP4 encoding
 
 ### Architecture Highlights
 
 - **Async/concurrent design** using Tokio
 - **Channel-based pipeline** for frame and audio data
-- **Image sequence output** - no complex encoding dependencies
-- **Auto-generated conversion scripts** for easy video creation
+- **Real-time MP4 encoding** - uses FFmpeg for direct video encoding
+- **H.264 codec** - efficient, widely compatible video compression
 - **Cross-platform screen capture** via scrap library
 - **Interaction tracking** - capture mouse/keyboard events with timestamps
 - **Modular code structure** with clear separation of concerns
@@ -254,6 +249,10 @@ rust-screenrec-challenge/
 ### Prerequisites
 
 - Rust 1.70+ (latest stable recommended)
+- **FFmpeg libraries** (required for MP4 encoding):
+  - **macOS**: `brew install ffmpeg pkg-config`
+  - **Linux**: `sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libswscale-dev pkg-config`
+  - **Windows**: Download FFmpeg shared libraries from [ffmpeg.org](https://ffmpeg.org/download.html)
 - Platform-specific dependencies:
   - **macOS**: Xcode Command Line Tools
   - **Windows**: Visual Studio Build Tools
