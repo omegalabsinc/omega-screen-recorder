@@ -32,6 +32,9 @@ impl Database {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 file_path TEXT NOT NULL,
                 device_name TEXT NOT NULL,
+                recording_type TEXT,
+                task_id TEXT,
+                chunk_index INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             "#,
@@ -47,6 +50,9 @@ impl Database {
                 offset_index INTEGER NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 device_name TEXT,
+                is_keyframe INTEGER DEFAULT 0,
+                pts INTEGER,
+                dts INTEGER,
                 FOREIGN KEY (video_chunk_id) REFERENCES video_chunks(id)
             )
             "#,
@@ -63,16 +69,36 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        sqlx::query(
+            r#"
+            CREATE INDEX IF NOT EXISTS idx_frames_keyframe
+            ON frames(is_keyframe)
+            WHERE is_keyframe = 1
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         Ok(())
     }
 
     /// Insert a new video chunk and return its ID
-    pub async fn insert_video_chunk(&self, file_path: &str, device_name: &str) -> Result<i64> {
+    pub async fn insert_video_chunk(
+        &self,
+        file_path: &str,
+        device_name: &str,
+        recording_type: Option<&str>,
+        task_id: Option<&str>,
+        chunk_index: Option<i64>,
+    ) -> Result<i64> {
         let result = sqlx::query(
-            "INSERT INTO video_chunks (file_path, device_name) VALUES (?1, ?2)",
+            "INSERT INTO video_chunks (file_path, device_name, recording_type, task_id, chunk_index) VALUES (?1, ?2, ?3, ?4, ?5)",
         )
         .bind(file_path)
         .bind(device_name)
+        .bind(recording_type)
+        .bind(task_id)
+        .bind(chunk_index)
         .execute(&self.pool)
         .await?;
 
@@ -84,6 +110,9 @@ impl Database {
         &self,
         device_name: &str,
         timestamp: Option<DateTime<Utc>>,
+        is_keyframe: bool,
+        pts: Option<i64>,
+        dts: Option<i64>,
     ) -> Result<i64> {
         let mut tx = self.pool.begin().await?;
 
@@ -109,13 +138,16 @@ impl Database {
 
         // 3. Insert frame with auto-incremented offset_index
         let result = sqlx::query(
-            "INSERT INTO frames (video_chunk_id, offset_index, timestamp, device_name)
-             VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO frames (video_chunk_id, offset_index, timestamp, device_name, is_keyframe, pts, dts)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         )
         .bind(video_chunk_id)
         .bind(offset_index)
         .bind(timestamp.unwrap_or_else(Utc::now))
         .bind(device_name)
+        .bind(is_keyframe as i32)
+        .bind(pts)
+        .bind(dts)
         .execute(&mut *tx)
         .await?;
 
@@ -133,7 +165,10 @@ impl Database {
                 f.offset_index,
                 f.timestamp,
                 f.device_name,
-                vc.file_path
+                vc.file_path,
+                f.is_keyframe,
+                f.pts,
+                f.dts
             FROM frames f
             JOIN video_chunks vc ON f.video_chunk_id = vc.id
             WHERE f.id = ?1
@@ -156,7 +191,10 @@ impl Database {
                 f.offset_index,
                 f.timestamp,
                 f.device_name,
-                vc.file_path
+                vc.file_path,
+                f.is_keyframe,
+                f.pts,
+                f.dts
             FROM frames f
             JOIN video_chunks vc ON f.video_chunk_id = vc.id
             WHERE f.video_chunk_id = ?1
@@ -183,6 +221,50 @@ impl Database {
 
         Ok(id)
     }
+
+    /// Get all video chunks for a specific task_id, ordered by created_at
+    pub async fn get_chunks_by_task_id(&self, task_id: &str) -> Result<Vec<VideoChunkInfo>> {
+        let rows = sqlx::query_as::<_, VideoChunkInfo>(
+            r#"
+            SELECT id, file_path, device_name, recording_type, task_id, chunk_index, created_at
+            FROM video_chunks
+            WHERE task_id = ?1
+            ORDER BY created_at ASC
+            "#,
+        )
+        .bind(task_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    /// Get all frames for a specific task_id across all chunks
+    pub async fn get_frames_by_task_id(&self, task_id: &str) -> Result<Vec<FrameInfo>> {
+        let rows = sqlx::query_as::<_, FrameInfo>(
+            r#"
+            SELECT
+                f.id,
+                f.video_chunk_id,
+                f.offset_index,
+                f.timestamp,
+                f.device_name,
+                vc.file_path,
+                f.is_keyframe,
+                f.pts,
+                f.dts
+            FROM frames f
+            JOIN video_chunks vc ON f.video_chunk_id = vc.id
+            WHERE vc.task_id = ?1
+            ORDER BY vc.created_at ASC, f.offset_index ASC
+            "#,
+        )
+        .bind(task_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -193,4 +275,18 @@ pub struct FrameInfo {
     pub timestamp: DateTime<Utc>,
     pub device_name: Option<String>,
     pub file_path: String,
+    pub is_keyframe: i32,
+    pub pts: Option<i64>,
+    pub dts: Option<i64>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct VideoChunkInfo {
+    pub id: i64,
+    pub file_path: String,
+    pub device_name: String,
+    pub recording_type: Option<String>,
+    pub task_id: Option<String>,
+    pub chunk_index: Option<i64>,
+    pub created_at: DateTime<Utc>,
 }

@@ -9,9 +9,8 @@ mod screenshot;
 
 use crate::audio::AudioCapture;
 use crate::capture::ScreenCapture;
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, RecordingType};
 use crate::db::Database;
-use crate::encoder::VideoEncoder;
 use crate::error::Result;
 use crate::interactions::InteractionTracker;
 use clap::Parser;
@@ -44,15 +43,74 @@ async fn main() -> Result<()> {
             duration,
             fps,
             audio,
+            no_audio,
             width,
             height,
             display,
             quality,
             track_interactions,
             track_mouse_moves,
+            recording_type,
+            task_id,
+            is_final,
+            chunk_duration,
         } => {
+            // Handle no_audio flag
+            let audio = if no_audio {
+                cli::AudioSource::None
+            } else {
+                audio
+            };
+            // Validate recording type requirements
+            if recording_type == RecordingType::Task {
+                if task_id.is_none() {
+                    return Err(error::ScreenRecError::InvalidParameter(
+                        "task_id is required when recording_type is 'task'".to_string(),
+                    ));
+                }
+            }
+
+            // Validate FPS
+            if fps == 0 || fps > 60 {
+                return Err(error::ScreenRecError::InvalidParameter(
+                    "FPS must be between 1 and 60".to_string(),
+                ));
+            }
+
+            // Set up default output directory (~/.omega/data/)
+            let omega_dir = dirs::home_dir()
+                .ok_or_else(|| error::ScreenRecError::ConfigError("Could not find home directory".to_string()))?
+                .join(".omega");
+
+            let data_dir = omega_dir.join("data");
+            let db_path = omega_dir.join("db.sqlite");
+
+            // Determine output directory based on recording type
+            let output_dir = if let Some(custom_output) = output {
+                custom_output
+            } else {
+                match recording_type {
+                    RecordingType::AlwaysOn => data_dir.join("always_on"),
+                    RecordingType::Task => {
+                        let tid = task_id.as_ref().unwrap();
+                        data_dir.join("tasks").join(tid)
+                    }
+                }
+            };
+
+            // Create necessary directories
+            std::fs::create_dir_all(&output_dir).map_err(|e| {
+                error::ScreenRecError::ConfigError(format!("Failed to create output directory: {}", e))
+            })?;
+
             log::info!("Starting screen recording...");
-            log::info!("  Output: {}", output.display());
+            log::info!("  Recording type: {}", recording_type);
+            if let Some(tid) = &task_id {
+                log::info!("  Task ID: {}", tid);
+            }
+            log::info!("  Is final: {}", is_final);
+            log::info!("  Output: {}", output_dir.display());
+            log::info!("  Chunk duration: {} seconds", chunk_duration);
             log::info!("  FPS: {}", fps);
             log::info!(
                 "  Duration: {}",
@@ -72,24 +130,6 @@ async fn main() -> Result<()> {
                     "disabled"
                 }
             );
-
-            // Validate FPS
-            if fps == 0 || fps > 60 {
-                return Err(error::ScreenRecError::InvalidParameter(
-                    "FPS must be between 1 and 60".to_string(),
-                ));
-            }
-
-            // Initialize database
-            let db_path = if let Some(parent) = output.parent() {
-                if parent.as_os_str().is_empty() {
-                    std::path::PathBuf::from("./frames.db")
-                } else {
-                    parent.join("frames.db")
-                }
-            } else {
-                std::path::PathBuf::from("./frames.db")
-            };
             log::info!("Initializing database at: {}", db_path.display());
             let db = Arc::new(Database::new(&db_path).await?);
 
@@ -101,16 +141,26 @@ async fn main() -> Result<()> {
 
             // Initialize screen capture
             let screen_capture = ScreenCapture::new(display, fps)?;
-            let capture_width = if width > 0 {
+            let mut capture_width = if width > 0 {
                 width as usize
             } else {
                 screen_capture.width()
             };
-            let capture_height = if height > 0 {
+            let mut capture_height = if height > 0 {
                 height as usize
             } else {
                 screen_capture.height()
             };
+
+            // Ensure dimensions are even (required by H.264 encoder)
+            if capture_width % 2 != 0 {
+                capture_width -= 1;
+                log::info!("Adjusted width to even number: {}", capture_width);
+            }
+            if capture_height % 2 != 0 {
+                capture_height -= 1;
+                log::info!("Adjusted height to even number: {}", capture_height);
+            }
 
             log::info!("Capture resolution: {}x{}", capture_width, capture_height);
 
@@ -128,30 +178,29 @@ async fn main() -> Result<()> {
                 }
             });
 
-            // Create callback for video chunk creation
-            let db_for_callback = db.clone();
-            let device_name_for_callback = device_name.clone();
-            let chunk_callback = move |file_path: &str| {
-                let db = db_for_callback.clone();
-                let device = device_name_for_callback.clone();
-                let file_path_owned = file_path.to_string();
-                tokio::spawn(async move {
-                    if let Err(e) = db.insert_video_chunk(&file_path_owned, &device).await {
-                        log::error!("Failed to insert video chunk into database: {}", e);
-                    } else {
-                        log::info!("Video chunk registered in database: {}", file_path_owned);
-                    }
-                });
-            };
-
-            // Initialize video encoder
-            let encoder = VideoEncoder::new(&output, capture_width, capture_height, fps, quality, Some(chunk_callback))?;
-
-            // Start encoder task
+            // Start encoder task with chunking support
             let db_for_encoder = db.clone();
             let device_name_for_encoder = device_name.clone();
-            let encoder_handle =
-                tokio::spawn(async move { encoder::process_frames(frame_rx, encoder, Some(db_for_encoder), Some(device_name_for_encoder)).await });
+            let output_dir_for_encoder = output_dir.clone();
+            let recording_type_str = recording_type.to_string();
+            let task_id_for_encoder = task_id.clone();
+
+            let encoder_handle = tokio::spawn(async move {
+                encoder::process_frames_chunked(
+                    frame_rx,
+                    output_dir_for_encoder,
+                    capture_width,
+                    capture_height,
+                    fps,
+                    quality,
+                    chunk_duration,
+                    Some(db_for_encoder),
+                    Some(device_name_for_encoder),
+                    Some(recording_type_str),
+                    task_id_for_encoder,
+                )
+                .await
+            });
 
             // Initialize audio capture if requested
             let audio_handle = if audio != cli::AudioSource::None {
@@ -211,8 +260,9 @@ async fn main() -> Result<()> {
             };
 
             // Run capture in a separate OS thread (not tokio thread) because Capturer is not Send
+            let running_for_capture = running.clone();
             let capture_handle = std::thread::spawn(move || {
-                screen_capture.start_capture_sync(frame_tx_std, target_frames)
+                screen_capture.start_capture_sync(frame_tx_std, target_frames, Some(running_for_capture))
             });
 
             // Wait for capture to finish
@@ -228,11 +278,10 @@ async fn main() -> Result<()> {
             // Wait for bridge to finish
             let _ = bridge_handle.await;
 
-            // Wait for encoder to finish and get video file
-            let artifacts = encoder_handle.await.map_err(|e| {
+            // Wait for encoder to finish and get video chunks
+            let chunk_outputs = encoder_handle.await.map_err(|e| {
                 error::ScreenRecError::EncodingError(format!("Encoder task failed: {}", e))
             })??;
-            let encoder::RecordingOutput { video_file } = artifacts;
 
             // Wait for audio processing if it was started
             if let Some(handle) = audio_handle {
@@ -241,11 +290,7 @@ async fn main() -> Result<()> {
 
             // Save interaction data if tracking was enabled
             if let Some((tracker, _handle)) = interaction_tracker {
-                let interactions_path = if let Some(parent) = video_file.parent() {
-                    parent.join("interactions.json")
-                } else {
-                    std::path::PathBuf::from("interactions.json")
-                };
+                let interactions_path = output_dir.join("interactions.json");
 
                 log::info!("Saving interaction data...");
                 if let Err(e) = tracker.save(&interactions_path) {
@@ -255,7 +300,95 @@ async fn main() -> Result<()> {
                 }
             }
 
-            println!("✅ Video saved to: {}", video_file.display());
+            // If is_final is true and recording_type is Task, concatenate chunks
+            if is_final && recording_type == RecordingType::Task {
+                log::info!("is_final=true: Starting chunk concatenation...");
+
+                let tid = task_id.as_ref().unwrap();
+
+                // Get all chunks for this task from database
+                let chunks = db.get_chunks_by_task_id(tid).await?;
+
+                if chunks.is_empty() {
+                    log::warn!("No chunks found for task_id: {}", tid);
+                } else {
+                    log::info!("Found {} chunks to concatenate", chunks.len());
+
+                    // Create concat file list for FFmpeg
+                    let concat_list_path = output_dir.join("concat_list.txt");
+                    let mut concat_content = String::new();
+                    for chunk in &chunks {
+                        concat_content.push_str(&format!("file '{}'\n", chunk.file_path));
+                    }
+                    std::fs::write(&concat_list_path, concat_content).map_err(|e| {
+                        error::ScreenRecError::EncodingError(format!("Failed to write concat list: {}", e))
+                    })?;
+
+                    // Run FFmpeg concat
+                    let final_output_path = output_dir.join("final.mp4");
+                    log::info!("Concatenating chunks to: {}", final_output_path.display());
+
+                    let concat_result = std::process::Command::new("ffmpeg")
+                        .args(&[
+                            "-f", "concat",
+                            "-safe", "0",
+                            "-i", concat_list_path.to_str().unwrap(),
+                            "-c", "copy",
+                            final_output_path.to_str().unwrap(),
+                        ])
+                        .output()
+                        .map_err(|e| {
+                            error::ScreenRecError::EncodingError(format!("Failed to run ffmpeg concat: {}", e))
+                        })?;
+
+                    if !concat_result.status.success() {
+                        let stderr = String::from_utf8_lossy(&concat_result.stderr);
+                        return Err(error::ScreenRecError::EncodingError(format!(
+                            "FFmpeg concat failed: {}",
+                            stderr
+                        )));
+                    }
+
+                    // Clean up concat list file
+                    let _ = std::fs::remove_file(&concat_list_path);
+
+                    log::info!("✅ Final video created: {}", final_output_path.display());
+                    println!("✅ Final video saved to: {}", final_output_path.display());
+
+                    // Export frame metadata to JSON
+                    log::info!("Exporting frame metadata to JSON...");
+                    let frames = db.get_frames_by_task_id(tid).await?;
+
+                    let json_output = serde_json::json!({
+                        "task_id": tid,
+                        "final_video": "final.mp4",
+                        "total_frames": frames.len(),
+                        "frames": frames.iter().map(|f| {
+                            serde_json::json!({
+                                "offset": f.offset_index,
+                                "timestamp": f.timestamp.to_rfc3339(),
+                                "pts": f.pts,
+                                "is_keyframe": f.is_keyframe == 1,
+                            })
+                        }).collect::<Vec<_>>()
+                    });
+
+                    let json_path = output_dir.join(format!("{}_frames.json", tid));
+                    std::fs::write(&json_path, serde_json::to_string_pretty(&json_output).unwrap())
+                        .map_err(|e| {
+                            error::ScreenRecError::EncodingError(format!("Failed to write JSON: {}", e))
+                        })?;
+
+                    log::info!("✅ Frame metadata exported: {}", json_path.display());
+                    println!("✅ Frame metadata saved to: {}", json_path.display());
+                }
+            } else {
+                // Just log where chunks were saved
+                log::info!("Recording completed. Chunks saved to: {}", output_dir.display());
+                println!("✅ Recording saved to: {}", output_dir.display());
+                println!("   {} chunk(s) created", chunk_outputs.len());
+            }
+
             log::info!("Recording completed successfully");
         }
     }

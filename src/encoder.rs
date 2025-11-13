@@ -2,6 +2,7 @@ use crate::audio::AudioSample;
 use crate::capture::Frame;
 use crate::db::Database;
 use crate::error::{Result, ScreenRecError};
+use chrono::Local;
 use ffmpeg_next as ffmpeg;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -9,6 +10,12 @@ use tokio::sync::mpsc;
 
 pub struct RecordingOutput {
     pub video_file: PathBuf,
+}
+
+pub struct FrameMetadata {
+    pub is_keyframe: bool,
+    pub pts: Option<i64>,
+    pub dts: Option<i64>,
 }
 
 pub struct VideoEncoder {
@@ -20,6 +27,9 @@ pub struct VideoEncoder {
     width: usize,
     height: usize,
     fps: u32,
+    last_packet_keyframe: bool,
+    last_packet_pts: Option<i64>,
+    last_packet_dts: Option<i64>,
 }
 
 impl VideoEncoder {
@@ -122,10 +132,13 @@ impl VideoEncoder {
             width,
             height,
             fps,
+            last_packet_keyframe: false,
+            last_packet_pts: None,
+            last_packet_dts: None,
         })
     }
 
-    pub fn encode_frame(&mut self, frame: Frame) -> Result<()> {
+    pub fn encode_frame(&mut self, frame: Frame) -> Result<FrameMetadata> {
         let Frame { data, timestamp, .. } = frame;
 
         // Create YUV420P frame
@@ -147,8 +160,15 @@ impl VideoEncoder {
             ScreenRecError::EncodingError(format!("Failed to send frame: {}", e))
         })?;
 
-        // Receive and write packets
+        // Receive and write packets (this updates last_packet_* fields)
         self.receive_packets()?;
+
+        // Create metadata from the last encoded packet
+        let metadata = FrameMetadata {
+            is_keyframe: self.last_packet_keyframe,
+            pts: self.last_packet_pts,
+            dts: self.last_packet_dts,
+        };
 
         self.frame_count += 1;
 
@@ -156,12 +176,17 @@ impl VideoEncoder {
             log::debug!("Encoded {} frames", self.frame_count);
         }
 
-        Ok(())
+        Ok(metadata)
     }
 
     fn receive_packets(&mut self) -> Result<()> {
         let mut encoded = ffmpeg::Packet::empty();
         while self.encoder.receive_packet(&mut encoded).is_ok() {
+            // Capture packet metadata before rescaling
+            self.last_packet_keyframe = encoded.is_key();
+            self.last_packet_pts = encoded.pts();
+            self.last_packet_dts = encoded.dts();
+
             encoded.set_stream(self.stream_index);
 
             // Rescale timestamps from encoder time_base (1/fps) to stream time_base (1/90000)
@@ -280,17 +305,153 @@ pub async fn process_frames(
     log::info!("Starting frame processing");
 
     while let Some(frame) = rx.recv().await {
-        // Insert frame into database if enabled
+        let captured_at = frame.captured_at;
+
+        // Encode frame and get metadata
+        let metadata = encoder.encode_frame(frame)?;
+
+        // Insert frame into database with metadata if enabled
         if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
-            if let Err(e) = db.insert_frame(device, Some(frame.captured_at)).await {
+            if let Err(e) = db
+                .insert_frame(
+                    device,
+                    Some(captured_at),
+                    metadata.is_keyframe,
+                    metadata.pts,
+                    metadata.dts,
+                )
+                .await
+            {
                 log::error!("Failed to insert frame into database: {}", e);
             }
         }
-
-        encoder.encode_frame(frame)?;
     }
 
     encoder.finish()
+}
+
+/// Process frames with chunking support
+pub async fn process_frames_chunked(
+    mut rx: mpsc::Receiver<Frame>,
+    base_output_dir: PathBuf,
+    width: usize,
+    height: usize,
+    fps: u32,
+    quality: u8,
+    chunk_duration_secs: u64,
+    db: Option<Arc<Database>>,
+    device_name: Option<String>,
+    recording_type: Option<String>,
+    task_id: Option<String>,
+) -> Result<Vec<RecordingOutput>> {
+    log::info!("Starting chunked frame processing with {}-second chunks", chunk_duration_secs);
+
+    let mut chunk_outputs = Vec::new();
+    let mut chunk_index = 0i64;
+    let frames_per_chunk = (fps as u64) * chunk_duration_secs;
+    let mut frames_in_current_chunk = 0u64;
+
+    // Create first chunk
+    let now = chrono::Local::now();
+    let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
+    let chunk_path = base_output_dir.join(&chunk_filename);
+
+    log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
+
+    let mut current_encoder = VideoEncoder::new(
+        &chunk_path,
+        width,
+        height,
+        fps,
+        quality,
+        None::<fn(&str)>,
+    )?;
+
+    // Insert video chunk into database
+    if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+        if let Err(e) = db.insert_video_chunk(
+            chunk_path.to_str().unwrap_or(""),
+            device,
+            recording_type.as_deref(),
+            task_id.as_deref(),
+            Some(chunk_index),
+        ).await {
+            log::error!("Failed to insert video chunk into database: {}", e);
+        }
+    }
+
+    while let Some(frame) = rx.recv().await {
+        let captured_at = frame.captured_at;
+
+        // Check if we need to start a new chunk
+        if frames_in_current_chunk >= frames_per_chunk {
+            log::info!("Finishing chunk {} with {} frames", chunk_index, frames_in_current_chunk);
+
+            // Finish current encoder
+            let output = current_encoder.finish()?;
+            chunk_outputs.push(output);
+
+            // Start new chunk
+            chunk_index += 1;
+            frames_in_current_chunk = 0;
+
+            let now = chrono::Local::now();
+            let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
+            let chunk_path = base_output_dir.join(&chunk_filename);
+
+            log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
+
+            current_encoder = VideoEncoder::new(
+                &chunk_path,
+                width,
+                height,
+                fps,
+                quality,
+                None::<fn(&str)>,
+            )?;
+
+            // Insert new video chunk into database
+            if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+                if let Err(e) = db.insert_video_chunk(
+                    chunk_path.to_str().unwrap_or(""),
+                    device,
+                    recording_type.as_deref(),
+                    task_id.as_deref(),
+                    Some(chunk_index),
+                ).await {
+                    log::error!("Failed to insert video chunk into database: {}", e);
+                }
+            }
+        }
+
+        // Encode frame and get metadata
+        let metadata = current_encoder.encode_frame(frame)?;
+        frames_in_current_chunk += 1;
+
+        // Insert frame into database with metadata if enabled
+        if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+            if let Err(e) = db
+                .insert_frame(
+                    device,
+                    Some(captured_at),
+                    metadata.is_keyframe,
+                    metadata.pts,
+                    metadata.dts,
+                )
+                .await
+            {
+                log::error!("Failed to insert frame into database: {}", e);
+            }
+        }
+    }
+
+    // Finish the last chunk
+    log::info!("Finishing final chunk {} with {} frames", chunk_index, frames_in_current_chunk);
+    let output = current_encoder.finish()?;
+    chunk_outputs.push(output);
+
+    log::info!("Chunked encoding complete: {} chunks created", chunk_outputs.len());
+    Ok(chunk_outputs)
 }
 
 /// Process audio samples (currently just logs them, can be extended to save audio file)

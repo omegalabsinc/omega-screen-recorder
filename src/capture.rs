@@ -78,6 +78,7 @@ impl ScreenCapture {
         self,
         tx: std::sync::mpsc::Sender<Frame>,
         target_frames: Option<u64>,
+        running: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Result<()> {
         // Create capturer inside this thread (can't be moved between threads)
         let displays = Display::all().map_err(|e| {
@@ -115,6 +116,14 @@ impl ScreenCapture {
 
         loop {
             let frame_start = Instant::now();
+
+            // Check if we should stop (Ctrl+C pressed)
+            if let Some(ref running_flag) = running {
+                if !running_flag.load(std::sync::atomic::Ordering::SeqCst) {
+                    log::info!("Stop signal received, finishing capture...");
+                    break;
+                }
+            }
 
             // Check if we should stop (target frames reached)
             if let Some(target) = target_frames {
