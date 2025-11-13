@@ -1,11 +1,30 @@
 use crate::error::{Result, ScreenRecError};
+use chrono::Utc;
 use rdev::{listen, Event, EventType, Key};
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
+use std::fs::{File, OpenOptions};
+use std::io::{BufWriter, Write};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+
+#[cfg(target_os = "macos")]
+use active_win_pos_rs::get_active_window;
+
+/// Represents a click event for JSONL export
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClickEvent {
+    pub x: i32,
+    pub y: i32,
+    pub button: String,
+    #[serde(rename = "taskId")]
+    pub task_id: String,
+    pub timestamp: String,  // ISO 8601 format
+    #[serde(rename = "processName")]
+    pub process_name: String,
+    #[serde(rename = "windowTitle")]
+    pub window_title: String,
+}
 
 /// Represents a mouse event
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,6 +90,9 @@ pub struct InteractionTracker {
     screen_height: usize,
     track_movements: bool,
     movement_sample_rate: usize, // Capture every Nth movement to avoid too much data
+    task_id: Option<String>,
+    jsonl_file: Arc<Mutex<Option<BufWriter<File>>>>,
+    click_count: Arc<Mutex<usize>>,
 }
 
 impl InteractionTracker {
@@ -83,7 +105,40 @@ impl InteractionTracker {
             screen_height,
             track_movements,
             movement_sample_rate: 5, // Capture every 5th movement event
+            task_id: None,
+            jsonl_file: Arc::new(Mutex::new(None)),
+            click_count: Arc::new(Mutex::new(0)),
         }
+    }
+
+    pub fn new_for_task(
+        screen_width: usize,
+        screen_height: usize,
+        track_movements: bool,
+        task_id: String,
+        jsonl_path: PathBuf,
+    ) -> Result<Self> {
+        // Create JSONL file for click events
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&jsonl_path)
+            .map_err(|e| ScreenRecError::ConfigError(format!("Failed to create JSONL file: {}", e)))?;
+
+        let writer = BufWriter::new(file);
+
+        Ok(Self {
+            start_time: Arc::new(Instant::now()),
+            mouse_events: Arc::new(Mutex::new(Vec::new())),
+            keyboard_events: Arc::new(Mutex::new(Vec::new())),
+            screen_width,
+            screen_height,
+            track_movements,
+            movement_sample_rate: 5,
+            task_id: Some(task_id),
+            jsonl_file: Arc::new(Mutex::new(Some(writer))),
+            click_count: Arc::new(Mutex::new(0)),
+        })
     }
 
     /// Start listening for mouse and keyboard events
@@ -94,18 +149,32 @@ impl InteractionTracker {
         let track_movements = self.track_movements;
         let mut movement_counter = 0usize;
         let movement_sample_rate = self.movement_sample_rate;
+        let task_id = self.task_id.clone();
+        let jsonl_file = Arc::clone(&self.jsonl_file);
+        let click_count = Arc::clone(&self.click_count);
 
         log::info!("Starting interaction tracking...");
         log::info!("  Track mouse movements: {}", track_movements);
         log::info!("  Movement sample rate: 1/{}", movement_sample_rate);
+        if task_id.is_some() {
+            log::info!("  JSONL logging: enabled");
+        }
 
         // Spawn a thread to listen for events
         let handle = std::thread::spawn(move || {
-            let callback = move |event: Event| {
+            // Track last mouse position within this closure
+            let mut last_mouse_x = 0.0;
+            let mut last_mouse_y = 0.0;
+
+            let mut callback = move |event: Event| {
                 let timestamp_ms = start_time.elapsed().as_millis() as u64;
 
                 match event.event_type {
                     EventType::MouseMove { x, y } => {
+                        // Update last known position
+                        last_mouse_x = x;
+                        last_mouse_y = y;
+
                         // Always update cursor position for rendering
                         crate::capture::update_cursor_position(x as i32, y as i32);
 
@@ -128,46 +197,88 @@ impl InteractionTracker {
                     }
                     EventType::ButtonPress(button) => {
                         let button_name = format!("{:?}", button).to_lowercase();
-                        if let Some((x, y)) = get_mouse_position() {
-                            let mouse_event = MouseEvent {
-                                timestamp_ms,
-                                x,
-                                y,
-                                event_type: "click".to_string(),
-                                button: Some(button_name),
+
+                        // Use last known mouse position
+                        let x = last_mouse_x;
+                        let y = last_mouse_y;
+
+                        let mouse_event = MouseEvent {
+                            timestamp_ms,
+                            x,
+                            y,
+                            event_type: "click".to_string(),
+                            button: Some(button_name.clone()),
+                        };
+                        if let Ok(mut events) = mouse_events.lock() {
+                            events.push(mouse_event);
+                        }
+
+                        // Write to JSONL if task-based tracking
+                        if let Some(ref tid) = task_id {
+                            log::debug!("Click detected at ({}, {}) for task {}", x, y, tid);
+                            let (process_name, window_title) = get_active_window_info();
+                            let click_event = ClickEvent {
+                                x: x as i32,
+                                y: y as i32,
+                                button: button_name,
+                                task_id: tid.clone(),
+                                timestamp: Utc::now().to_rfc3339(),
+                                process_name,
+                                window_title,
                             };
-                            if let Ok(mut events) = mouse_events.lock() {
-                                events.push(mouse_event);
+
+                            if let Ok(mut file_opt) = jsonl_file.lock() {
+                                if let Some(ref mut writer) = *file_opt {
+                                    // Write as compact single line (JSONL format: one JSON object per line)
+                                    if let Ok(json) = serde_json::to_string(&click_event) {
+                                        match writeln!(writer, "{}", json) {
+                                            Ok(_) => {
+                                                let _ = writer.flush();
+                                                log::debug!("Click event written to JSONL");
+                                            }
+                                            Err(e) => log::error!("Failed to write click to JSONL: {}", e),
+                                        }
+                                    }
+                                }
+                            }
+
+                            if let Ok(mut count) = click_count.lock() {
+                                *count += 1;
                             }
                         }
                     }
                     EventType::ButtonRelease(button) => {
                         let button_name = format!("{:?}", button).to_lowercase();
-                        if let Some((x, y)) = get_mouse_position() {
-                            let mouse_event = MouseEvent {
-                                timestamp_ms,
-                                x,
-                                y,
-                                event_type: "release".to_string(),
-                                button: Some(button_name),
-                            };
-                            if let Ok(mut events) = mouse_events.lock() {
-                                events.push(mouse_event);
-                            }
+
+                        // Use last known mouse position
+                        let x = last_mouse_x;
+                        let y = last_mouse_y;
+
+                        let mouse_event = MouseEvent {
+                            timestamp_ms,
+                            x,
+                            y,
+                            event_type: "release".to_string(),
+                            button: Some(button_name),
+                        };
+                        if let Ok(mut events) = mouse_events.lock() {
+                            events.push(mouse_event);
                         }
                     }
                     EventType::Wheel { delta_x, delta_y } => {
-                        if let Some((x, y)) = get_mouse_position() {
-                            let mouse_event = MouseEvent {
-                                timestamp_ms,
-                                x,
-                                y,
-                                event_type: format!("scroll({}, {})", delta_x, delta_y),
-                                button: None,
-                            };
-                            if let Ok(mut events) = mouse_events.lock() {
-                                events.push(mouse_event);
-                            }
+                        // Use last known mouse position
+                        let x = last_mouse_x;
+                        let y = last_mouse_y;
+
+                        let mouse_event = MouseEvent {
+                            timestamp_ms,
+                            x,
+                            y,
+                            event_type: format!("scroll({}, {})", delta_x, delta_y),
+                            button: None,
+                        };
+                        if let Ok(mut events) = mouse_events.lock() {
+                            events.push(mouse_event);
                         }
                     }
                     EventType::KeyPress(key) => {
@@ -273,6 +384,37 @@ fn get_mouse_position() -> Option<(f64, f64)> {
     // rdev doesn't provide a direct way to get mouse position
     // This is a limitation - we rely on move events to track position
     None
+}
+
+/// Get active window information (process name and window title)
+#[cfg(target_os = "macos")]
+fn get_active_window_info() -> (String, String) {
+    match get_active_window() {
+        Ok(window) => {
+            let app_name = if window.app_name.is_empty() {
+                "Unknown".to_string()
+            } else {
+                window.app_name
+            };
+            let title = window.title; // Keep original title even if empty
+            (app_name, title)
+        },
+        Err(_) => {
+            // Log error only once to avoid spam
+            static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+            if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                log::warn!("Cannot get active window info - Accessibility permissions required");
+                log::warn!("To enable: System Settings → Privacy & Security → Accessibility → Add this app");
+                log::warn!("Process names and window titles will show as 'Unknown' until permission is granted");
+            }
+            ("Unknown".to_string(), "Unknown".to_string())
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn get_active_window_info() -> (String, String) {
+    ("Unknown".to_string(), "".to_string())
 }
 
 /// Format a key for display

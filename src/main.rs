@@ -228,26 +228,41 @@ async fn main() -> Result<()> {
                 None
             };
 
-            // Start mouse tracking for cursor rendering (always enabled)
-            let _cursor_tracker_handle = std::thread::spawn(|| {
-                use crate::capture::update_cursor_position;
-                let _ = rdev::listen(move |event| {
-                    if let rdev::EventType::MouseMove { x, y } = event.event_type {
-                        update_cursor_position(x as i32, y as i32);
-                    }
-                });
-            });
+            // Initialize interaction tracker
+            // For task mode: always track clicks to JSONL
+            // For always_on mode: only track if --track-interactions is enabled
+            // Note: The interaction tracker also handles cursor position updates
+            let interaction_tracker = if recording_type == RecordingType::Task && task_id.is_some() {
+                // Task mode: always track clicks to JSONL
+                let tid = task_id.as_ref().unwrap();
+                let jsonl_path = output_dir.join("clicks.jsonl");
+                log::info!("Task mode: Click tracking enabled -> {}", jsonl_path.display());
 
-            // Initialize interaction tracker if requested
-            let interaction_tracker = if track_interactions {
-                let tracker =
-                    InteractionTracker::new(capture_width, capture_height, track_mouse_moves);
+                let tracker = InteractionTracker::new_for_task(
+                    capture_width,
+                    capture_height,
+                    track_mouse_moves,
+                    tid.clone(),
+                    jsonl_path,
+                )?;
 
-                // Start tracking in a separate thread
                 let tracker_handle = tracker.start()?;
-
+                Some((tracker, tracker_handle))
+            } else if track_interactions {
+                // Always_on mode: only track if explicitly requested
+                let tracker = InteractionTracker::new(capture_width, capture_height, track_mouse_moves);
+                let tracker_handle = tracker.start()?;
                 Some((tracker, tracker_handle))
             } else {
+                // No interaction tracking, but still need cursor updates for rendering
+                let _cursor_tracker_handle = std::thread::spawn(|| {
+                    use crate::capture::update_cursor_position;
+                    let _ = rdev::listen(move |event| {
+                        if let rdev::EventType::MouseMove { x, y } = event.event_type {
+                            update_cursor_position(x as i32, y as i32);
+                        }
+                    });
+                });
                 None
             };
 
