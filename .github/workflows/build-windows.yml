@@ -40,12 +40,20 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Install FFmpeg via vcpkg
+    - name: Install LLVM and Clang
       run: |
-        vcpkg install ffmpeg[core,avcodec,avformat,avdevice,avfilter,swscale,swresample]:x64-windows
+        choco install llvm -y
+
+    - name: Install FFmpeg with dev headers
+      run: |
+        # Use vcpkg in static mode for faster builds
+        vcpkg install ffmpeg:x64-windows-static
         echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
-        echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows" >> $env:GITHUB_ENV
-        echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig" >> $env:GITHUB_ENV
+        echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows-static" >> $env:GITHUB_ENV
+        echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows-static\lib\pkgconfig" >> $env:GITHUB_ENV
+        # Set environment for ffmpeg-sys-next
+        echo "FFMPEG_INCLUDE_DIR=C:\vcpkg\installed\x64-windows-static\include" >> $env:GITHUB_ENV
+        echo "FFMPEG_LIB_DIR=C:\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_ENV
 
     - name: Build release binary
       run: |
