@@ -228,6 +228,16 @@ async fn main() -> Result<()> {
                 None
             };
 
+            // Start mouse tracking for cursor rendering (always enabled)
+            let _cursor_tracker_handle = std::thread::spawn(|| {
+                use crate::capture::update_cursor_position;
+                let _ = rdev::listen(move |event| {
+                    if let rdev::EventType::MouseMove { x, y } = event.event_type {
+                        update_cursor_position(x as i32, y as i32);
+                    }
+                });
+            });
+
             // Initialize interaction tracker if requested
             let interaction_tracker = if track_interactions {
                 let tracker =

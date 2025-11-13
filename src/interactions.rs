@@ -106,6 +106,9 @@ impl InteractionTracker {
 
                 match event.event_type {
                     EventType::MouseMove { x, y } => {
+                        // Always update cursor position for rendering
+                        crate::capture::update_cursor_position(x as i32, y as i32);
+
                         if track_movements {
                             movement_counter += 1;
                             // Only capture every Nth movement to reduce data volume

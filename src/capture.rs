@@ -144,6 +144,11 @@ impl ScreenCapture {
                         rgb_data.push(chunk[0]); // B
                     }
 
+                    // Draw cursor on frame
+                    if let Some((cursor_x, cursor_y)) = get_cursor_position() {
+                        draw_cursor(&mut rgb_data, width, height, cursor_x, cursor_y);
+                    }
+
                     // Start the timer on first successful frame
                     if start_time.is_none() {
                         start_time = Some(Instant::now());
@@ -192,5 +197,92 @@ impl ScreenCapture {
 
         log::info!("Screen capture finished. Total frames: {}", frame_count);
         Ok(())
+    }
+}
+
+// Store last known cursor position in a static variable
+static LAST_CURSOR_POS: std::sync::RwLock<(i32, i32)> = std::sync::RwLock::new((0, 0));
+
+fn get_cursor_position() -> Option<(i32, i32)> {
+    LAST_CURSOR_POS.read().ok().map(|pos| *pos)
+}
+
+pub fn update_cursor_position(x: i32, y: i32) {
+    if let Ok(mut pos) = LAST_CURSOR_POS.write() {
+        *pos = (x, y);
+    }
+}
+
+fn draw_cursor(rgb_data: &mut [u8], width: usize, height: usize, cursor_x: i32, cursor_y: i32) {
+    // Draw a macOS-style cursor (19x25 pixels)
+    // This is a pre-defined pixel art cursor that looks like the macOS pointer
+
+    const CURSOR_WIDTH: i32 = 19;
+    const CURSOR_HEIGHT: i32 = 25;
+
+    // Cursor pixel data (0 = transparent, 1 = black border, 2 = white fill, 3 = shadow)
+    const CURSOR_PIXELS: &[&[u8]] = &[
+        &[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 2, 1, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 2, 1, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 1, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[1, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        &[0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0],
+        &[0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0],
+        &[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0],
+        &[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+
+    for dy in 0..CURSOR_HEIGHT {
+        for dx in 0..CURSOR_WIDTH {
+            let x = cursor_x + dx;
+            let y = cursor_y + dy;
+
+            if x < 0 || y < 0 || x >= width as i32 || y >= height as i32 {
+                continue;
+            }
+
+            let pixel = CURSOR_PIXELS[dy as usize][dx as usize];
+            if pixel == 0 {
+                continue; // Transparent
+            }
+
+            let idx = ((y as usize) * width + (x as usize)) * 3;
+            if idx + 2 >= rgb_data.len() {
+                continue;
+            }
+
+            match pixel {
+                1 => {
+                    // Black border
+                    rgb_data[idx] = 0;
+                    rgb_data[idx + 1] = 0;
+                    rgb_data[idx + 2] = 0;
+                }
+                2 => {
+                    // White fill
+                    rgb_data[idx] = 255;
+                    rgb_data[idx + 1] = 255;
+                    rgb_data[idx + 2] = 255;
+                }
+                _ => {}
+            }
+        }
     }
 }
