@@ -32,6 +32,7 @@ impl Database {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 file_path TEXT NOT NULL,
                 device_name TEXT NOT NULL,
+                display_id INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             "#,
@@ -47,6 +48,7 @@ impl Database {
                 offset_index INTEGER NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 device_name TEXT,
+                display_id INTEGER NOT NULL,
                 FOREIGN KEY (video_chunk_id) REFERENCES video_chunks(id)
             )
             "#,
@@ -67,12 +69,13 @@ impl Database {
     }
 
     /// Insert a new video chunk and return its ID
-    pub async fn insert_video_chunk(&self, file_path: &str, device_name: &str) -> Result<i64> {
+    pub async fn insert_video_chunk(&self, file_path: &str, device_name: &str, display_id: usize) -> Result<i64> {
         let result = sqlx::query(
-            "INSERT INTO video_chunks (file_path, device_name) VALUES (?1, ?2)",
+            "INSERT INTO video_chunks (file_path, device_name, display_id) VALUES (?1, ?2, ?3)",
         )
         .bind(file_path)
         .bind(device_name)
+        .bind(display_id as i64)
         .execute(&self.pool)
         .await?;
 
@@ -83,6 +86,7 @@ impl Database {
     pub async fn insert_frame(
         &self,
         device_name: &str,
+        display_id: usize,
         timestamp: Option<DateTime<Utc>>,
     ) -> Result<i64> {
         let mut tx = self.pool.begin().await?;
@@ -109,13 +113,14 @@ impl Database {
 
         // 3. Insert frame with auto-incremented offset_index
         let result = sqlx::query(
-            "INSERT INTO frames (video_chunk_id, offset_index, timestamp, device_name)
-             VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO frames (video_chunk_id, offset_index, timestamp, device_name, display_id)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
         )
         .bind(video_chunk_id)
         .bind(offset_index)
         .bind(timestamp.unwrap_or_else(Utc::now))
         .bind(device_name)
+        .bind(display_id as i64)
         .execute(&mut *tx)
         .await?;
 
@@ -133,6 +138,7 @@ impl Database {
                 f.offset_index,
                 f.timestamp,
                 f.device_name,
+                f.display_id,
                 vc.file_path
             FROM frames f
             JOIN video_chunks vc ON f.video_chunk_id = vc.id
@@ -156,6 +162,7 @@ impl Database {
                 f.offset_index,
                 f.timestamp,
                 f.device_name,
+                f.display_id,
                 vc.file_path
             FROM frames f
             JOIN video_chunks vc ON f.video_chunk_id = vc.id
@@ -192,5 +199,6 @@ pub struct FrameInfo {
     pub offset_index: i64,
     pub timestamp: DateTime<Utc>,
     pub device_name: Option<String>,
+    pub display_id: i64,
     pub file_path: String,
 }

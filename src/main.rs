@@ -99,8 +99,25 @@ async fn main() -> Result<()> {
                 .and_then(|h| h.into_string().ok())
                 .unwrap_or_else(|| "unknown".to_string());
 
+            // Detect which display the cursor is on (if display is 0, auto-detect; otherwise use specified)
+            let actual_display = if display == 0 {
+                match capture::get_cursor_display() {
+                    Ok(cursor_display) => {
+                        log::info!("Auto-detected cursor on display {}", cursor_display);
+                        cursor_display
+                    }
+                    Err(e) => {
+                        log::warn!("Failed to detect cursor display: {}, using display 0", e);
+                        0
+                    }
+                }
+            } else {
+                log::info!("Using manually specified display {}", display);
+                display
+            };
+
             // Initialize screen capture
-            let screen_capture = ScreenCapture::new(display, fps)?;
+            let screen_capture = ScreenCapture::new(actual_display, fps)?;
             let capture_width = if width > 0 {
                 width as usize
             } else {
@@ -131,15 +148,17 @@ async fn main() -> Result<()> {
             // Create callback for video chunk creation
             let db_for_callback = db.clone();
             let device_name_for_callback = device_name.clone();
+            let display_for_callback = actual_display;
             let chunk_callback = move |file_path: &str| {
                 let db = db_for_callback.clone();
                 let device = device_name_for_callback.clone();
                 let file_path_owned = file_path.to_string();
+                let display_id = display_for_callback;
                 tokio::spawn(async move {
-                    if let Err(e) = db.insert_video_chunk(&file_path_owned, &device).await {
+                    if let Err(e) = db.insert_video_chunk(&file_path_owned, &device, display_id).await {
                         log::error!("Failed to insert video chunk into database: {}", e);
                     } else {
-                        log::info!("Video chunk registered in database: {}", file_path_owned);
+                        log::info!("Video chunk registered in database: {} (display {})", file_path_owned, display_id);
                     }
                 });
             };

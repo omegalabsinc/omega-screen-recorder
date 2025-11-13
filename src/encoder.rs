@@ -282,7 +282,7 @@ pub async fn process_frames(
     while let Some(frame) = rx.recv().await {
         // Insert frame into database if enabled
         if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
-            if let Err(e) = db.insert_frame(device, Some(frame.captured_at)).await {
+            if let Err(e) = db.insert_frame(device, frame.display_id, Some(frame.captured_at)).await {
                 log::error!("Failed to insert frame into database: {}", e);
             }
         }
