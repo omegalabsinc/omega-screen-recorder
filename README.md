@@ -1,12 +1,14 @@
-# 🎯 Omega Focus Rust Screen Recording Challenge
+# 🎯 Omega Screen Recorder
 
-Welcome to the Omega Focus technical assessment for Rust developers! This challenge tests your ability to build a high-performance, cross-platform screen recording application.
+A high-performance, cross-platform screen recording application built in Rust with SQLite-based interaction tracking.
+
+**Note**: This project was originally created as part of the Omega Focus Rust Screen Recording Challenge (concluded November 2024).
 
 ---
 
-## ✅ Solution Implemented
+## ✅ Features
 
-This repository contains a complete implementation of the screen recording challenge.
+This repository contains a complete screen recording solution with advanced interaction tracking capabilities.
 
 ### Quick Start
 
@@ -64,14 +66,15 @@ See [SOLUTION.md](SOLUTION.md) for comprehensive documentation including:
 
 ## Original Challenge Description
 
----
+<details>
+<summary>Click to expand the original challenge details (concluded November 2024)</summary>
 
 ## 📋 Challenge Overview
 
 Build a **CLI-based screen recording tool** in Rust that can efficiently capture screenshots and full-screen video with audio on both macOS and Windows.
 
 ### Timeline
-- **Deadline**: November 6, 2024 (1 week)
+- **Deadline**: November 6, 2024 (1 week) - **Challenge Concluded**
 
 ---
 
@@ -330,3 +333,5 @@ Good luck! 🚀
 ---
 
 **Omega Labs** | [Website](https://omega.inc) | [Omega Focus](https://focus.inc)
+
+</details>
