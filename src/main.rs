@@ -1,6 +1,7 @@
 mod audio;
 mod capture;
 mod cli;
+mod db;
 mod encoder;
 mod error;
 mod interactions;
@@ -9,12 +10,13 @@ mod screenshot;
 use crate::audio::AudioCapture;
 use crate::capture::ScreenCapture;
 use crate::cli::{Cli, Commands};
+use crate::db::Database;
 use crate::encoder::VideoEncoder;
 use crate::error::Result;
 use crate::interactions::InteractionTracker;
 use clap::Parser;
 use std::sync::mpsc as std_mpsc;
-use std::time::Duration;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -78,6 +80,25 @@ async fn main() -> Result<()> {
                 ));
             }
 
+            // Initialize database
+            let db_path = if let Some(parent) = output.parent() {
+                if parent.as_os_str().is_empty() {
+                    std::path::PathBuf::from("./frames.db")
+                } else {
+                    parent.join("frames.db")
+                }
+            } else {
+                std::path::PathBuf::from("./frames.db")
+            };
+            log::info!("Initializing database at: {}", db_path.display());
+            let db = Arc::new(Database::new(&db_path).await?);
+
+            // Get device name (hostname)
+            let device_name = hostname::get()
+                .ok()
+                .and_then(|h| h.into_string().ok())
+                .unwrap_or_else(|| "unknown".to_string());
+
             // Initialize screen capture
             let screen_capture = ScreenCapture::new(display, fps)?;
             let capture_width = if width > 0 {
@@ -107,12 +128,30 @@ async fn main() -> Result<()> {
                 }
             });
 
+            // Create callback for video chunk creation
+            let db_for_callback = db.clone();
+            let device_name_for_callback = device_name.clone();
+            let chunk_callback = move |file_path: &str| {
+                let db = db_for_callback.clone();
+                let device = device_name_for_callback.clone();
+                let file_path_owned = file_path.to_string();
+                tokio::spawn(async move {
+                    if let Err(e) = db.insert_video_chunk(&file_path_owned, &device).await {
+                        log::error!("Failed to insert video chunk into database: {}", e);
+                    } else {
+                        log::info!("Video chunk registered in database: {}", file_path_owned);
+                    }
+                });
+            };
+
             // Initialize video encoder
-            let encoder = VideoEncoder::new(&output, capture_width, capture_height, fps, quality)?;
+            let encoder = VideoEncoder::new(&output, capture_width, capture_height, fps, quality, Some(chunk_callback))?;
 
             // Start encoder task
+            let db_for_encoder = db.clone();
+            let device_name_for_encoder = device_name.clone();
             let encoder_handle =
-                tokio::spawn(async move { encoder::process_frames(frame_rx, encoder).await });
+                tokio::spawn(async move { encoder::process_frames(frame_rx, encoder, Some(db_for_encoder), Some(device_name_for_encoder)).await });
 
             // Initialize audio capture if requested
             let audio_handle = if audio != cli::AudioSource::None {

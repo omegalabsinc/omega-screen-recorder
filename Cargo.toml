@@ -50,11 +50,17 @@ env_logger = "0.11"
 # Time handling
 chrono = "0.4"
 
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "sqlite", "chrono"] }
+
 # Threading utilities
 crossbeam-channel = "0.5"
 
 # Ctrl+C handling
 ctrlc = "3.4"
+
+# System info
+hostname = "0.3"
 
 # Mouse and keyboard event capture
 rdev = "0.5"

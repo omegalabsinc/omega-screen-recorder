@@ -25,6 +25,15 @@ pub enum ScreenRecError {
 
     #[error("Platform not supported: {0}")]
     PlatformNotSupported(String),
+
+    #[error("Database error: {0}")]
+    DatabaseError(String),
+}
+
+impl From<anyhow::Error> for ScreenRecError {
+    fn from(err: anyhow::Error) -> Self {
+        ScreenRecError::DatabaseError(err.to_string())
+    }
 }
 
 pub type Result<T> = std::result::Result<T, ScreenRecError>;

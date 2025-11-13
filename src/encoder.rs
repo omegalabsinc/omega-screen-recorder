@@ -1,8 +1,10 @@
 use crate::audio::AudioSample;
 use crate::capture::Frame;
+use crate::db::Database;
 use crate::error::{Result, ScreenRecError};
 use ffmpeg_next as ffmpeg;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub struct RecordingOutput {
@@ -21,13 +23,17 @@ pub struct VideoEncoder {
 }
 
 impl VideoEncoder {
-    pub fn new(
+    pub fn new<F>(
         output_path: &Path,
         width: usize,
         height: usize,
         fps: u32,
         quality: u8,
-    ) -> Result<Self> {
+        on_chunk_created: Option<F>,
+    ) -> Result<Self>
+    where
+        F: FnOnce(&str),
+    {
         // Initialize FFmpeg
         ffmpeg::init().map_err(|e| {
             ScreenRecError::EncodingError(format!("Failed to initialize FFmpeg: {}", e))
@@ -101,6 +107,11 @@ impl VideoEncoder {
         })?;
 
         log::info!("MP4 encoder initialized: {}", output_path.display());
+
+        // Call callback if provided
+        if let Some(callback) = on_chunk_created {
+            callback(output_path.to_str().unwrap_or("unknown"));
+        }
 
         Ok(Self {
             output_path,
@@ -263,10 +274,19 @@ impl VideoEncoder {
 pub async fn process_frames(
     mut rx: mpsc::Receiver<Frame>,
     mut encoder: VideoEncoder,
+    db: Option<Arc<Database>>,
+    device_name: Option<String>,
 ) -> Result<RecordingOutput> {
     log::info!("Starting frame processing");
 
     while let Some(frame) = rx.recv().await {
+        // Insert frame into database if enabled
+        if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+            if let Err(e) = db.insert_frame(device, Some(frame.captured_at)).await {
+                log::error!("Failed to insert frame into database: {}", e);
+            }
+        }
+
         encoder.encode_frame(frame)?;
     }
 

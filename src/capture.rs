@@ -1,4 +1,5 @@
 use crate::error::{Result, ScreenRecError};
+use chrono::{DateTime, Utc};
 use scrap::{Capturer, Display};
 use std::time::{Duration, Instant};
 
@@ -8,6 +9,7 @@ pub struct Frame {
     pub width: usize,
     pub height: usize,
     pub timestamp: Duration,
+    pub captured_at: DateTime<Utc>,
 }
 
 
@@ -144,6 +146,7 @@ impl ScreenCapture {
                         width,
                         height,
                         timestamp: start_time.unwrap().elapsed(),
+                        captured_at: Utc::now(),
                     };
 
                     // Send frame through channel
