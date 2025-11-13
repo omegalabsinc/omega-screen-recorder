@@ -1,15 +1,80 @@
-# 🎯 Omega Focus Rust Screen Recording Challenge
+# 🎯 Omega Screen Recorder
 
-Welcome to the Omega Focus technical assessment for Rust developers! This challenge tests your ability to build a high-performance, cross-platform screen recording application.
+A high-performance, cross-platform screen recording application built in Rust with SQLite-based interaction tracking.
+
+**Note**: This project was originally created as part of the Omega Focus Rust Screen Recording Challenge (concluded November 2024).
 
 ---
+
+## ✅ Features
+
+This repository contains a complete screen recording solution with advanced interaction tracking capabilities.
+
+### Quick Start
+
+```bash
+# Build the project (release mode recommended)
+cargo build --release
+
+# Take a screenshot
+./target/release/screenrec screenshot --output screenshot.png
+
+# Record a 10-second video (saves as MP4)
+./target/release/screenrec record --duration 10 --output myrecording.mp4
+```
+
+### Install via npm (Windows x64 — macOS via custom binary)
+
+```bash
+npm install -g @omega/screenrec-cli
+screenrec record --duration 10 --audio none
+```
+
+> The npm package bundles a Windows x64 binary today. macOS users can set `SCREENREC_BINARY_PATH` (pointing to their own build) until signed artifacts ship; see `npm/screenrec-cli/README.md` for details.
+
+### Features Implemented
+
+- ✅ Screenshot capture (PNG/JPEG)
+- ✅ Video recording with configurable FPS
+- ✅ **Direct MP4 encoding** - saves recordings directly as MP4 files using H.264 codec
+- ✅ Audio capture (system audio and microphone)
+- ✅ **Interaction tracking** - capture mouse clicks, movements, and keyboard events
+- ✅ Cross-platform support (Linux, macOS, Windows)
+- ✅ Performance optimized (target: <30% CPU)
+- ✅ Intuitive CLI interface
+- ✅ Comprehensive error handling
+- ✅ Requires FFmpeg libraries for MP4 encoding
+
+### Architecture Highlights
+
+- **Async/concurrent design** using Tokio
+- **Channel-based pipeline** for frame and audio data
+- **Real-time MP4 encoding** - uses FFmpeg for direct video encoding
+- **H.264 codec** - efficient, widely compatible video compression
+- **Cross-platform screen capture** via scrap library
+- **Interaction tracking** - capture mouse/keyboard events with timestamps
+- **Modular code structure** with clear separation of concerns
+
+See [SOLUTION.md](SOLUTION.md) for comprehensive documentation including:
+- Detailed architecture overview
+- Build instructions for all platforms
+- Usage examples
+- Performance benchmarks
+- Troubleshooting guide
+
+---
+
+## Original Challenge Description
+
+<details>
+<summary>Click to expand the original challenge details (concluded November 2024)</summary>
 
 ## 📋 Challenge Overview
 
 Build a **CLI-based screen recording tool** in Rust that can efficiently capture screenshots and full-screen video with audio on both macOS and Windows.
 
 ### Timeline
-- **Deadline**: November 6, 2024 (1 week)
+- **Deadline**: November 6, 2024 (1 week) - **Challenge Concluded**
 
 ---
 
@@ -187,6 +252,10 @@ rust-screenrec-challenge/
 ### Prerequisites
 
 - Rust 1.70+ (latest stable recommended)
+- **FFmpeg libraries** (required for MP4 encoding):
+  - **macOS**: `brew install ffmpeg pkg-config`
+  - **Linux**: `sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libswscale-dev pkg-config`
+  - **Windows**: Download FFmpeg shared libraries from [ffmpeg.org](https://ffmpeg.org/download.html)
 - Platform-specific dependencies:
   - **macOS**: Xcode Command Line Tools
   - **Windows**: Visual Studio Build Tools
@@ -264,3 +333,5 @@ Good luck! 🚀
 ---
 
 **Omega Labs** | [Website](https://omega.inc) | [Omega Focus](https://focus.inc)
+
+</details>
