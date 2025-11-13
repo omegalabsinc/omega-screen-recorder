@@ -51,7 +51,7 @@ jobs:
     - name: Install FFmpeg (Windows)
       if: runner.os == 'Windows'
       run: |
-        vcpkg install ffmpeg[core,avcodec,avformat,avdevice,swscale]:x64-windows
+        vcpkg install ffmpeg[core,avcodec,avformat,avdevice,avfilter,swscale,swresample]:x64-windows
         echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
         echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows" >> $env:GITHUB_ENV
         echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig" >> $env:GITHUB_ENV
