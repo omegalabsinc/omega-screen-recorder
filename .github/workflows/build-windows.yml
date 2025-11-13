@@ -40,15 +40,12 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Install FFmpeg
+    - name: Install FFmpeg via vcpkg
       run: |
-        choco install ffmpeg -y
-        echo "FFMPEG_DIR=C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg" >> $env:GITHUB_ENV
-        echo "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin" >> $env:GITHUB_PATH
-
-    - name: Verify FFmpeg installation
-      run: |
-        ffmpeg -version
+        vcpkg install ffmpeg[core,avcodec,avformat,avdevice,swscale]:x64-windows
+        echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
+        echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows" >> $env:GITHUB_ENV
+        echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig" >> $env:GITHUB_ENV
 
     - name: Build release binary
       run: |
