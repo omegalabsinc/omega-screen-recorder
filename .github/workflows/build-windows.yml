@@ -40,14 +40,25 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
+    - name: Cache vcpkg FFmpeg
+      uses: actions/cache@v4
+      id: cache-vcpkg-ffmpeg
+      with:
+        path: C:\vcpkg\installed\x64-windows-static
+        key: ${{ runner.os }}-vcpkg-ffmpeg-x64-windows-static-v1
+
     - name: Install LLVM and Clang
       run: |
         choco install llvm -y
 
     - name: Install FFmpeg with dev headers
+      if: steps.cache-vcpkg-ffmpeg.outputs.cache-hit != 'true'
       run: |
         # Use vcpkg in static mode for faster builds
         vcpkg install ffmpeg:x64-windows-static
+
+    - name: Set FFmpeg environment variables
+      run: |
         echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
         echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows-static" >> $env:GITHUB_ENV
         echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows-static\lib\pkgconfig" >> $env:GITHUB_ENV
