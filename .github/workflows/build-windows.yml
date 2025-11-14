@@ -40,12 +40,12 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Cache vcpkg FFmpeg
+    - name: Cache vcpkg FFmpeg with x264
       uses: actions/cache@v4
       id: cache-vcpkg-ffmpeg
       with:
         path: C:\vcpkg\installed\x64-windows-static-md
-        key: ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-v2
+        key: ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-v3
 
     - name: Install LLVM and Clang
       run: |
