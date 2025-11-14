@@ -29,7 +29,7 @@ Thumbs.db
 
 # Config files (user-specific)
 config.toml
-.screenrec/
+.omgrec/
 
 # Build artifacts
 *.pdb

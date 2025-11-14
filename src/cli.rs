@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "screenrec")]
+#[command(name = "omgrec")]
 #[command(author = "Omega Labs")]
 #[command(version = "0.1.0")]
 #[command(about = "High-performance cross-platform screen recording CLI tool", long_about = None)]

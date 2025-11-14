@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/OmegaLabs/rust-screenrec-challenge"
 
 [[bin]]
-name = "screenrec"
+name = "omgrec"
 path = "src/main.rs"
 
 [dependencies]
@@ -26,6 +26,8 @@ cpal = "0.15"
 coreaudio-sys = "=0.2.15"  # Lock to version that doesn't require edition2024
 
 # Video encoding
+# Note: "static" feature prefers static libs but doesn't guarantee full static linking
+# True static linking requires building FFmpeg from source with specific flags
 ffmpeg-next = "7.0"
 
 # Serialization for config files
