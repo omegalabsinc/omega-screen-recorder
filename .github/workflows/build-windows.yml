@@ -44,8 +44,14 @@ jobs:
       uses: actions/cache@v4
       id: cache-vcpkg-ffmpeg
       with:
-        path: C:\vcpkg\installed\x64-windows-static-md
-        key: ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-v3
+        path: |
+          C:\vcpkg\installed\x64-windows-static-md
+          C:\vcpkg\packages
+          C:\vcpkg\downloads
+          C:\vcpkg\buildtrees
+        key: ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-v4
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-
 
     - name: Install LLVM and Clang
       run: |
