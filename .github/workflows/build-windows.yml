@@ -44,32 +44,32 @@ jobs:
       uses: actions/cache@v4
       id: cache-vcpkg-ffmpeg
       with:
-        path: C:\vcpkg\installed\x64-windows-static
-        key: ${{ runner.os }}-vcpkg-ffmpeg-x64-windows-static-v1
+        path: C:\vcpkg\installed\x64-windows-static-md
+        key: ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-v2
 
     - name: Install LLVM and Clang
       run: |
         choco install llvm -y
 
-    - name: Install FFmpeg with dev headers
+    - name: Install FFmpeg with x264 support
       if: steps.cache-vcpkg-ffmpeg.outputs.cache-hit != 'true'
       run: |
-        # Use vcpkg in static mode for faster builds
-        vcpkg install ffmpeg:x64-windows-static
+        # Install FFmpeg with x264 for best quality screen recording
+        vcpkg install ffmpeg[x264]:x64-windows-static-md --recurse
 
     - name: Set FFmpeg environment variables
       run: |
         echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
-        echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows-static" >> $env:GITHUB_ENV
-        echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows-static\lib\pkgconfig" >> $env:GITHUB_ENV
+        echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows-static-md" >> $env:GITHUB_ENV
+        echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows-static-md\lib\pkgconfig" >> $env:GITHUB_ENV
         # Set environment for ffmpeg-sys-next
-        echo "FFMPEG_INCLUDE_DIR=C:\vcpkg\installed\x64-windows-static\include" >> $env:GITHUB_ENV
-        echo "FFMPEG_LIB_DIR=C:\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_ENV
+        echo "FFMPEG_INCLUDE_DIR=C:\vcpkg\installed\x64-windows-static-md\include" >> $env:GITHUB_ENV
+        echo "FFMPEG_LIB_DIR=C:\vcpkg\installed\x64-windows-static-md\lib" >> $env:GITHUB_ENV
 
     - name: Build release binary
       env:
         FFMPEG_STATIC: "1"
-        VCPKG_DEFAULT_TRIPLET: "x64-windows-static"
+        VCPKG_DEFAULT_TRIPLET: "x64-windows-static-md"
       run: |
         cargo build --release --verbose
 

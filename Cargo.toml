@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Omega Labs"]
 description = "High-performance cross-platform screen recording CLI tool"
-license = "MIT"
+license = "GPL-3.0-or-later"
 repository = "https://github.com/OmegaLabs/rust-screenrec-challenge"
 
 [[bin]]
