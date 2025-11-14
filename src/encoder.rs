@@ -115,7 +115,7 @@ impl VideoEncoder {
                 let crf = Self::quality_to_crf(quality);
                 opts.set("crf", &crf.to_string());
                 opts.set("preset", "medium");
-                opts.set("tune", "stillscreen");    // Optimize for screen content with sharp edges
+                opts.set("tune", "stillimage");    // Optimize for screen content with sharp edges
                 opts.set("profile", "high");        // Use H.264 High Profile for better compression
 
                 // Keyframe settings - keyframe every 2 seconds to prevent quality degradation
