@@ -137,7 +137,8 @@ jobs:
           pkg-config \
           clang \
           libx11-dev \
-          libxrandr-dev
+          libxrandr-dev \
+          libasound2-dev
 
     - name: Install patchelf for RPATH modification
       run: |
