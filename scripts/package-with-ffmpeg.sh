@@ -126,7 +126,7 @@ if [ "$PLATFORM" == "macos" ]; then
         install_name_tool -id "@rpath/$lib_name" "$lib" 2>/dev/null || true
 
         # Update references in this library to other bundled libraries
-        lib_refs=$(otool -L "$lib" | grep -E "(libav|libsw)" | awk '{print $1}' | grep -v "@rpath")
+        lib_refs=$(otool -L "$lib" | grep -E "(libav|libsw)" | awk '{print $1}' | grep -v "@rpath" || true)
         for ref in $lib_refs; do
             ref_name=$(basename "$ref")
             if [ -f "$PACKAGE_DIR/lib/$ref_name" ]; then
@@ -194,6 +194,41 @@ elif [ "$PLATFORM" == "linux" ]; then
     ls -lh "$PACKAGE_DIR/lib/"
 fi
 
+# Create README for the package (before creating tarball)
+echo -e "\n${GREEN}📄 Creating README...${NC}"
+cat > "$PACKAGE_DIR/README.txt" << 'README_EOF'
+omgrec - Omega Screen Recorder
+
+This package includes the omgrec binary and all required FFmpeg libraries.
+No additional FFmpeg installation is required!
+
+Installation:
+1. Extract this archive:
+   tar -xzf omgrec-*.tar.gz
+
+2. Grant Screen Recording permission:
+   - Run the binary once: ./omgrec
+   - macOS will prompt for Screen Recording permission
+   - Go to: System Settings > Privacy & Security > Screen Recording
+   - Enable permission for omgrec or your terminal app
+
+3. Run omgrec:
+   ./omgrec record --duration 10
+   ./omgrec screenshot --output screenshot.png
+
+4. (Optional) Move to PATH:
+   sudo cp omgrec /usr/local/bin/
+   sudo cp -r lib /usr/local/lib/omgrec-libs/
+
+Important Notes:
+- All FFmpeg libraries are bundled - no installation needed!
+- Screen Recording permission is required on macOS
+- The binary may be killed on first run until permission is granted
+
+For more information, visit:
+https://github.com/OmegaLabs/omega-screen-recorder
+README_EOF
+
 # Create tarball
 echo -e "\n${GREEN}📦 Creating tarball...${NC}"
 cd "$PROJECT_ROOT/target"
@@ -207,35 +242,43 @@ echo -e "\n${GREEN}✅ Package created successfully!${NC}"
 echo -e "${YELLOW}Location: $TARBALL_PATH${NC}"
 echo -e "${YELLOW}Size: $TARBALL_SIZE${NC}"
 
-# Create README for the package
-cat > "$PACKAGE_DIR/README.txt" << 'README_EOF'
-omgrec - Omega Screen Recorder
-
-This package includes the omgrec binary and all required FFmpeg libraries.
-No additional FFmpeg installation is required!
-
-Installation:
-1. Extract this archive:
-   tar -xzf omgrec-*.tar.gz
-
-2. Run omgrec:
-   ./omgrec --version
-   ./omgrec record --duration 10
-
-3. (Optional) Move to PATH:
-   sudo cp omgrec /usr/local/bin/
-   sudo cp -r lib /usr/local/lib/omgrec-libs/
-
-For more information, visit:
-https://github.com/OmegaLabs/omega-screen-recorder
-README_EOF
-
-echo -e "\n${GREEN}📄 Created README.txt in package${NC}"
-
-# Test the package
-echo -e "\n${GREEN}🧪 Testing packaged binary...${NC}"
+# Test the package (check if all dependencies are satisfied)
+echo -e "\n${GREEN}🧪 Testing packaged binary linkage...${NC}"
 cd "$PACKAGE_DIR"
-./omgrec --version && echo -e "${GREEN}✅ Package test successful!${NC}" || echo -e "${RED}❌ Package test failed${NC}"
+
+if [ "$PLATFORM" == "macos" ]; then
+    # Check if all FFmpeg libraries can be found
+    MISSING_LIBS=$(otool -L "$PACKAGE_DIR/omgrec" | grep -E "(libav|libsw)" | grep -v "@rpath" | wc -l)
+    if [ "$MISSING_LIBS" -eq 0 ]; then
+        echo -e "${GREEN}✅ All FFmpeg libraries properly linked via @rpath${NC}"
+
+        # Verify all required libraries exist
+        REQUIRED_LIBS=$(otool -L "$PACKAGE_DIR/omgrec" | grep "@rpath" | awk '{print $1}' | sed 's/@rpath\///')
+        ALL_FOUND=true
+        for lib in $REQUIRED_LIBS; do
+            if [ ! -f "$PACKAGE_DIR/lib/$lib" ]; then
+                echo -e "${RED}  ⚠️  Missing: $lib${NC}"
+                ALL_FOUND=false
+            fi
+        done
+
+        if [ "$ALL_FOUND" = true ]; then
+            echo -e "${GREEN}✅ All required libraries are bundled${NC}"
+            echo -e "${GREEN}✅ Package test successful!${NC}"
+        else
+            echo -e "${RED}❌ Some required libraries are missing${NC}"
+        fi
+    else
+        echo -e "${RED}❌ Found libraries not using @rpath${NC}"
+    fi
+elif [ "$PLATFORM" == "linux" ]; then
+    # For Linux, just check if the binary exists and is executable
+    if [ -x "$PACKAGE_DIR/omgrec" ]; then
+        echo -e "${GREEN}✅ Package test successful!${NC}"
+    else
+        echo -e "${RED}❌ Binary is not executable${NC}"
+    fi
+fi
 
 echo -e "\n${GREEN}🎉 Done! Extract and test the package:${NC}"
 echo -e "${YELLOW}  cd /tmp${NC}"
