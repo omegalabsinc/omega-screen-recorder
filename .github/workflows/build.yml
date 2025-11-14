@@ -6,7 +6,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [ build ]
     tags:
       - 'v*'
   pull_request:
@@ -55,11 +55,13 @@ jobs:
 
     - name: Build and package with FFmpeg libraries
       env:
-        FFMPEG_DIR: /opt/homebrew
         PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
-        CPATH: /opt/homebrew/include
-        LIBRARY_PATH: /opt/homebrew/lib
       run: |
+        export FFMPEG_INCLUDE_DIR=$(pkg-config --variable=includedir libavcodec)
+        export FFMPEG_LIB_DIR=$(pkg-config --variable=libdir libavcodec)
+        export CPATH="$FFMPEG_INCLUDE_DIR"
+        export LIBRARY_PATH="$FFMPEG_LIB_DIR"
+        echo "Using FFmpeg from: $FFMPEG_INCLUDE_DIR"
         ./scripts/package-with-ffmpeg.sh
 
     - name: Rename tarball
@@ -92,11 +94,13 @@ jobs:
 
     - name: Build and package with FFmpeg libraries
       env:
-        FFMPEG_DIR: /usr/local
         PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
-        CPATH: /usr/local/include
-        LIBRARY_PATH: /usr/local/lib
       run: |
+        export FFMPEG_INCLUDE_DIR=$(pkg-config --variable=includedir libavcodec)
+        export FFMPEG_LIB_DIR=$(pkg-config --variable=libdir libavcodec)
+        export CPATH="$FFMPEG_INCLUDE_DIR"
+        export LIBRARY_PATH="$FFMPEG_LIB_DIR"
+        echo "Using FFmpeg from: $FFMPEG_INCLUDE_DIR"
         ./scripts/package-with-ffmpeg.sh
 
     - name: Rename tarball
