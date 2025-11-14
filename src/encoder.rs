@@ -1,3 +1,4 @@
+#[cfg(target_os = "macos")]
 use crate::audio::AudioSample;
 use crate::capture::Frame;
 use crate::db::Database;
@@ -455,6 +456,7 @@ pub async fn process_frames_chunked(
 }
 
 /// Process audio samples (currently just logs them, can be extended to save audio file)
+#[cfg(target_os = "macos")]
 pub async fn process_audio(mut rx: mpsc::Receiver<AudioSample>) -> Result<()> {
     log::info!("Starting audio processing");
 
