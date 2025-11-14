@@ -56,6 +56,9 @@ jobs:
         echo "FFMPEG_LIB_DIR=C:\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_ENV
 
     - name: Build release binary
+      env:
+        FFMPEG_STATIC: "1"
+        VCPKG_DEFAULT_TRIPLET: "x64-windows-static"
       run: |
         cargo build --release --verbose
 
