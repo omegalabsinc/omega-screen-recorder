@@ -87,7 +87,8 @@ impl VideoEncoder {
         let codec = ffmpeg::encoder::find(ffmpeg::codec::Id::H264)
             .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
 
-        log::info!("Using encoder: {}", codec.name());
+        let encoder_name = codec.name();
+        log::info!("Using encoder: {}", encoder_name);
 
         // Create encoder context from codec
         let encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
@@ -102,35 +103,72 @@ impl VideoEncoder {
         video_encoder.set_time_base(ffmpeg::Rational::new(1, fps as i32));
         video_encoder.set_frame_rate(Some(ffmpeg::Rational::new(fps as i32, 1)));
 
-        // Set quality (CRF)
-        let crf = Self::quality_to_crf(quality);
+        // Set quality and encoder-specific options
         let mut opts = ffmpeg::Dictionary::new();
-        opts.set("crf", &crf.to_string());
-        opts.set("preset", "medium");
 
         // Windows-specific optimizations for screen recording
         #[cfg(target_os = "windows")]
         {
-            // Optimizations for screen recording
-            opts.set("tune", "stillscreen");    // Optimize for screen content with sharp edges
-            opts.set("profile", "high");        // Use H.264 High Profile for better compression
+            // Check which encoder we're using and apply appropriate options
+            if encoder_name == "libx264" {
+                // libx264-specific options
+                let crf = Self::quality_to_crf(quality);
+                opts.set("crf", &crf.to_string());
+                opts.set("preset", "medium");
+                opts.set("tune", "stillscreen");    // Optimize for screen content with sharp edges
+                opts.set("profile", "high");        // Use H.264 High Profile for better compression
 
-            // Keyframe settings - keyframe every 2 seconds to prevent quality degradation
-            let gop_size = (fps * 2).to_string();  // GOP size = 2 seconds of frames
-            opts.set("g", &gop_size);               // Set keyframe interval
-            opts.set("keyint_min", &gop_size);      // Minimum keyframe interval
+                // Keyframe settings - keyframe every 2 seconds to prevent quality degradation
+                let gop_size = (fps * 2).to_string();  // GOP size = 2 seconds of frames
+                opts.set("g", &gop_size);               // Set keyframe interval
+                opts.set("keyint_min", &gop_size);      // Minimum keyframe interval
 
-            // Encoding settings
-            opts.set("bf", "0");                    // No B-frames for lower latency
-            opts.set("refs", "3");                  // Number of reference frames
+                // Encoding settings
+                opts.set("bf", "0");                    // No B-frames for lower latency
+                opts.set("refs", "3");                  // Number of reference frames
 
-            // Screen recording specific optimizations
-            opts.set("sc_threshold", "0");          // Disable scene cut detection (not needed for screen)
-            opts.set("qmin", "10");                 // Minimum quantizer (prevents too much compression)
-            opts.set("qmax", "30");                 // Maximum quantizer (maintains quality)
+                // Screen recording specific optimizations
+                opts.set("sc_threshold", "0");          // Disable scene cut detection (not needed for screen)
+                opts.set("qmin", "10");                 // Minimum quantizer (prevents too much compression)
+                opts.set("qmax", "30");                 // Maximum quantizer (maintains quality)
 
-            // Windows Media Foundation compatibility
-            opts.set("movflags", "+faststart");     // Enable fast start for MP4
+                // Windows Media Foundation compatibility
+                opts.set("movflags", "+faststart");     // Enable fast start for MP4
+            } else if encoder_name == "h264_mf" {
+                // Windows Media Foundation encoder - simpler options
+                // h264_mf doesn't support CRF, use bitrate instead
+                let bitrate = (width * height * fps * 8 / 1000) as i64; // Rough bitrate calculation
+                video_encoder.set_bit_rate(bitrate);
+
+                // Keyframe interval
+                let gop_size = fps * 2;  // GOP size = 2 seconds of frames
+                opts.set("g", &gop_size.to_string());
+
+                // Quality setting for h264_mf (0-100)
+                let mf_quality = ((quality as f32 / 10.0) * 100.0) as i32;
+                opts.set("quality", &mf_quality.to_string());
+            } else if encoder_name == "h264_qsv" || encoder_name == "h264_nvenc" || encoder_name == "h264_amf" {
+                // Hardware encoder options (QSV/NVENC/AMF)
+                let crf = Self::quality_to_crf(quality);
+                opts.set("qp", &crf.to_string());  // Use QP instead of CRF for hardware encoders
+                opts.set("preset", "medium");
+
+                let gop_size = (fps * 2).to_string();
+                opts.set("g", &gop_size);
+            } else {
+                // Generic fallback for unknown encoders
+                let crf = Self::quality_to_crf(quality);
+                opts.set("crf", &crf.to_string());
+                opts.set("preset", "medium");
+            }
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            // Non-Windows platforms - use standard libx264 options
+            let crf = Self::quality_to_crf(quality);
+            opts.set("crf", &crf.to_string());
+            opts.set("preset", "medium");
         }
 
         // Open encoder with options
