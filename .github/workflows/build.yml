@@ -35,13 +35,6 @@ jobs:
       run: |
         brew install ffmpeg pkg-config nasm
 
-    - name: Set up FFmpeg environment
-      run: |
-        echo "FFMPEG_DIR=/opt/homebrew" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig" >> $GITHUB_ENV
-        echo "CPATH=/opt/homebrew/include" >> $GITHUB_ENV
-        echo "LIBRARY_PATH=/opt/homebrew/lib" >> $GITHUB_ENV
-
     - name: Cache cargo registry
       uses: actions/cache@v4
       with:
@@ -61,6 +54,11 @@ jobs:
         key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build and package with FFmpeg libraries
+      env:
+        FFMPEG_DIR: /opt/homebrew
+        PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
+        CPATH: /opt/homebrew/include
+        LIBRARY_PATH: /opt/homebrew/lib
       run: |
         ./scripts/package-with-ffmpeg.sh
 
@@ -92,14 +90,12 @@ jobs:
       run: |
         brew install ffmpeg pkg-config nasm
 
-    - name: Set up FFmpeg environment
-      run: |
-        echo "FFMPEG_DIR=/usr/local" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=/usr/local/lib/pkgconfig" >> $GITHUB_ENV
-        echo "CPATH=/usr/local/include" >> $GITHUB_ENV
-        echo "LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
-
     - name: Build and package with FFmpeg libraries
+      env:
+        FFMPEG_DIR: /usr/local
+        PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
+        CPATH: /usr/local/include
+        LIBRARY_PATH: /usr/local/lib
       run: |
         ./scripts/package-with-ffmpeg.sh
 
@@ -147,11 +143,9 @@ jobs:
       run: |
         sudo apt-get install -y patchelf
 
-    - name: Set up FFmpeg environment
-      run: |
-        echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig" >> $GITHUB_ENV
-
     - name: Build and package with FFmpeg libraries
+      env:
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
       run: |
         chmod +x ./scripts/package-with-ffmpeg.sh
         ./scripts/package-with-ffmpeg.sh
