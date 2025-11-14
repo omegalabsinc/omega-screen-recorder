@@ -2,12 +2,12 @@ use crate::audio::AudioSample;
 use crate::capture::Frame;
 use crate::db::Database;
 use crate::error::{Result, ScreenRecError};
-use chrono::Local;
 use ffmpeg_next as ffmpeg;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
+#[allow(dead_code)]
 pub struct RecordingOutput {
     pub video_file: PathBuf,
 }
@@ -78,7 +78,7 @@ impl VideoEncoder {
             .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
 
         // Create encoder context from codec
-        let mut encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
+        let encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
         let mut video_encoder = encoder_ctx.encoder().video().map_err(|e| {
             ScreenRecError::EncodingError(format!("Failed to get video encoder: {}", e))
         })?;
@@ -142,7 +142,7 @@ impl VideoEncoder {
     }
 
     pub fn encode_frame(&mut self, frame: Frame) -> Result<FrameMetadata> {
-        let Frame { data, timestamp, width, height, display_index, .. } = frame;
+        let Frame { data, width, height, display_index, .. } = frame;
 
         // If frame dimensions don't match encoder dimensions, we need to scale/pad
         let processed_data = if width != self.width || height != self.height {
@@ -250,7 +250,6 @@ impl VideoEncoder {
         // Get strides
         let y_stride = yuv_frame.stride(0);
         let u_stride = yuv_frame.stride(1);
-        let v_stride = yuv_frame.stride(2);
 
         // Use integer arithmetic for much faster conversion
         unsafe {
@@ -363,6 +362,7 @@ impl VideoEncoder {
 }
 
 /// Process frames from the capture channel and encode them
+#[allow(dead_code)]
 pub async fn process_frames(
     mut rx: mpsc::Receiver<Frame>,
     mut encoder: VideoEncoder,

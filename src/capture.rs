@@ -10,6 +10,7 @@ pub struct Frame {
     pub data: Vec<u8>,
     pub width: usize,
     pub height: usize,
+    #[allow(dead_code)]
     pub timestamp: Duration,
     pub captured_at: DateTime<Utc>,
     pub display_index: usize,
@@ -21,6 +22,7 @@ struct MonitorSwitchDetector {
     current_display: usize,
     pending_display: Option<usize>,
     pending_count: u8,
+    #[allow(dead_code)]
     displays_info: Vec<DisplayInfo>,
 }
 
@@ -163,6 +165,7 @@ impl ScreenCapture {
         self.get_display_size().map(|(_, h)| h).unwrap_or(1080)
     }
 
+    #[allow(dead_code)]
     pub fn fps(&self) -> u32 {
         self.fps
     }

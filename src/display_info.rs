@@ -9,6 +9,7 @@ pub struct DisplayInfo {
     pub height: usize,
     pub x: i32,
     pub y: i32,
+    #[allow(dead_code)]
     pub is_primary: bool,
 }
 

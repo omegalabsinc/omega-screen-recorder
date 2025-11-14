@@ -198,6 +198,7 @@ impl Database {
     }
 
     /// Get frame information by frame ID
+    #[allow(dead_code)]
     pub async fn get_frame(&self, frame_id: i64) -> Result<FrameInfo> {
         let row = sqlx::query_as::<_, FrameInfo>(
             r#"
@@ -227,6 +228,7 @@ impl Database {
     }
 
     /// Get all frames for a specific video chunk
+    #[allow(dead_code)]
     pub async fn get_frames_by_chunk(&self, video_chunk_id: i64) -> Result<Vec<FrameInfo>> {
         let rows = sqlx::query_as::<_, FrameInfo>(
             r#"
@@ -257,6 +259,7 @@ impl Database {
     }
 
     /// Get the current video chunk ID for a device
+    #[allow(dead_code)]
     pub async fn get_current_chunk_id(&self, device_name: &str) -> Result<Option<i64>> {
         let id: Option<i64> = sqlx::query_scalar(
             "SELECT id FROM video_chunks
@@ -319,6 +322,7 @@ impl Database {
 }
 
 #[derive(Debug, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct FrameInfo {
     pub id: i64,
     pub video_chunk_id: i64,
@@ -335,6 +339,7 @@ pub struct FrameInfo {
 }
 
 #[derive(Debug, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct VideoChunkInfo {
     pub id: i64,
     pub file_path: String,
