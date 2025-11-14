@@ -24,6 +24,7 @@ pub enum ScreenRecError {
     InvalidParameter(String),
 
     #[error("Platform not supported: {0}")]
+    #[allow(dead_code)]
     PlatformNotSupported(String),
 
     #[error("Database error: {0}")]

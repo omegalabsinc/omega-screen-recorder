@@ -166,7 +166,7 @@ impl InteractionTracker {
             let mut last_mouse_x = 0.0;
             let mut last_mouse_y = 0.0;
 
-            let mut callback = move |event: Event| {
+            let callback = move |event: Event| {
                 let timestamp_ms = start_time.elapsed().as_millis() as u64;
 
                 match event.event_type {
@@ -380,6 +380,7 @@ impl InteractionTracker {
 }
 
 /// Get current mouse position (platform-independent)
+#[allow(dead_code)]
 fn get_mouse_position() -> Option<(f64, f64)> {
     // rdev doesn't provide a direct way to get mouse position
     // This is a limitation - we rely on move events to track position

@@ -3,12 +3,12 @@ use crate::audio::AudioSample;
 use crate::capture::Frame;
 use crate::db::Database;
 use crate::error::{Result, ScreenRecError};
-use chrono::Local;
 use ffmpeg_next as ffmpeg;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
+#[allow(dead_code)]
 pub struct RecordingOutput {
     pub video_file: PathBuf,
 }
@@ -17,6 +17,9 @@ pub struct FrameMetadata {
     pub is_keyframe: bool,
     pub pts: Option<i64>,
     pub dts: Option<i64>,
+    pub display_index: usize,
+    pub width: usize,
+    pub height: usize,
 }
 
 pub struct VideoEncoder {
@@ -76,7 +79,7 @@ impl VideoEncoder {
             .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
 
         // Create encoder context from codec
-        let mut encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
+        let encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
         let mut video_encoder = encoder_ctx.encoder().video().map_err(|e| {
             ScreenRecError::EncodingError(format!("Failed to get video encoder: {}", e))
         })?;
@@ -140,7 +143,16 @@ impl VideoEncoder {
     }
 
     pub fn encode_frame(&mut self, frame: Frame) -> Result<FrameMetadata> {
-        let Frame { data, timestamp, .. } = frame;
+        let Frame { data, width, height, display_index, .. } = frame;
+
+        // If frame dimensions don't match encoder dimensions, we need to scale/pad
+        let processed_data = if width != self.width || height != self.height {
+            log::debug!("Frame dimensions {}x{} don't match encoder {}x{}, scaling/padding",
+                       width, height, self.width, self.height);
+            Self::scale_and_pad_frame(&data, width, height, self.width, self.height)?
+        } else {
+            data
+        };
 
         // Create YUV420P frame
         let mut yuv_frame = ffmpeg::frame::Video::new(
@@ -154,7 +166,7 @@ impl VideoEncoder {
         yuv_frame.set_pts(Some(self.frame_count as i64));
 
         // Convert RGB to YUV420P
-        Self::rgb_to_yuv420p(&data, self.width, self.height, &mut yuv_frame)?;
+        Self::rgb_to_yuv420p(&processed_data, self.width, self.height, &mut yuv_frame)?;
 
         // Send frame to encoder
         self.encoder.send_frame(&yuv_frame).map_err(|e| {
@@ -169,6 +181,9 @@ impl VideoEncoder {
             is_keyframe: self.last_packet_keyframe,
             pts: self.last_packet_pts,
             dts: self.last_packet_dts,
+            display_index,
+            width,
+            height,
         };
 
         self.frame_count += 1;
@@ -236,7 +251,6 @@ impl VideoEncoder {
         // Get strides
         let y_stride = yuv_frame.stride(0);
         let u_stride = yuv_frame.stride(1);
-        let v_stride = yuv_frame.stride(2);
 
         // Use integer arithmetic for much faster conversion
         unsafe {
@@ -289,6 +303,58 @@ impl VideoEncoder {
         Ok(())
     }
 
+    /// Scale and pad frame to target dimensions (center with black bars)
+    fn scale_and_pad_frame(
+        rgb: &[u8],
+        src_width: usize,
+        src_height: usize,
+        target_width: usize,
+        target_height: usize,
+    ) -> Result<Vec<u8>> {
+        // Calculate scaling to fit within target while preserving aspect ratio
+        let width_ratio = target_width as f32 / src_width as f32;
+        let height_ratio = target_height as f32 / src_height as f32;
+        let scale_ratio = width_ratio.min(height_ratio);
+
+        let scaled_width = (src_width as f32 * scale_ratio) as usize;
+        let scaled_height = (src_height as f32 * scale_ratio) as usize;
+
+        // Calculate padding to center the scaled image
+        let pad_x = (target_width - scaled_width) / 2;
+        let pad_y = (target_height - scaled_height) / 2;
+
+        // Create black canvas
+        let mut result = vec![0u8; target_width * target_height * 3];
+
+        // Simple nearest-neighbor scaling and placement
+        for target_y in 0..target_height {
+            for target_x in 0..target_width {
+                // Check if we're in the scaled image area
+                if target_x >= pad_x && target_x < pad_x + scaled_width &&
+                   target_y >= pad_y && target_y < pad_y + scaled_height {
+                    // Map to source coordinates
+                    let src_x = ((target_x - pad_x) as f32 / scale_ratio) as usize;
+                    let src_y = ((target_y - pad_y) as f32 / scale_ratio) as usize;
+
+                    // Bounds check
+                    if src_x < src_width && src_y < src_height {
+                        let src_idx = (src_y * src_width + src_x) * 3;
+                        let dst_idx = (target_y * target_width + target_x) * 3;
+
+                        if src_idx + 2 < rgb.len() && dst_idx + 2 < result.len() {
+                            result[dst_idx] = rgb[src_idx];         // R
+                            result[dst_idx + 1] = rgb[src_idx + 1]; // G
+                            result[dst_idx + 2] = rgb[src_idx + 2]; // B
+                        }
+                    }
+                }
+                // Else: leave as black (already initialized to 0)
+            }
+        }
+
+        Ok(result)
+    }
+
     fn quality_to_crf(quality: u8) -> u8 {
         let q = quality.clamp(1, 10) as i32;
         let mapped = 42 - q * 3;
@@ -297,6 +363,7 @@ impl VideoEncoder {
 }
 
 /// Process frames from the capture channel and encode them
+#[allow(dead_code)]
 pub async fn process_frames(
     mut rx: mpsc::Receiver<Frame>,
     mut encoder: VideoEncoder,
@@ -320,6 +387,9 @@ pub async fn process_frames(
                     metadata.is_keyframe,
                     metadata.pts,
                     metadata.dts,
+                    Some(metadata.display_index as i64),
+                    Some(metadata.width as i64),
+                    Some(metadata.height as i64),
                 )
                 .await
             {
@@ -438,6 +508,9 @@ pub async fn process_frames_chunked(
                     metadata.is_keyframe,
                     metadata.pts,
                     metadata.dts,
+                    Some(metadata.display_index as i64),
+                    Some(metadata.width as i64),
+                    Some(metadata.height as i64),
                 )
                 .await
             {

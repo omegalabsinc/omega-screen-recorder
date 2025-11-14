@@ -4,6 +4,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, Stream, StreamConfig};
 use tokio::sync::mpsc;
 
+#[allow(dead_code)]
 pub struct AudioSample {
     pub data: Vec<f32>,
     pub sample_rate: u32,
@@ -57,10 +58,12 @@ impl AudioCapture {
         Ok(Some(Self { device, config }))
     }
 
+    #[allow(dead_code)]
     pub fn sample_rate(&self) -> u32 {
         self.config.sample_rate.0
     }
 
+    #[allow(dead_code)]
     pub fn channels(&self) -> u16 {
         self.config.channels
     }
