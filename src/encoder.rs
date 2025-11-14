@@ -137,7 +137,7 @@ impl VideoEncoder {
             } else if encoder_name == "h264_mf" {
                 // Windows Media Foundation encoder - simpler options
                 // h264_mf doesn't support CRF, use bitrate instead
-                let bitrate = (width * height * fps * 8 / 1000) as i64; // Rough bitrate calculation
+                let bitrate = width * height * (fps as usize) * 8 / 1000; // Rough bitrate calculation
                 video_encoder.set_bit_rate(bitrate);
 
                 // Keyframe interval
