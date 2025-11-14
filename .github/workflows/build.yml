@@ -41,19 +41,19 @@ jobs:
         echo "PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig" >> $GITHUB_ENV
 
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cargo/registry
         key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Cache cargo index
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cargo/git
         key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Cache target directory
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: target
         key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
@@ -67,7 +67,7 @@ jobs:
         mv target/omgrec-macos-arm64-bundled.tar.gz omgrec-macos-arm64.tar.gz
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-arm64
         path: omgrec-macos-arm64.tar.gz
@@ -104,7 +104,7 @@ jobs:
         mv target/omgrec-macos-x86_64-bundled.tar.gz omgrec-macos-x86_64.tar.gz
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-x86_64
         path: omgrec-macos-x86_64.tar.gz
@@ -153,7 +153,7 @@ jobs:
         mv target/omgrec-linux-x86_64-bundled.tar.gz omgrec-linux-x86_64.tar.gz
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: omgrec-linux-x86_64
         path: omgrec-linux-x86_64.tar.gz
@@ -166,7 +166,7 @@ jobs:
 
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
