@@ -457,14 +457,192 @@ async fn main() -> Result<()> {
                     log::info!("✅ Final video created: {}", final_output_path.display());
                     println!("✅ Final video saved to: {}", final_output_path.display());
 
-                    // Export frame metadata to JSON
-                    log::info!("Exporting frame metadata to JSON...");
+                    // Get video metadata using ffprobe
+                    log::info!("Extracting video metadata...");
+                    let ffprobe_cmd = ffmpeg_path.as_ref()
+                        .and_then(|p| p.parent())
+                        .and_then(|parent| {
+                            let ffprobe_path = parent.join("ffprobe");
+                            if ffprobe_path.exists() {
+                                Some(ffprobe_path.to_str().unwrap().to_string())
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or_else(|| "ffprobe".to_string());
 
-                    let json_output = serde_json::json!({
+                    let ffprobe_result = std::process::Command::new(&ffprobe_cmd)
+                        .args(&[
+                            "-v", "quiet",
+                            "-print_format", "json",
+                            "-show_format",
+                            "-show_streams",
+                            final_output_path.to_str().unwrap()
+                        ])
+                        .output();
+
+                    let mut video_duration_secs = 0.0;
+                    let mut video_bitrate = 0;
+                    let mut video_codec = String::new();
+                    let mut file_size_bytes = 0;
+
+                    if let Ok(result) = ffprobe_result {
+                        if result.status.success() {
+                            let output_str = String::from_utf8_lossy(&result.stdout);
+                            if let Ok(json_data) = serde_json::from_str::<serde_json::Value>(&output_str) {
+                                // Get duration from format
+                                if let Some(format_obj) = json_data.get("format") {
+                                    if let Some(duration_str) = format_obj.get("duration").and_then(|v| v.as_str()) {
+                                        video_duration_secs = duration_str.parse::<f64>().unwrap_or(0.0);
+                                    }
+                                    if let Some(bitrate_str) = format_obj.get("bit_rate").and_then(|v| v.as_str()) {
+                                        video_bitrate = bitrate_str.parse::<i64>().unwrap_or(0);
+                                    }
+                                    if let Some(size_str) = format_obj.get("size").and_then(|v| v.as_str()) {
+                                        file_size_bytes = size_str.parse::<i64>().unwrap_or(0);
+                                    }
+                                }
+                                // Get codec from first video stream
+                                if let Some(streams) = json_data.get("streams").and_then(|v| v.as_array()) {
+                                    for stream in streams {
+                                        if stream.get("codec_type").and_then(|v| v.as_str()) == Some("video") {
+                                            video_codec = stream.get("codec_name")
+                                                .and_then(|v| v.as_str())
+                                                .unwrap_or("unknown")
+                                                .to_string();
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Calculate monitor statistics
+                    let unique_displays: std::collections::HashSet<_> = frames.iter()
+                        .filter_map(|f| f.display_index)
+                        .collect();
+                    let num_monitors_used = unique_displays.len();
+
+                    // Calculate resolution statistics
+                    let mut resolution_usage: std::collections::HashMap<(i64, i64), usize> = std::collections::HashMap::new();
+                    for frame in &frames {
+                        if let (Some(w), Some(h)) = (frame.display_width, frame.display_height) {
+                            *resolution_usage.entry((w, h)).or_insert(0) += 1;
+                        }
+                    }
+
+                    // Calculate keyframe statistics
+                    let keyframe_count = frames.iter().filter(|f| f.is_keyframe == 1).count();
+
+                    // Get chunk details
+                    let chunk_details: Vec<serde_json::Value> = chunks.iter().map(|c| {
+                        serde_json::json!({
+                            "chunk_index": c.chunk_index,
+                            "file_path": c.file_path,
+                            "created_at": c.created_at.to_rfc3339(),
+                        })
+                    }).collect();
+
+                    // Export comprehensive metadata to JSON
+                    log::info!("Exporting comprehensive metadata to JSON...");
+
+                    let metadata_output = serde_json::json!({
+                        "version": "1.0",
                         "task_id": tid,
-                        "final_video": "final.mp4",
+                        "device_name": device_name,
+                        "recording_type": recording_type.to_string(),
+                        "created_at": chunks.first().map(|c| c.created_at.to_rfc3339()).unwrap_or_default(),
+                        "video": {
+                            "final_video_path": "final.mp4",
+                            "duration_seconds": video_duration_secs,
+                            "duration_formatted": format!("{}h {}m {:.1}s",
+                                (video_duration_secs / 3600.0) as i64,
+                                ((video_duration_secs % 3600.0) / 60.0) as i64,
+                                video_duration_secs % 60.0
+                            ),
+                            "file_size_bytes": file_size_bytes,
+                            "file_size_mb": format!("{:.2}", file_size_bytes as f64 / 1024.0 / 1024.0),
+                            "codec": video_codec,
+                            "bitrate_bps": video_bitrate,
+                            "fps": fps,
+                            "quality": quality,
+                        },
+                        "focused_time": {
+                            "total_seconds": video_duration_secs,
+                            "formatted": format!("{}h {}m {:.1}s",
+                                (video_duration_secs / 3600.0) as i64,
+                                ((video_duration_secs % 3600.0) / 60.0) as i64,
+                                video_duration_secs % 60.0
+                            ),
+                            "total_minutes": format!("{:.2}", video_duration_secs / 60.0),
+                            "total_hours": format!("{:.3}", video_duration_secs / 3600.0),
+                        },
+                        "chunks": {
+                            "total_count": chunks.len(),
+                            "chunk_duration_seconds": chunk_duration,
+                            "details": chunk_details,
+                        },
+                        "frames": {
+                            "total_count": frames.len(),
+                            "keyframe_count": keyframe_count,
+                            "keyframe_interval": if keyframe_count > 0 { frames.len() / keyframe_count } else { 0 },
+                        },
+                        "displays": {
+                            "monitors_used": num_monitors_used,
+                            "unique_display_indices": unique_displays.iter().cloned().collect::<Vec<_>>(),
+                            "normalized": needs_normalization,
+                            "resolutions": resolutions.iter().map(|(w, h)| {
+                                serde_json::json!({
+                                    "width": w,
+                                    "height": h,
+                                    "frame_count": resolution_usage.get(&(*w, *h)).unwrap_or(&0),
+                                })
+                            }).collect::<Vec<_>>(),
+                            "final_resolution": if needs_normalization {
+                                let (max_width, max_height) = resolutions.iter()
+                                    .fold((0i64, 0i64), |(max_w, max_h), &(w, h)| {
+                                        (max_w.max(w), max_h.max(h))
+                                    });
+                                serde_json::json!({
+                                    "width": max_width,
+                                    "height": max_height,
+                                })
+                            } else {
+                                resolutions.iter().next()
+                                    .map(|(w, h)| serde_json::json!({
+                                        "width": w,
+                                        "height": h,
+                                    }))
+                                    .unwrap_or(serde_json::json!({}))
+                            },
+                        },
+                        "recording_settings": {
+                            "fps": fps,
+                            "quality": quality,
+                            "audio": audio.to_string(),
+                            "track_interactions": track_interactions,
+                            "track_mouse_moves": track_mouse_moves,
+                            "chunk_duration_seconds": chunk_duration,
+                            "monitor_switch_interval_seconds": monitor_switch_interval,
+                        },
+                    });
+
+                    let metadata_path = output_dir.join("metadata.json");
+                    std::fs::write(&metadata_path, serde_json::to_string_pretty(&metadata_output).unwrap())
+                        .map_err(|e| {
+                            error::ScreenRecError::EncodingError(format!("Failed to write metadata JSON: {}", e))
+                        })?;
+
+                    log::info!("✅ Metadata exported: {}", metadata_path.display());
+                    println!("✅ Comprehensive metadata saved to: {}", metadata_path.display());
+
+                    // Also export detailed frame metadata to a separate JSON
+                    log::info!("Exporting detailed frame metadata to JSON...");
+
+                    let frames_output = serde_json::json!({
+                        "task_id": tid,
                         "total_frames": frames.len(),
-                        "normalized": needs_normalization,
                         "frames": frames.iter().map(|f| {
                             serde_json::json!({
                                 "offset": f.offset_index,
@@ -478,14 +656,14 @@ async fn main() -> Result<()> {
                         }).collect::<Vec<_>>()
                     });
 
-                    let json_path = output_dir.join(format!("{}_frames.json", tid));
-                    std::fs::write(&json_path, serde_json::to_string_pretty(&json_output).unwrap())
+                    let frames_path = output_dir.join(format!("{}_frames.json", tid));
+                    std::fs::write(&frames_path, serde_json::to_string_pretty(&frames_output).unwrap())
                         .map_err(|e| {
-                            error::ScreenRecError::EncodingError(format!("Failed to write JSON: {}", e))
+                            error::ScreenRecError::EncodingError(format!("Failed to write frames JSON: {}", e))
                         })?;
 
-                    log::info!("✅ Frame metadata exported: {}", json_path.display());
-                    println!("✅ Frame metadata saved to: {}", json_path.display());
+                    log::info!("✅ Detailed frame metadata exported: {}", frames_path.display());
+                    println!("✅ Detailed frame metadata saved to: {}", frames_path.display());
                 }
             } else {
                 // Just log where chunks were saved
