@@ -74,9 +74,20 @@ impl VideoEncoder {
             ScreenRecError::EncodingError(format!("Failed to create output context: {}", e))
         })?;
 
-        // Find H.264 encoder
+        // Find H.264 encoder - Windows: prefer libx264 for better quality, Mac: use system default
+        #[cfg(target_os = "windows")]
+        let codec = ffmpeg::encoder::find_by_name("libx264")
+            .or_else(|| ffmpeg::encoder::find_by_name("h264_qsv"))  // Intel QuickSync fallback
+            .or_else(|| ffmpeg::encoder::find_by_name("h264_nvenc")) // NVIDIA fallback
+            .or_else(|| ffmpeg::encoder::find_by_name("h264_amf"))   // AMD fallback
+            .or_else(|| ffmpeg::encoder::find(ffmpeg::codec::Id::H264)) // System fallback
+            .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
+
+        #[cfg(not(target_os = "windows"))]
         let codec = ffmpeg::encoder::find(ffmpeg::codec::Id::H264)
             .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
+
+        log::info!("Using encoder: {}", codec.name());
 
         // Create encoder context from codec
         let encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
@@ -96,6 +107,31 @@ impl VideoEncoder {
         let mut opts = ffmpeg::Dictionary::new();
         opts.set("crf", &crf.to_string());
         opts.set("preset", "medium");
+
+        // Windows-specific optimizations for screen recording
+        #[cfg(target_os = "windows")]
+        {
+            // Optimizations for screen recording
+            opts.set("tune", "stillscreen");    // Optimize for screen content with sharp edges
+            opts.set("profile", "high");        // Use H.264 High Profile for better compression
+
+            // Keyframe settings - keyframe every 2 seconds to prevent quality degradation
+            let gop_size = (fps * 2).to_string();  // GOP size = 2 seconds of frames
+            opts.set("g", &gop_size);               // Set keyframe interval
+            opts.set("keyint_min", &gop_size);      // Minimum keyframe interval
+
+            // Encoding settings
+            opts.set("bf", "0");                    // No B-frames for lower latency
+            opts.set("refs", "3");                  // Number of reference frames
+
+            // Screen recording specific optimizations
+            opts.set("sc_threshold", "0");          // Disable scene cut detection (not needed for screen)
+            opts.set("qmin", "10");                 // Minimum quantizer (prevents too much compression)
+            opts.set("qmax", "30");                 // Maximum quantizer (maintains quality)
+
+            // Windows Media Foundation compatibility
+            opts.set("movflags", "+faststart");     // Enable fast start for MP4
+        }
 
         // Open encoder with options
         let encoder = video_encoder.open_with(opts).map_err(|e| {
@@ -356,9 +392,25 @@ impl VideoEncoder {
     }
 
     fn quality_to_crf(quality: u8) -> u8 {
-        let q = quality.clamp(1, 10) as i32;
-        let mapped = 42 - q * 3;
-        mapped.clamp(12, 35) as u8
+        #[cfg(target_os = "windows")]
+        {
+            // For Windows screen recording, use lower CRF values for sharper text
+            // Quality 1 (lowest) -> CRF 28
+            // Quality 5 (medium) -> CRF 20
+            // Quality 8 (high)   -> CRF 15
+            // Quality 10 (max)   -> CRF 12
+            let q = quality.clamp(1, 10) as i32;
+            let mapped = 30 - (q * 2); // More aggressive mapping for screen content
+            mapped.clamp(12, 28) as u8
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            // Mac/Linux: use original mapping
+            let q = quality.clamp(1, 10) as i32;
+            let mapped = 42 - q * 3;
+            mapped.clamp(12, 35) as u8
+        }
     }
 }
 
