@@ -135,18 +135,30 @@ impl VideoEncoder {
                 // Windows Media Foundation compatibility
                 opts.set("movflags", "+faststart");     // Enable fast start for MP4
             } else if encoder_name == "h264_mf" {
-                // Windows Media Foundation encoder - simpler options
-                // h264_mf doesn't support CRF, use bitrate instead
-                let bitrate = width * height * (fps as usize) * 8 / 1000; // Rough bitrate calculation
-                video_encoder.set_bit_rate(bitrate);
+                // Windows Media Foundation encoder - use bitrate-based quality
+                // Calculate reasonable bitrate for screen recording
+                // Base: 0.1 bits per pixel (conservative for screen content)
+                // Quality multiplier: 0.5x to 2.5x based on quality setting (1-10)
+                let base_bpp = 0.1; // bits per pixel
+                let quality_multiplier = 0.5 + (quality as f64 / 10.0) * 2.0; // 0.5 to 2.5
+                let bitrate = (width * height) as f64 * (fps as f64) * base_bpp * quality_multiplier;
+                video_encoder.set_bit_rate((bitrate / 1000.0) as usize); // Convert to kbps
 
-                // Keyframe interval
-                let gop_size = fps * 2;  // GOP size = 2 seconds of frames
+                log::info!("h264_mf bitrate: {} kbps (quality: {})", (bitrate / 1000.0) as usize, quality);
+
+                // Keyframe interval - more frequent for better quality
+                let gop_size = fps;  // GOP size = 1 second (not 2) for better quality
                 opts.set("g", &gop_size.to_string());
 
-                // Quality setting for h264_mf (0-100)
-                let mf_quality = ((quality as f32 / 10.0) * 100.0) as i32;
+                // Rate control mode - use quality-based VBR
+                opts.set("rate_control", "quality");
+
+                // Quality setting for h264_mf (0-100, higher is better)
+                let mf_quality = ((quality as f32 / 10.0) * 100.0).min(100.0) as i32;
                 opts.set("quality", &mf_quality.to_string());
+
+                // Low latency mode for better frame quality
+                opts.set("low_latency", "1");
             } else if encoder_name == "h264_qsv" || encoder_name == "h264_nvenc" || encoder_name == "h264_amf" {
                 // Hardware encoder options (QSV/NVENC/AMF)
                 let crf = Self::quality_to_crf(quality);
