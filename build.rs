@@ -8,5 +8,9 @@ fn main() {
         println!("cargo:rustc-link-lib=uuid");
         println!("cargo:rustc-link-lib=mfplat");
         println!("cargo:rustc-link-lib=mfuuid");
+
+        // Link x264 library explicitly (ffmpeg-sys-next doesn't always link it correctly)
+        // vcpkg names the library file as "libx264.lib"
+        println!("cargo:rustc-link-lib=static=libx264");
     }
 }
