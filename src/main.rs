@@ -1,3 +1,4 @@
+#[cfg(target_os = "macos")]
 mod audio;
 mod capture;
 mod cli;
@@ -8,6 +9,7 @@ mod error;
 mod interactions;
 mod screenshot;
 
+#[cfg(target_os = "macos")]
 use crate::audio::AudioCapture;
 use crate::capture::ScreenCapture;
 use crate::cli::{Cli, Commands, RecordingType};
@@ -183,7 +185,6 @@ async fn main() -> Result<()> {
             // Create channels for frame and audio data
             let (frame_tx_std, frame_rx_std) = std_mpsc::channel(); // Sync channel for capture thread
             let (frame_tx, frame_rx) = mpsc::channel(60); // Async channel for encoder
-            let (audio_tx, audio_rx) = mpsc::channel(1000);
 
             // Bridge: sync receiver -> async sender
             let bridge_handle = tokio::spawn(async move {
@@ -218,8 +219,10 @@ async fn main() -> Result<()> {
                 .await
             });
 
-            // Initialize audio capture if requested
+            // Initialize audio capture if requested (macOS only)
+            #[cfg(target_os = "macos")]
             let audio_handle = if audio != cli::AudioSource::None {
+                let (audio_tx, audio_rx) = mpsc::channel(1000);
                 match AudioCapture::new(audio)? {
                     Some(audio_capture) => {
                         // Start audio capture in a separate thread (cpal requires non-async)
@@ -241,6 +244,15 @@ async fn main() -> Result<()> {
                     }
                 }
             } else {
+                None
+            };
+
+            // Audio not supported on Windows yet
+            #[cfg(not(target_os = "macos"))]
+            let audio_handle: Option<tokio::task::JoinHandle<()>> = {
+                if audio != cli::AudioSource::None {
+                    log::warn!("Audio capture is only supported on macOS");
+                }
                 None
             };
 

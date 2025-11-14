@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Omega Labs"]
 description = "High-performance cross-platform screen recording CLI tool"
-license = "MIT"
+license = "GPL-3.0-or-later"
 repository = "https://github.com/OmegaLabs/rust-screenrec-challenge"
 
 [[bin]]
@@ -21,12 +21,8 @@ tokio = { version = "1.35", features = ["full", "sync"] }
 # Screen capture
 scrap = "0.5"
 
-# Audio capture
-cpal = "0.15"
-coreaudio-sys = "=0.2.15"  # Lock to version that doesn't require edition2024
-
 # Video encoding
-ffmpeg-next = "7.0"
+ffmpeg-next = { version = "7.0", features = ["static"] }
 
 # Serialization for config files
 serde = { version = "1.0", features = ["derive"] }
