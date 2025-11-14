@@ -1,6 +1,8 @@
+use crate::display_info::{get_all_displays_with_bounds, get_display_at_cursor, DisplayInfo};
 use crate::error::{Result, ScreenRecError};
 use chrono::{DateTime, Utc};
 use scrap::{Capturer, Display};
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 #[derive(Clone)]
@@ -10,16 +12,92 @@ pub struct Frame {
     pub height: usize,
     pub timestamp: Duration,
     pub captured_at: DateTime<Utc>,
+    pub display_index: usize,
 }
 
+struct MonitorSwitchDetector {
+    check_interval: Duration,
+    last_check: Instant,
+    current_display: usize,
+    pending_display: Option<usize>,
+    pending_count: u8,
+    displays_info: Vec<DisplayInfo>,
+}
+
+impl MonitorSwitchDetector {
+    fn new(check_interval: Duration, initial_display: usize) -> Result<Self> {
+        let displays_info = get_all_displays_with_bounds()?;
+
+        Ok(Self {
+            check_interval,
+            last_check: Instant::now(),
+            current_display: initial_display,
+            pending_display: None,
+            pending_count: 0,
+            displays_info,
+        })
+    }
+
+    /// Check if we should switch displays. Returns Some(new_display_index) if a switch should occur.
+    fn check_for_switch(&mut self) -> Option<usize> {
+        // Only check at specified intervals
+        if self.last_check.elapsed() < self.check_interval {
+            return None;
+        }
+
+        self.last_check = Instant::now();
+
+        // Get current cursor position
+        let (cursor_x, cursor_y) = get_cursor_position()?;
+
+        // Determine which display the cursor is on
+        let cursor_display = match get_display_at_cursor(cursor_x, cursor_y) {
+            Ok(idx) => idx,
+            Err(_) => {
+                // If we can't determine display, keep current
+                return None;
+            }
+        };
+
+        // If cursor is on same display, reset pending
+        if cursor_display == self.current_display {
+            self.pending_display = None;
+            self.pending_count = 0;
+            return None;
+        }
+
+        // If cursor is on a new display
+        if Some(cursor_display) == self.pending_display {
+            // Same pending display, increment count
+            self.pending_count += 1;
+
+            // If we've seen it 2+ times, switch
+            if self.pending_count >= 2 {
+                log::info!("Switching from display {} to display {}", self.current_display, cursor_display);
+                self.current_display = cursor_display;
+                self.pending_display = None;
+                self.pending_count = 0;
+                return Some(cursor_display);
+            }
+        } else {
+            // Different pending display, start new pending
+            self.pending_display = Some(cursor_display);
+            self.pending_count = 1;
+        }
+
+        None
+    }
+}
 
 pub struct ScreenCapture {
     display_index: usize,
     fps: u32,
+    multi_monitor: bool,
+    monitor_switch_interval: Duration,
 }
 
 impl ScreenCapture {
-    pub fn new(display_index: usize, fps: u32) -> Result<Self> {
+    pub fn new(display_index: usize, fps: u32, monitor_switch_interval: Duration) -> Result<Self> {
         // Just validate that the display exists
         let displays = Display::all().map_err(|e| {
             ScreenRecError::CaptureError(format!("Failed to enumerate displays: {}", e))
@@ -39,13 +117,30 @@ impl ScreenCapture {
             )));
         }
 
-        log::info!(
-            "Screen capture configured for display {} @ {}fps",
-            display_index,
-            fps
-        );
+        // Check if multi-monitor mode should be enabled
+        let multi_monitor = displays.len() > 1;
 
-        Ok(Self { display_index, fps })
+        if multi_monitor {
+            log::info!(
+                "Screen capture configured for {} displays @ {}fps with multi-monitor tracking (check interval: {:.1}s)",
+                displays.len(),
+                fps,
+                monitor_switch_interval.as_secs_f64()
+            );
+        } else {
+            log::info!(
+                "Screen capture configured for display {} @ {}fps (single monitor)",
+                display_index,
+                fps
+            );
+        }
+
+        Ok(Self {
+            display_index,
+            fps,
+            multi_monitor,
+            monitor_switch_interval,
+        })
     }
 
     fn get_display_size(&self) -> Result<(usize, usize)> {
@@ -72,9 +167,45 @@ impl ScreenCapture {
         self.fps
     }
 
+    pub fn is_multi_monitor(&self) -> bool {
+        self.multi_monitor
+    }
+
+    /// Get maximum dimensions across all displays (for encoder initialization)
+    pub fn get_max_dimensions(&self) -> Result<(usize, usize)> {
+        let displays = Display::all().map_err(|e| {
+            ScreenRecError::CaptureError(format!("Failed to enumerate displays: {}", e))
+        })?;
+
+        let (mut max_width, mut max_height) = (0, 0);
+        for display in displays {
+            let w = display.width();
+            let h = display.height();
+            max_width = max_width.max(w);
+            max_height = max_height.max(h);
+        }
+
+        Ok((max_width, max_height))
+    }
+
     /// Start capturing frames and send them through the channel
     /// This runs synchronously in a blocking thread
     pub fn start_capture_sync(
+        self,
+        tx: std::sync::mpsc::Sender<Frame>,
+        target_frames: Option<u64>,
+        running: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    ) -> Result<()> {
+        // Branch based on whether multi-monitor is enabled
+        if self.multi_monitor {
+            self.start_capture_multi_monitor(tx, target_frames, running)
+        } else {
+            self.start_capture_single_monitor(tx, target_frames, running)
+        }
+    }
+
+    /// Single monitor capture path (original implementation, zero overhead)
+    fn start_capture_single_monitor(
         self,
         tx: std::sync::mpsc::Sender<Frame>,
         target_frames: Option<u64>,
@@ -161,6 +292,7 @@ impl ScreenCapture {
                         height,
                         timestamp: start_time.unwrap().elapsed(),
                         captured_at: Utc::now(),
+                        display_index: self.display_index,
                     };
 
                     // Send frame through channel
@@ -196,6 +328,159 @@ impl ScreenCapture {
         }
 
         log::info!("Screen capture finished. Total frames: {}", frame_count);
+        Ok(())
+    }
+
+    /// Multi-monitor capture path with cursor-based display switching
+    fn start_capture_multi_monitor(
+        self,
+        tx: std::sync::mpsc::Sender<Frame>,
+        target_frames: Option<u64>,
+        running: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    ) -> Result<()> {
+        // Get all displays and create capturers for each
+        let displays = Display::all().map_err(|e| {
+            ScreenRecError::CaptureError(format!("Failed to enumerate displays: {}", e))
+        })?;
+
+        // Determine initial display based on cursor position
+        let initial_display = if let Some((cursor_x, cursor_y)) = get_cursor_position() {
+            get_display_at_cursor(cursor_x, cursor_y).unwrap_or(self.display_index)
+        } else {
+            self.display_index
+        };
+
+        log::info!("Initializing {} capturers for multi-monitor mode (starting with display {})", displays.len(), initial_display);
+
+        // Create HashMap of capturers
+        let mut capturers: HashMap<usize, Capturer> = HashMap::new();
+        for (index, display) in displays.into_iter().enumerate() {
+            let capturer = Capturer::new(display).map_err(|e| {
+                ScreenRecError::CaptureError(format!("Failed to create capturer for display {}: {}", index, e))
+            })?;
+            capturers.insert(index, capturer);
+        }
+
+        // Initialize monitor switch detector
+        let mut switch_detector = MonitorSwitchDetector::new(
+            self.monitor_switch_interval,
+            initial_display
+        )?;
+
+        // Start with the initial display
+        let mut current_display_index = initial_display;
+        let current_capturer = capturers.get_mut(&current_display_index).ok_or_else(|| {
+            ScreenRecError::CaptureError(format!("Capturer for display {} not found", current_display_index))
+        })?;
+
+        let mut width = current_capturer.width();
+        let mut height = current_capturer.height();
+
+        let frame_duration = Duration::from_micros(1_000_000 / self.fps as u64);
+        let mut start_time: Option<Instant> = None;
+        let mut frame_count = 0u64;
+
+        log::info!("Starting multi-monitor screen capture...");
+        log::info!("Waiting for first frame (grant screen recording permission if prompted)...");
+
+        loop {
+            let frame_start = Instant::now();
+
+            // Check if we should stop (Ctrl+C pressed)
+            if let Some(ref running_flag) = running {
+                if !running_flag.load(std::sync::atomic::Ordering::SeqCst) {
+                    log::info!("Stop signal received, finishing capture...");
+                    break;
+                }
+            }
+
+            // Check if we should stop (target frames reached)
+            if let Some(target) = target_frames {
+                if frame_count >= target {
+                    log::info!("Target frames reached: {}/{}", frame_count, target);
+                    break;
+                }
+            }
+
+            // Check for monitor switch
+            if let Some(new_display) = switch_detector.check_for_switch() {
+                if let Some(new_capturer) = capturers.get_mut(&new_display) {
+                    current_display_index = new_display;
+                    width = new_capturer.width();
+                    height = new_capturer.height();
+                    log::debug!("Switched to display {} ({}x{})", new_display, width, height);
+                }
+            }
+
+            // Get current capturer
+            let current_capturer = capturers.get_mut(&current_display_index).ok_or_else(|| {
+                ScreenRecError::CaptureError(format!("Capturer for display {} not found", current_display_index))
+            })?;
+
+            // Capture frame
+            match current_capturer.frame() {
+                Ok(frame) => {
+                    // Convert BGRA to RGB (removing alpha channel for better compression)
+                    let mut rgb_data = Vec::with_capacity(width * height * 3);
+                    for chunk in frame.chunks_exact(4) {
+                        rgb_data.push(chunk[2]); // R
+                        rgb_data.push(chunk[1]); // G
+                        rgb_data.push(chunk[0]); // B
+                    }
+
+                    // Draw cursor on frame
+                    if let Some((cursor_x, cursor_y)) = get_cursor_position() {
+                        draw_cursor(&mut rgb_data, width, height, cursor_x, cursor_y);
+                    }
+
+                    // Start the timer on first successful frame
+                    if start_time.is_none() {
+                        start_time = Some(Instant::now());
+                        log::info!("First frame captured, recording started!");
+                    }
+
+                    let captured_frame = Frame {
+                        data: rgb_data,
+                        width,
+                        height,
+                        timestamp: start_time.unwrap().elapsed(),
+                        captured_at: Utc::now(),
+                        display_index: current_display_index,
+                    };
+
+                    // Send frame through channel
+                    if tx.send(captured_frame).is_err() {
+                        log::warn!("Frame receiver dropped, stopping capture");
+                        break;
+                    }
+
+                    frame_count += 1;
+                    if frame_count % (self.fps as u64) == 0 {
+                        log::debug!("Captured {} frames", frame_count);
+                    }
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    // Frame not ready yet, wait a bit
+                    std::thread::sleep(Duration::from_millis(1));
+                    continue;
+                }
+                Err(e) => {
+                    log::error!("Frame capture error: {}", e);
+                    return Err(ScreenRecError::CaptureError(format!(
+                        "Failed to capture frame: {}",
+                        e
+                    )));
+                }
+            }
+
+            // Maintain frame rate
+            let elapsed = frame_start.elapsed();
+            if elapsed < frame_duration {
+                std::thread::sleep(frame_duration - elapsed);
+            }
+        }
+
+        log::info!("Multi-monitor screen capture finished. Total frames: {}", frame_count);
         Ok(())
     }
 }

@@ -2,6 +2,7 @@ mod audio;
 mod capture;
 mod cli;
 mod db;
+mod display_info;
 mod encoder;
 mod error;
 mod interactions;
@@ -54,6 +55,8 @@ async fn main() -> Result<()> {
             task_id,
             is_final,
             chunk_duration,
+            monitor_switch_interval,
+            ffmpeg_path,
         } => {
             // Handle no_audio flag
             let audio = if no_audio {
@@ -140,14 +143,27 @@ async fn main() -> Result<()> {
                 .unwrap_or_else(|| "unknown".to_string());
 
             // Initialize screen capture
-            let screen_capture = ScreenCapture::new(display, fps)?;
+            let monitor_switch_duration = std::time::Duration::from_secs_f64(monitor_switch_interval);
+            let screen_capture = ScreenCapture::new(display, fps, monitor_switch_duration)?;
+
             let mut capture_width = if width > 0 {
                 width as usize
+            } else if screen_capture.is_multi_monitor() {
+                // In multi-monitor mode, use maximum dimensions across all displays
+                let (max_w, _) = screen_capture.get_max_dimensions()?;
+                log::info!("Multi-monitor mode: using maximum width {}", max_w);
+                max_w
             } else {
                 screen_capture.width()
             };
+
             let mut capture_height = if height > 0 {
                 height as usize
+            } else if screen_capture.is_multi_monitor() {
+                // In multi-monitor mode, use maximum dimensions across all displays
+                let (_, max_h) = screen_capture.get_max_dimensions()?;
+                log::info!("Multi-monitor mode: using maximum height {}", max_h);
+                max_h
             } else {
                 screen_capture.height()
             };
@@ -339,6 +355,32 @@ async fn main() -> Result<()> {
                 } else {
                     log::info!("Found {} chunks to concatenate", chunks.len());
 
+                    // Check if we need normalization (multiple resolutions detected)
+                    let frames = db.get_frames_by_task_id(tid).await?;
+                    let mut resolutions = std::collections::HashSet::new();
+                    for frame in &frames {
+                        if let (Some(w), Some(h)) = (frame.display_width, frame.display_height) {
+                            resolutions.insert((w, h));
+                        }
+                    }
+
+                    let needs_normalization = resolutions.len() > 1;
+
+                    if needs_normalization {
+                        log::info!("Multiple resolutions detected: {:?}", resolutions);
+                        log::info!("Video normalization will be applied during concatenation");
+
+                        // Find the maximum dimensions across all resolutions
+                        let (max_width, max_height) = resolutions.iter()
+                            .fold((0i64, 0i64), |(max_w, max_h), &(w, h)| {
+                                (max_w.max(w), max_h.max(h))
+                            });
+
+                        log::info!("Target resolution: {}x{}", max_width, max_height);
+                    } else {
+                        log::info!("Single resolution detected, no normalization needed");
+                    }
+
                     // Create concat file list for FFmpeg
                     let concat_list_path = output_dir.join("concat_list.txt");
                     let mut concat_content = String::new();
@@ -349,18 +391,53 @@ async fn main() -> Result<()> {
                         error::ScreenRecError::EncodingError(format!("Failed to write concat list: {}", e))
                     })?;
 
-                    // Run FFmpeg concat
+                    // Run FFmpeg concat with optional normalization
                     let final_output_path = output_dir.join("final.mp4");
                     log::info!("Concatenating chunks to: {}", final_output_path.display());
 
-                    let concat_result = std::process::Command::new("ffmpeg")
-                        .args(&[
-                            "-f", "concat",
-                            "-safe", "0",
-                            "-i", concat_list_path.to_str().unwrap(),
-                            "-c", "copy",
-                            final_output_path.to_str().unwrap(),
-                        ])
+                    let mut ffmpeg_args = vec![
+                        "-f".to_string(), "concat".to_string(),
+                        "-safe".to_string(), "0".to_string(),
+                        "-i".to_string(), concat_list_path.to_str().unwrap().to_string(),
+                    ];
+
+                    if needs_normalization {
+                        // Find the maximum dimensions
+                        let (max_width, max_height) = resolutions.iter()
+                            .fold((0i64, 0i64), |(max_w, max_h), &(w, h)| {
+                                (max_w.max(w), max_h.max(h))
+                            });
+
+                        // Add video filter for scaling and padding
+                        let filter_string = format!(
+                            "scale={}:{}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:black",
+                            max_width, max_height, max_width, max_height
+                        );
+
+                        ffmpeg_args.extend(vec![
+                            "-vf".to_string(), filter_string,
+                            "-c:v".to_string(), "libx264".to_string(),
+                            "-preset".to_string(), "medium".to_string(),
+                            "-crf".to_string(), "23".to_string(),
+                        ]);
+                    } else {
+                        // No normalization needed, use copy
+                        ffmpeg_args.extend(vec![
+                            "-c".to_string(), "copy".to_string(),
+                        ]);
+                    }
+
+                    ffmpeg_args.push(final_output_path.to_str().unwrap().to_string());
+
+                    // Determine which ffmpeg binary to use
+                    let ffmpeg_cmd = ffmpeg_path.as_ref()
+                        .map(|p| p.to_str().unwrap().to_string())
+                        .unwrap_or_else(|| "ffmpeg".to_string());
+
+                    log::info!("Using ffmpeg: {}", ffmpeg_cmd);
+
+                    let concat_result = std::process::Command::new(&ffmpeg_cmd)
+                        .args(&ffmpeg_args)
                         .output()
                         .map_err(|e| {
                             error::ScreenRecError::EncodingError(format!("Failed to run ffmpeg concat: {}", e))
@@ -382,18 +459,21 @@ async fn main() -> Result<()> {
 
                     // Export frame metadata to JSON
                     log::info!("Exporting frame metadata to JSON...");
-                    let frames = db.get_frames_by_task_id(tid).await?;
 
                     let json_output = serde_json::json!({
                         "task_id": tid,
                         "final_video": "final.mp4",
                         "total_frames": frames.len(),
+                        "normalized": needs_normalization,
                         "frames": frames.iter().map(|f| {
                             serde_json::json!({
                                 "offset": f.offset_index,
                                 "timestamp": f.timestamp.to_rfc3339(),
                                 "pts": f.pts,
                                 "is_keyframe": f.is_keyframe == 1,
+                                "display_index": f.display_index,
+                                "display_width": f.display_width,
+                                "display_height": f.display_height,
                             })
                         }).collect::<Vec<_>>()
                     });

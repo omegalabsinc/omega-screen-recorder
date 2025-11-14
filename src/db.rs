@@ -53,6 +53,9 @@ impl Database {
                 is_keyframe INTEGER DEFAULT 0,
                 pts INTEGER,
                 dts INTEGER,
+                display_index INTEGER DEFAULT 0,
+                display_width INTEGER,
+                display_height INTEGER,
                 FOREIGN KEY (video_chunk_id) REFERENCES video_chunks(id)
             )
             "#,
@@ -78,6 +81,39 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
+
+        // Migration: Add display columns if they don't exist
+        // SQLite doesn't support "IF NOT EXISTS" for ALTER TABLE, so we check first
+        // PRAGMA table_info returns: (cid, name, type, notnull, dflt_value, pk)
+        let columns: Vec<(i64, String, String, i64, Option<String>, i64)> =
+            sqlx::query_as("PRAGMA table_info(frames)")
+            .fetch_all(&self.pool)
+            .await
+            .unwrap_or_default();
+
+        let column_names: Vec<String> = columns.iter().map(|(_, name, _, _, _, _)| name.clone()).collect();
+        log::debug!("Existing frames table columns: {:?}", column_names);
+
+        if !column_names.contains(&"display_index".to_string()) {
+            log::info!("Adding display_index column to frames table");
+            sqlx::query("ALTER TABLE frames ADD COLUMN display_index INTEGER DEFAULT 0")
+                .execute(&self.pool)
+                .await?;
+        }
+
+        if !column_names.contains(&"display_width".to_string()) {
+            log::info!("Adding display_width column to frames table");
+            sqlx::query("ALTER TABLE frames ADD COLUMN display_width INTEGER")
+                .execute(&self.pool)
+                .await?;
+        }
+
+        if !column_names.contains(&"display_height".to_string()) {
+            log::info!("Adding display_height column to frames table");
+            sqlx::query("ALTER TABLE frames ADD COLUMN display_height INTEGER")
+                .execute(&self.pool)
+                .await?;
+        }
 
         Ok(())
     }
@@ -113,6 +149,9 @@ impl Database {
         is_keyframe: bool,
         pts: Option<i64>,
         dts: Option<i64>,
+        display_index: Option<i64>,
+        display_width: Option<i64>,
+        display_height: Option<i64>,
     ) -> Result<i64> {
         let mut tx = self.pool.begin().await?;
 
@@ -138,8 +177,8 @@ impl Database {
 
         // 3. Insert frame with auto-incremented offset_index
         let result = sqlx::query(
-            "INSERT INTO frames (video_chunk_id, offset_index, timestamp, device_name, is_keyframe, pts, dts)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO frames (video_chunk_id, offset_index, timestamp, device_name, is_keyframe, pts, dts, display_index, display_width, display_height)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         )
         .bind(video_chunk_id)
         .bind(offset_index)
@@ -148,6 +187,9 @@ impl Database {
         .bind(is_keyframe as i32)
         .bind(pts)
         .bind(dts)
+        .bind(display_index)
+        .bind(display_width)
+        .bind(display_height)
         .execute(&mut *tx)
         .await?;
 
@@ -168,7 +210,10 @@ impl Database {
                 vc.file_path,
                 f.is_keyframe,
                 f.pts,
-                f.dts
+                f.dts,
+                f.display_index,
+                f.display_width,
+                f.display_height
             FROM frames f
             JOIN video_chunks vc ON f.video_chunk_id = vc.id
             WHERE f.id = ?1
@@ -194,7 +239,10 @@ impl Database {
                 vc.file_path,
                 f.is_keyframe,
                 f.pts,
-                f.dts
+                f.dts,
+                f.display_index,
+                f.display_width,
+                f.display_height
             FROM frames f
             JOIN video_chunks vc ON f.video_chunk_id = vc.id
             WHERE f.video_chunk_id = ?1
@@ -252,7 +300,10 @@ impl Database {
                 vc.file_path,
                 f.is_keyframe,
                 f.pts,
-                f.dts
+                f.dts,
+                f.display_index,
+                f.display_width,
+                f.display_height
             FROM frames f
             JOIN video_chunks vc ON f.video_chunk_id = vc.id
             WHERE vc.task_id = ?1
@@ -278,6 +329,9 @@ pub struct FrameInfo {
     pub is_keyframe: i32,
     pub pts: Option<i64>,
     pub dts: Option<i64>,
+    pub display_index: Option<i64>,
+    pub display_width: Option<i64>,
+    pub display_height: Option<i64>,
 }
 
 #[derive(Debug, sqlx::FromRow)]

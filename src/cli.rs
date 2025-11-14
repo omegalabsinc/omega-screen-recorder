@@ -89,6 +89,14 @@ pub enum Commands {
         /// Chunk duration in seconds for time-based chunking
         #[arg(long, default_value = "10")]
         chunk_duration: u64,
+
+        /// Monitor switch check interval in seconds (only used with multiple monitors)
+        #[arg(long, default_value = "1.0")]
+        monitor_switch_interval: f64,
+
+        /// Path to ffmpeg binary (defaults to system ffmpeg)
+        #[arg(long)]
+        ffmpeg_path: Option<PathBuf>,
     },
 }
 
