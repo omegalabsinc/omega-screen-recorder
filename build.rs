@@ -8,8 +8,5 @@ fn main() {
         println!("cargo:rustc-link-lib=uuid");
         println!("cargo:rustc-link-lib=mfplat");
         println!("cargo:rustc-link-lib=mfuuid");
-
-        // Link x264 library for FFmpeg (required for libx264 encoder)
-        println!("cargo:rustc-link-lib=static=x264");
     }
 }
