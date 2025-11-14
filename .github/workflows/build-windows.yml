@@ -2,7 +2,7 @@ name: Build Windows Binary
 
 on:
   push:
-    branches: [main]
+    branches: [main, windows-recorder-builder]
     tags:
       - 'v*'
   pull_request:
