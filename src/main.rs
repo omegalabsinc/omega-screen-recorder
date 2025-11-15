@@ -414,6 +414,11 @@ async fn main() -> Result<()> {
                     println!("✅ Frame metadata saved to: {}", frames_path.display());
                 }
             }
+
+            // Log completion for normal recording
+            log::info!("Recording completed. Chunks saved to: {}", output_dir.display());
+            println!("✅ Recording saved to: {}", output_dir.display());
+            println!("   {} chunk(s) created", chunk_outputs.len());
             }  // Close else block for normal recording
 
             // If is_final is true and recording_type is Task, concatenate chunks
@@ -741,11 +746,6 @@ async fn main() -> Result<()> {
                     log::info!("✅ Detailed frame metadata exported: {}", frames_path.display());
                     println!("✅ Detailed frame metadata saved to: {}", frames_path.display());
                 }
-            } else {
-                // Just log where chunks were saved
-                log::info!("Recording completed. Chunks saved to: {}", output_dir.display());
-                println!("✅ Recording saved to: {}", output_dir.display());
-                println!("   {} chunk(s) created", chunk_outputs.len());
             }
 
             log::info!("Recording completed successfully");
