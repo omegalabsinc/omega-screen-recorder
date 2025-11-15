@@ -3,6 +3,7 @@
 Cargo.lock
 
 # IDE
+.claude/
 .vscode/
 .idea/
 *.swp

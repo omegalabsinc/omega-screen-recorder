@@ -11,19 +11,34 @@ use std::time::Instant;
 #[cfg(target_os = "macos")]
 use active_win_pos_rs::get_active_window;
 
-/// Represents a click event for JSONL export
+/// Unified interaction event for JSONL export (includes all event types with window info)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClickEvent {
-    pub x: i32,
-    pub y: i32,
-    pub button: String,
+pub struct InteractionEvent {
+    #[serde(rename = "type")]
+    pub event_type: String,  // "click", "move", "scroll", "keypress", "keyrelease"
+    pub timestamp: String,  // ISO 8601 format
+    pub timestamp_ms: u64,  // Milliseconds from recording start
     #[serde(rename = "taskId")]
     pub task_id: String,
-    pub timestamp: String,  // ISO 8601 format
     #[serde(rename = "processName")]
     pub process_name: String,
     #[serde(rename = "windowTitle")]
     pub window_title: String,
+    // Mouse-specific fields (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub button: Option<String>,
+    // Keyboard-specific fields (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    // Scroll-specific fields (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_x: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_y: Option<i64>,
 }
 
 /// Represents a mouse event
@@ -217,20 +232,25 @@ impl InteractionTracker {
                         if let Some(ref tid) = task_id {
                             log::debug!("Click detected at ({}, {}) for task {}", x, y, tid);
                             let (process_name, window_title) = get_active_window_info();
-                            let click_event = ClickEvent {
-                                x: x as i32,
-                                y: y as i32,
-                                button: button_name,
-                                task_id: tid.clone(),
+                            let interaction_event = InteractionEvent {
+                                event_type: "click".to_string(),
                                 timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
                                 process_name,
                                 window_title,
+                                x: Some(x),
+                                y: Some(y),
+                                button: Some(button_name),
+                                key: None,
+                                delta_x: None,
+                                delta_y: None,
                             };
 
                             if let Ok(mut file_opt) = jsonl_file.lock() {
                                 if let Some(ref mut writer) = *file_opt {
                                     // Write as compact single line (JSONL format: one JSON object per line)
-                                    if let Ok(json) = serde_json::to_string(&click_event) {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
                                         match writeln!(writer, "{}", json) {
                                             Ok(_) => {
                                                 let _ = writer.flush();
@@ -280,27 +300,114 @@ impl InteractionTracker {
                         if let Ok(mut events) = mouse_events.lock() {
                             events.push(mouse_event);
                         }
+
+                        // Write to JSONL if task-based tracking
+                        if let Some(ref tid) = task_id {
+                            let (process_name, window_title) = get_active_window_info();
+                            let interaction_event = InteractionEvent {
+                                event_type: "scroll".to_string(),
+                                timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
+                                process_name,
+                                window_title,
+                                x: Some(x),
+                                y: Some(y),
+                                button: None,
+                                key: None,
+                                delta_x: Some(delta_x),
+                                delta_y: Some(delta_y),
+                            };
+
+                            if let Ok(mut file_opt) = jsonl_file.lock() {
+                                if let Some(ref mut writer) = *file_opt {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
+                                        if let Err(e) = writeln!(writer, "{}", json) {
+                                            log::error!("Failed to write scroll to JSONL: {}", e);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     EventType::KeyPress(key) => {
                         let key_name = format_key(key);
                         let keyboard_event = KeyboardEvent {
                             timestamp_ms,
-                            key: key_name,
+                            key: key_name.clone(),
                             event_type: "press".to_string(),
                         };
                         if let Ok(mut events) = keyboard_events.lock() {
                             events.push(keyboard_event);
+                        }
+
+                        // Write to JSONL if task-based tracking
+                        if let Some(ref tid) = task_id {
+                            let (process_name, window_title) = get_active_window_info();
+                            let interaction_event = InteractionEvent {
+                                event_type: "keypress".to_string(),
+                                timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
+                                process_name,
+                                window_title,
+                                x: None,
+                                y: None,
+                                button: None,
+                                key: Some(key_name),
+                                delta_x: None,
+                                delta_y: None,
+                            };
+
+                            if let Ok(mut file_opt) = jsonl_file.lock() {
+                                if let Some(ref mut writer) = *file_opt {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
+                                        if let Err(e) = writeln!(writer, "{}", json) {
+                                            log::error!("Failed to write keypress to JSONL: {}", e);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     EventType::KeyRelease(key) => {
                         let key_name = format_key(key);
                         let keyboard_event = KeyboardEvent {
                             timestamp_ms,
-                            key: key_name,
+                            key: key_name.clone(),
                             event_type: "release".to_string(),
                         };
                         if let Ok(mut events) = keyboard_events.lock() {
                             events.push(keyboard_event);
+                        }
+
+                        // Write to JSONL if task-based tracking
+                        if let Some(ref tid) = task_id {
+                            let (process_name, window_title) = get_active_window_info();
+                            let interaction_event = InteractionEvent {
+                                event_type: "keyrelease".to_string(),
+                                timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
+                                process_name,
+                                window_title,
+                                x: None,
+                                y: None,
+                                button: None,
+                                key: Some(key_name),
+                                delta_x: None,
+                                delta_y: None,
+                            };
+
+                            if let Ok(mut file_opt) = jsonl_file.lock() {
+                                if let Some(ref mut writer) = *file_opt {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
+                                        if let Err(e) = writeln!(writer, "{}", json) {
+                                            log::error!("Failed to write keyrelease to JSONL: {}", e);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

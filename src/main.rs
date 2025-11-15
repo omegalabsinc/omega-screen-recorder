@@ -257,14 +257,14 @@ async fn main() -> Result<()> {
             };
 
             // Initialize interaction tracker
-            // For task mode: always track clicks to JSONL
+            // For task mode: always track all interactions (clicks, keys, scrolls) to JSONL
             // For always_on mode: only track if --track-interactions is enabled
             // Note: The interaction tracker also handles cursor position updates
             let interaction_tracker = if recording_type == RecordingType::Task && task_id.is_some() {
-                // Task mode: always track clicks to JSONL
+                // Task mode: always track all interactions to JSONL
                 let tid = task_id.as_ref().unwrap();
-                let jsonl_path = output_dir.join("clicks.jsonl");
-                log::info!("Task mode: Click tracking enabled -> {}", jsonl_path.display());
+                let jsonl_path = output_dir.join("interactions.jsonl");
+                log::info!("Task mode: Interaction tracking enabled -> {}", jsonl_path.display());
 
                 let tracker = InteractionTracker::new_for_task(
                     capture_width,
@@ -655,8 +655,9 @@ async fn main() -> Result<()> {
                     let frames_output = serde_json::json!({
                         "task_id": tid,
                         "total_frames": frames.len(),
-                        "frames": frames.iter().map(|f| {
+                        "frames": frames.iter().enumerate().map(|(idx, f)| {
                             serde_json::json!({
+                                "frame": idx,
                                 "offset": f.offset_index,
                                 "timestamp": f.timestamp.to_rfc3339(),
                                 "pts": f.pts,
@@ -668,7 +669,7 @@ async fn main() -> Result<()> {
                         }).collect::<Vec<_>>()
                     });
 
-                    let frames_path = output_dir.join(format!("{}_frames.json", tid));
+                    let frames_path = output_dir.join("frames.json");
                     std::fs::write(&frames_path, serde_json::to_string_pretty(&frames_output).unwrap())
                         .map_err(|e| {
                             error::ScreenRecError::EncodingError(format!("Failed to write frames JSON: {}", e))
