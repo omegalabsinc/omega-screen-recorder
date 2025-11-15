@@ -510,9 +510,28 @@ async fn main() -> Result<()> {
                     ffmpeg_args.push(final_output_path.to_str().unwrap().to_string());
 
                     // Determine which ffmpeg binary to use
-                    let ffmpeg_cmd = ffmpeg_path.as_ref()
-                        .map(|p| p.to_str().unwrap().to_string())
-                        .unwrap_or_else(|| "ffmpeg".to_string());
+                    let ffmpeg_cmd = if let Some(custom_path) = ffmpeg_path.as_ref() {
+                        // User provided custom path
+                        custom_path.to_str().unwrap().to_string()
+                    } else {
+                        // Try to find ffmpeg in the same directory as the executable
+                        let exe_dir = std::env::current_exe()
+                            .ok()
+                            .and_then(|p| p.parent().map(|p| p.to_path_buf()));
+
+                        if let Some(dir) = exe_dir {
+                            let bundled_ffmpeg = dir.join("ffmpeg.exe");
+                            if bundled_ffmpeg.exists() {
+                                log::info!("Found bundled ffmpeg at: {}", bundled_ffmpeg.display());
+                                bundled_ffmpeg.to_str().unwrap().to_string()
+                            } else {
+                                // Fall back to system ffmpeg
+                                "ffmpeg".to_string()
+                            }
+                        } else {
+                            "ffmpeg".to_string()
+                        }
+                    };
 
                     log::info!("Using ffmpeg: {}", ffmpeg_cmd);
 
@@ -539,17 +558,37 @@ async fn main() -> Result<()> {
 
                     // Get video metadata using ffprobe
                     log::info!("Extracting video metadata...");
-                    let ffprobe_cmd = ffmpeg_path.as_ref()
-                        .and_then(|p| p.parent())
-                        .and_then(|parent| {
-                            let ffprobe_path = parent.join("ffprobe");
-                            if ffprobe_path.exists() {
-                                Some(ffprobe_path.to_str().unwrap().to_string())
+                    let ffprobe_cmd = if let Some(custom_path) = ffmpeg_path.as_ref() {
+                        // If custom ffmpeg path provided, look for ffprobe in same directory
+                        custom_path.parent()
+                            .and_then(|parent| {
+                                let ffprobe_path = parent.join("ffprobe.exe");
+                                if ffprobe_path.exists() {
+                                    Some(ffprobe_path.to_str().unwrap().to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap_or_else(|| "ffprobe".to_string())
+                    } else {
+                        // Try to find ffprobe in the same directory as the executable
+                        let exe_dir = std::env::current_exe()
+                            .ok()
+                            .and_then(|p| p.parent().map(|p| p.to_path_buf()));
+
+                        if let Some(dir) = exe_dir {
+                            let bundled_ffprobe = dir.join("ffprobe.exe");
+                            if bundled_ffprobe.exists() {
+                                log::info!("Found bundled ffprobe at: {}", bundled_ffprobe.display());
+                                bundled_ffprobe.to_str().unwrap().to_string()
                             } else {
-                                None
+                                // Fall back to system ffprobe
+                                "ffprobe".to_string()
                             }
-                        })
-                        .unwrap_or_else(|| "ffprobe".to_string());
+                        } else {
+                            "ffprobe".to_string()
+                        }
+                    };
 
                     let ffprobe_result = std::process::Command::new(&ffprobe_cmd)
                         .args(&[
