@@ -108,15 +108,47 @@ async fn main() -> Result<()> {
                 error::ScreenRecError::ConfigError(format!("Failed to create output directory: {}", e))
             })?;
 
-            log::info!("Starting screen recording...");
-            log::info!("  Recording type: {}", recording_type);
-            if let Some(tid) = &task_id {
-                log::info!("  Task ID: {}", tid);
-            }
-            log::info!("  Is final: {}", is_final);
-            log::info!("  Output: {}", output_dir.display());
-            log::info!("  Chunk duration: {} seconds", chunk_duration);
-            log::info!("  FPS: {}", fps);
+            log::info!("Initializing database at: {}", db_path.display());
+            let db = Arc::new(Database::new(&db_path).await?);
+
+            // Get device name (hostname)
+            let device_name = hostname::get()
+                .ok()
+                .and_then(|h| h.into_string().ok())
+                .unwrap_or_else(|| "unknown".to_string());
+
+            // If is_final is true, skip recording and only do concatenation
+            if is_final && recording_type == RecordingType::Task {
+                log::info!("🎬 Finalizing task recording...");
+                log::info!("  Task ID: {}", task_id.as_ref().unwrap());
+                log::info!("  Output: {}", output_dir.display());
+
+                let tid = task_id.as_ref().unwrap();
+
+                // Get all chunks for this task from database
+                let chunks = db.get_chunks_by_task_id(tid).await?;
+
+                if chunks.is_empty() {
+                    return Err(error::ScreenRecError::ConfigError(
+                        format!("No chunks found for task_id: {}. Record some chunks first before using --is-final", tid)
+                    ));
+                }
+
+                log::info!("Found {} chunks to concatenate", chunks.len());
+
+                // Concatenation logic will run after this block
+
+            } else {
+                // Normal recording mode
+                log::info!("Starting screen recording...");
+                log::info!("  Recording type: {}", recording_type);
+                if let Some(tid) = &task_id {
+                    log::info!("  Task ID: {}", tid);
+                }
+                log::info!("  Is final: {}", is_final);
+                log::info!("  Output: {}", output_dir.display());
+                log::info!("  Chunk duration: {} seconds", chunk_duration);
+                log::info!("  FPS: {}", fps);
             log::info!(
                 "  Duration: {}",
                 if duration > 0 {
@@ -135,14 +167,6 @@ async fn main() -> Result<()> {
                     "disabled"
                 }
             );
-            log::info!("Initializing database at: {}", db_path.display());
-            let db = Arc::new(Database::new(&db_path).await?);
-
-            // Get device name (hostname)
-            let device_name = hostname::get()
-                .ok()
-                .and_then(|h| h.into_string().ok())
-                .unwrap_or_else(|| "unknown".to_string());
 
             // Initialize screen capture
             let monitor_switch_duration = std::time::Duration::from_secs_f64(monitor_switch_interval);
@@ -352,6 +376,45 @@ async fn main() -> Result<()> {
                     println!("✅ Interactions saved to: {}", interactions_path.display());
                 }
             }
+
+            // For task recordings, always export frames.json
+            if recording_type == RecordingType::Task {
+                let tid = task_id.as_ref().unwrap();
+
+                // Get all frames for this task from database
+                let frames = db.get_frames_by_task_id(tid).await?;
+
+                if !frames.is_empty() {
+                    log::info!("Exporting frame metadata to JSON...");
+
+                    let frames_output = serde_json::json!({
+                        "task_id": tid,
+                        "total_frames": frames.len(),
+                        "frames": frames.iter().enumerate().map(|(idx, f)| {
+                            serde_json::json!({
+                                "frame": idx,
+                                "offset": f.offset_index,
+                                "timestamp": f.timestamp.to_rfc3339(),
+                                "pts": f.pts,
+                                "is_keyframe": f.is_keyframe == 1,
+                                "display_index": f.display_index,
+                                "display_width": f.display_width,
+                                "display_height": f.display_height,
+                            })
+                        }).collect::<Vec<_>>()
+                    });
+
+                    let frames_path = output_dir.join("frames.json");
+                    std::fs::write(&frames_path, serde_json::to_string_pretty(&frames_output).unwrap())
+                        .map_err(|e| {
+                            error::ScreenRecError::EncodingError(format!("Failed to write frames JSON: {}", e))
+                        })?;
+
+                    log::info!("✅ Frame metadata exported: {}", frames_path.display());
+                    println!("✅ Frame metadata saved to: {}", frames_path.display());
+                }
+            }
+            }  // Close else block for normal recording
 
             // If is_final is true and recording_type is Task, concatenate chunks
             if is_final && recording_type == RecordingType::Task {
