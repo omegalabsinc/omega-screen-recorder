@@ -8,7 +8,7 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/OmegaLabs/rust-screenrec-challenge"
 
 [[bin]]
-name = "screenrec"
+name = "omgrec"
 path = "src/main.rs"
 
 [dependencies]
@@ -22,6 +22,8 @@ tokio = { version = "1.35", features = ["full", "sync"] }
 scrap = "0.5"
 
 # Video encoding
+# Note: "static" feature prefers static libs but doesn't guarantee full static linking
+# True static linking requires building FFmpeg from source with specific flags
 ffmpeg-next = { version = "7.0", features = ["static"] }
 
 # Serialization for config files

@@ -8,32 +8,32 @@ This document shows example CLI interfaces for your screen recording tool. You'r
 
 ```bash
 # Take a screenshot and save to current directory
-screenrec screenshot --output screenshot.png
+omgrec screenshot --output screenshot.png
 
 # Screenshot with full path
-screenrec screenshot --output ~/Desktop/my-screenshot.png
+omgrec screenshot --output ~/Desktop/my-screenshot.png
 
 # Screenshot in JPEG format
-screenrec screenshot --output screenshot.jpg --format jpeg
+omgrec screenshot --output screenshot.jpg --format jpeg
 ```
 
 ### Video Recording
 
 ```bash
 # Basic video recording (30 second default)
-screenrec record --output video.mp4
+omgrec record --output video.mp4
 
 # Record with specific duration
-screenrec record --output demo.mp4 --duration 60
+omgrec record --output demo.mp4 --duration 60
 
 # Record with system audio
-screenrec record --output video.mp4 --audio system
+omgrec record --output video.mp4 --audio system
 
 # Record with microphone
-screenrec record --output video.mp4 --audio mic
+omgrec record --output video.mp4 --audio mic
 
 # Record with both system audio and microphone
-screenrec record --output video.mp4 --audio both
+omgrec record --output video.mp4 --audio both
 ```
 
 ## Advanced Options
@@ -42,46 +42,46 @@ screenrec record --output video.mp4 --audio both
 
 ```bash
 # Specify resolution and FPS
-screenrec record --output video.mp4 --resolution 1920x1080 --fps 30
+omgrec record --output video.mp4 --resolution 1920x1080 --fps 30
 
 # Record at 60 FPS
-screenrec record --output high-fps.mp4 --fps 60
+omgrec record --output high-fps.mp4 --fps 60
 
 # Lower resolution for performance
-screenrec record --output video.mp4 --resolution 1280x720 --fps 30
+omgrec record --output video.mp4 --resolution 1280x720 --fps 30
 ```
 
 ### Video Format Options
 
 ```bash
 # Output as WebM
-screenrec record --output video.webm --codec vp9
+omgrec record --output video.webm --codec vp9
 
 # MP4 with H.264
-screenrec record --output video.mp4 --codec h264
+omgrec record --output video.mp4 --codec h264
 
 # Specify quality/bitrate
-screenrec record --output video.mp4 --bitrate 5000 --quality high
+omgrec record --output video.mp4 --bitrate 5000 --quality high
 ```
 
 ### Configuration
 
 ```bash
 # Save configuration for future use
-screenrec config --resolution 1920x1080 --fps 30 --audio system --format mp4
+omgrec config --resolution 1920x1080 --fps 30 --audio system --format mp4
 
 # View current configuration
-screenrec config --show
+omgrec config --show
 
 # Reset to defaults
-screenrec config --reset
+omgrec config --reset
 ```
 
 ## Interactive Mode
 
 ```bash
 # Start recording with keyboard controls
-screenrec record --interactive
+omgrec record --interactive
 
 # Controls:
 #   Space - Pause/Resume
@@ -93,26 +93,26 @@ screenrec record --interactive
 
 ```bash
 # List available displays
-screenrec list-displays
+omgrec list-displays
 
 # Record specific display
-screenrec record --display 1 --output monitor1.mp4
+omgrec record --display 1 --output monitor1.mp4
 
 # Record all displays
-screenrec record --display all --output all-monitors.mp4
+omgrec record --display all --output all-monitors.mp4
 ```
 
 ## Status and Information
 
 ```bash
 # Show recording status
-screenrec status
+omgrec status
 
 # Show system capabilities
-screenrec info
+omgrec info
 
 # Check audio devices
-screenrec list-audio-devices
+omgrec list-audio-devices
 ```
 
 ## Example Workflows
@@ -120,14 +120,14 @@ screenrec list-audio-devices
 ### Quick Screenshot
 
 ```bash
-screenrec screenshot -o screenshot.png
+omgrec screenshot -o screenshot.png
 ```
 
 ### Meeting Recording
 
 ```bash
 # Record 60-minute meeting with system audio
-screenrec record \
+omgrec record \
   --output meeting.mp4 \
   --duration 3600 \
   --audio system \
@@ -139,7 +139,7 @@ screenrec record \
 
 ```bash
 # Record tutorial with microphone
-screenrec record \
+omgrec record \
   --output tutorial.mp4 \
   --audio mic \
   --fps 30 \
@@ -150,7 +150,7 @@ screenrec record \
 
 ```bash
 # Record with performance monitoring
-screenrec record \
+omgrec record \
   --output test.mp4 \
   --duration 60 \
   --show-stats
@@ -216,7 +216,7 @@ screenrec record \
 
 If you implement configuration files, here's a suggested format:
 
-### `~/.screenrec/config.toml`
+### `~/.omgrec/config.toml`
 
 ```toml
 [default]

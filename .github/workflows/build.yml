@@ -1,0 +1,185 @@
+name: Build and Release
+
+# This build bundles FFmpeg libraries with the binary (Option 2: Bundle FFmpeg dylibs)
+# Users do NOT need to install FFmpeg - everything is self-contained!
+# See STATIC-LINKING-EXPLAINED.md for technical details
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-macos-arm:
+    name: Build macOS ARM64
+    runs-on: macos-14  # macOS 14 runs on Apple Silicon (M1/M2)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        target: aarch64-apple-darwin
+
+    - name: Install FFmpeg and build dependencies
+      run: |
+        brew install ffmpeg pkg-config nasm
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache target directory
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build and package with FFmpeg libraries
+      env:
+        FFMPEG_DIR: /opt/homebrew
+        PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
+        CPATH: /opt/homebrew/include
+        LIBRARY_PATH: /opt/homebrew/lib
+      run: |
+        ./scripts/package-with-ffmpeg.sh
+
+    - name: Rename tarball
+      run: |
+        mv target/omgrec-macos-arm64-bundled.tar.gz omgrec-macos-arm64.tar.gz
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: omgrec-macos-arm64
+        path: omgrec-macos-arm64.tar.gz
+
+  build-macos-intel:
+    name: Build macOS x86_64
+    runs-on: macos-13  # macOS 13 runs on Intel
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-apple-darwin
+
+    - name: Install FFmpeg and build dependencies
+      run: |
+        brew install ffmpeg pkg-config nasm
+
+    - name: Build and package with FFmpeg libraries
+      env:
+        FFMPEG_DIR: /usr/local
+        PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
+        CPATH: /usr/local/include
+        LIBRARY_PATH: /usr/local/lib
+      run: |
+        ./scripts/package-with-ffmpeg.sh
+
+    - name: Rename tarball
+      run: |
+        mv target/omgrec-macos-x86_64-bundled.tar.gz omgrec-macos-x86_64.tar.gz
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: omgrec-macos-x86_64
+        path: omgrec-macos-x86_64.tar.gz
+
+  build-linux:
+    name: Build Linux x86_64
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-unknown-linux-gnu
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libavcodec-dev \
+          libavformat-dev \
+          libavutil-dev \
+          libavfilter-dev \
+          libavdevice-dev \
+          libswscale-dev \
+          libswresample-dev \
+          pkg-config \
+          clang \
+          libx11-dev \
+          libxrandr-dev \
+          libasound2-dev
+
+    - name: Install patchelf for RPATH modification
+      run: |
+        sudo apt-get install -y patchelf
+
+    - name: Build and package with FFmpeg libraries
+      env:
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+      run: |
+        chmod +x ./scripts/package-with-ffmpeg.sh
+        ./scripts/package-with-ffmpeg.sh
+
+    - name: Rename tarball
+      run: |
+        mv target/omgrec-linux-x86_64-bundled.tar.gz omgrec-linux-x86_64.tar.gz
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: omgrec-linux-x86_64
+        path: omgrec-linux-x86_64.tar.gz
+
+  release:
+    name: Create Release
+    needs: [build-macos-arm, build-macos-intel, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          omgrec-macos-arm64/omgrec-macos-arm64.tar.gz
+          omgrec-macos-x86_64/omgrec-macos-x86_64.tar.gz
+          omgrec-linux-x86_64/omgrec-linux-x86_64.tar.gz
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
