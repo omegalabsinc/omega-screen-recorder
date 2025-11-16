@@ -56,14 +56,45 @@ jobs:
     - name: Build and package with FFmpeg libraries
       env:
         PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
+        # Critical: Set environment variables for ffmpeg-sys-next
+        FFMPEG_DIR: /opt/homebrew
       run: |
-        # Get FFmpeg prefix (e.g., /opt/homebrew/Cellar/ffmpeg/7.1)
-        export FFMPEG_PREFIX=$(pkg-config --variable=prefix libavcodec)
-        export FFMPEG_DIR="$FFMPEG_PREFIX"
+        # Debug: Show where FFmpeg is installed
+        echo "=== FFmpeg Installation Info ==="
+        brew list ffmpeg | head -20
+        echo ""
+        echo "=== pkg-config info ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        pkg-config --cflags libavcodec || echo "No cflags"
+        pkg-config --libs libavcodec || echo "No libs"
+        echo ""
+        echo "=== Environment ==="
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        echo ""
+        
+        # Set up FFmpeg environment variables for the Rust build
+        export FFMPEG_PREFIX="/opt/homebrew"
         export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
         export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
-        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        
+        # Additional environment variables that ffmpeg-sys-next might use
+        export DEP_FFMPEG_INCLUDE="$FFMPEG_INCLUDE_DIR"
+        export DEP_FFMPEG_LIB="$FFMPEG_LIB_DIR"
+        
+        echo "FFMPEG_PREFIX: $FFMPEG_PREFIX"
         echo "FFMPEG_INCLUDE_DIR: $FFMPEG_INCLUDE_DIR"
+        echo "FFMPEG_LIB_DIR: $FFMPEG_LIB_DIR"
+        
+        # Verify the headers exist
+        if [ -f "$FFMPEG_INCLUDE_DIR/libavcodec/avcodec.h" ]; then
+          echo "✅ Found avcodec.h"
+        else
+          echo "❌ avcodec.h not found at $FFMPEG_INCLUDE_DIR/libavcodec/avcodec.h"
+          ls -la "$FFMPEG_INCLUDE_DIR/" || echo "Include dir doesn't exist"
+        fi
+        
+        # Now run the build/package script
         ./scripts/package-with-ffmpeg.sh
 
     - name: Rename tarball
@@ -97,14 +128,45 @@ jobs:
     - name: Build and package with FFmpeg libraries
       env:
         PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
+        # Critical: Set environment variables for ffmpeg-sys-next
+        FFMPEG_DIR: /usr/local
       run: |
-        # Get FFmpeg prefix (e.g., /usr/local/Cellar/ffmpeg/7.1)
-        export FFMPEG_PREFIX=$(pkg-config --variable=prefix libavcodec)
-        export FFMPEG_DIR="$FFMPEG_PREFIX"
+        # Debug: Show where FFmpeg is installed
+        echo "=== FFmpeg Installation Info ==="
+        brew list ffmpeg | head -20
+        echo ""
+        echo "=== pkg-config info ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        pkg-config --cflags libavcodec || echo "No cflags"
+        pkg-config --libs libavcodec || echo "No libs"
+        echo ""
+        echo "=== Environment ==="
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        echo ""
+        
+        # Set up FFmpeg environment variables for the Rust build
+        export FFMPEG_PREFIX="/usr/local"
         export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
         export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
-        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        
+        # Additional environment variables that ffmpeg-sys-next might use
+        export DEP_FFMPEG_INCLUDE="$FFMPEG_INCLUDE_DIR"
+        export DEP_FFMPEG_LIB="$FFMPEG_LIB_DIR"
+        
+        echo "FFMPEG_PREFIX: $FFMPEG_PREFIX"
         echo "FFMPEG_INCLUDE_DIR: $FFMPEG_INCLUDE_DIR"
+        echo "FFMPEG_LIB_DIR: $FFMPEG_LIB_DIR"
+        
+        # Verify the headers exist
+        if [ -f "$FFMPEG_INCLUDE_DIR/libavcodec/avcodec.h" ]; then
+          echo "✅ Found avcodec.h"
+        else
+          echo "❌ avcodec.h not found at $FFMPEG_INCLUDE_DIR/libavcodec/avcodec.h"
+          ls -la "$FFMPEG_INCLUDE_DIR/" || echo "Include dir doesn't exist"
+        fi
+        
+        # Now run the build/package script
         ./scripts/package-with-ffmpeg.sh
 
     - name: Rename tarball
@@ -155,7 +217,19 @@ jobs:
     - name: Build and package with FFmpeg libraries
       env:
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        # For Linux, FFmpeg is typically in /usr
+        FFMPEG_DIR: /usr
+        FFMPEG_INCLUDE_DIR: /usr/include
+        FFMPEG_LIB_DIR: /usr/lib/x86_64-linux-gnu
       run: |
+        # Debug info
+        echo "=== FFmpeg headers check ==="
+        ls -la /usr/include/libavcodec/ | head -10 || echo "libavcodec headers not found"
+        echo ""
+        echo "=== pkg-config info ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        echo ""
+        
         chmod +x ./scripts/package-with-ffmpeg.sh
         ./scripts/package-with-ffmpeg.sh
 
