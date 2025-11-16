@@ -471,17 +471,40 @@ async fn main() -> Result<()> {
                         let chunk_path = std::path::Path::new(&chunk.file_path);
 
                         // Check if file exists and has reasonable size (> 1KB)
-                        if let Ok(metadata) = std::fs::metadata(chunk_path) {
-                            if metadata.len() > 1024 {
-                                concat_content.push_str(&format!("file '{}'\n", chunk.file_path));
-                                valid_chunks += 1;
-                            } else {
-                                log::warn!("Skipping chunk (too small, likely corrupt): {} ({} bytes)",
-                                    chunk.file_path, metadata.len());
-                                skipped_chunks += 1;
-                            }
+                        let is_valid = if let Ok(metadata) = std::fs::metadata(chunk_path) {
+                            metadata.len() > 1024
                         } else {
-                            log::warn!("Skipping chunk (file not found): {}", chunk.file_path);
+                            false
+                        };
+
+                        if is_valid {
+                            concat_content.push_str(&format!("file '{}'\n", chunk.file_path));
+                            valid_chunks += 1;
+                        } else {
+                            // Invalid chunk - delete from database and optionally delete file
+                            if let Ok(metadata) = std::fs::metadata(chunk_path) {
+                                log::warn!("Removing corrupt chunk from database (too small): {} ({} bytes)",
+                                    chunk.file_path, metadata.len());
+                            } else {
+                                log::warn!("Removing missing chunk from database: {}", chunk.file_path);
+                            }
+
+                            // Delete from database
+                            if let Err(e) = db.delete_chunk(chunk.id).await {
+                                log::error!("Failed to delete chunk {} from database: {}", chunk.id, e);
+                            } else {
+                                log::info!("Deleted chunk {} from database", chunk.id);
+                            }
+
+                            // Delete the file if it exists
+                            if chunk_path.exists() {
+                                if let Err(e) = std::fs::remove_file(chunk_path) {
+                                    log::warn!("Failed to delete corrupt chunk file: {}", e);
+                                } else {
+                                    log::info!("Deleted corrupt chunk file: {}", chunk.file_path);
+                                }
+                            }
+
                             skipped_chunks += 1;
                         }
                     }
