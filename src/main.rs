@@ -461,12 +461,41 @@ async fn main() -> Result<()> {
                         log::info!("Single resolution detected, no normalization needed");
                     }
 
-                    // Create concat file list for FFmpeg
+                    // Create concat file list for FFmpeg, filtering out corrupt/incomplete chunks
                     let concat_list_path = output_dir.join("concat_list.txt");
                     let mut concat_content = String::new();
+                    let mut valid_chunks = 0;
+                    let mut skipped_chunks = 0;
+
                     for chunk in &chunks {
-                        concat_content.push_str(&format!("file '{}'\n", chunk.file_path));
+                        let chunk_path = std::path::Path::new(&chunk.file_path);
+
+                        // Check if file exists and has reasonable size (> 1KB)
+                        if let Ok(metadata) = std::fs::metadata(chunk_path) {
+                            if metadata.len() > 1024 {
+                                concat_content.push_str(&format!("file '{}'\n", chunk.file_path));
+                                valid_chunks += 1;
+                            } else {
+                                log::warn!("Skipping chunk (too small, likely corrupt): {} ({} bytes)",
+                                    chunk.file_path, metadata.len());
+                                skipped_chunks += 1;
+                            }
+                        } else {
+                            log::warn!("Skipping chunk (file not found): {}", chunk.file_path);
+                            skipped_chunks += 1;
+                        }
                     }
+
+                    if valid_chunks == 0 {
+                        return Err(error::ScreenRecError::EncodingError(
+                            "No valid chunks found for concatenation. All chunks are corrupt or missing.".to_string()
+                        ));
+                    }
+
+                    if skipped_chunks > 0 {
+                        log::warn!("Skipped {} corrupt/missing chunks, using {} valid chunks", skipped_chunks, valid_chunks);
+                    }
+
                     std::fs::write(&concat_list_path, concat_content).map_err(|e| {
                         error::ScreenRecError::EncodingError(format!("Failed to write concat list: {}", e))
                     })?;
