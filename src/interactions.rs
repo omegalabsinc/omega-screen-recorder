@@ -14,9 +14,11 @@ use active_win_pos_rs::get_active_window;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{HWND, MAX_PATH};
 #[cfg(target_os = "windows")]
-use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_NAME_FORMAT};
 #[cfg(target_os = "windows")]
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId};
+#[cfg(target_os = "windows")]
+use windows::core::PWSTR;
 
 /// Unified interaction event for JSONL export (includes all event types with window info)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -561,7 +563,12 @@ fn get_active_window_info() -> (String, String) {
                 let mut exe_path = [0u16; MAX_PATH as usize];
                 let mut size = MAX_PATH;
 
-                let result = QueryFullProcessImageNameW(handle, 0, &mut exe_path, &mut size);
+                let result = QueryFullProcessImageNameW(
+                    handle,
+                    PROCESS_NAME_FORMAT(0),
+                    PWSTR(exe_path.as_mut_ptr()),
+                    &mut size
+                );
 
                 if result.is_ok() && size > 0 {
                     let full_path = String::from_utf16_lossy(&exe_path[..size as usize]);
