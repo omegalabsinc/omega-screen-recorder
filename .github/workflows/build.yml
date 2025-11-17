@@ -1,8 +1,7 @@
 name: Build and Release
 
-# This build bundles FFmpeg libraries with the binary (Option 2: Bundle FFmpeg dylibs)
-# Users do NOT need to install FFmpeg - everything is self-contained!
-# See STATIC-LINKING-EXPLAINED.md for technical details
+# This build does NOT bundle FFmpeg - users must have FFmpeg installed
+# Users can either install FFmpeg globally or use --ffmpeg-path argument
 
 on:
   push:
@@ -63,12 +62,12 @@ jobs:
         path: target
         key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Build and package with FFmpeg libraries
+    - name: Build and package binary
       run: |
         # Create symlinks in /usr/include to satisfy hardcoded paths
         echo "=== Creating symlinks for FFmpeg headers ==="
         sudo mkdir -p /usr/include
-        
+
         # Find where FFmpeg is actually installed
         if [ -d "/opt/homebrew/opt/ffmpeg@6" ]; then
           FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@6"
@@ -77,9 +76,9 @@ jobs:
         else
           FFMPEG_PREFIX="/opt/homebrew"
         fi
-        
+
         echo "FFmpeg prefix: $FFMPEG_PREFIX"
-        
+
         # Create symlinks for all FFmpeg headers in /usr/include
         if [ -d "$FFMPEG_PREFIX/include" ]; then
           for dir in libavcodec libavformat libavutil libavfilter libavdevice libswscale libswresample; do
@@ -89,7 +88,7 @@ jobs:
             fi
           done
         fi
-        
+
         # Verify the symlinks
         if [ -f "/usr/include/libavcodec/avcodec.h" ]; then
           echo "✅ Successfully created symlinks"
@@ -97,7 +96,7 @@ jobs:
         else
           echo "⚠️ Symlinks may not have been created properly"
         fi
-        
+
         # Set up environment variables
         export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
         export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
@@ -105,32 +104,33 @@ jobs:
         export FFMPEG_PREFIX="$FFMPEG_PREFIX"
         export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
         export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
-        
+
         # Additional environment variables
         export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
         export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
         export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
         export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
-        
+
         # For bindgen
         export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
-        
+
         echo "=== Environment Variables ==="
         echo "FFMPEG_DIR: $FFMPEG_DIR"
         echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
         echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
         echo ""
-        
+
         echo "=== FFmpeg version ==="
         pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
         echo ""
-        
-        # Now run the build/package script
-        ./scripts/package-with-ffmpeg.sh
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
 
     - name: Rename tarball
       run: |
-        mv target/omgrec-macos-arm64-bundled.tar.gz omgrec-macos-arm64.tar.gz
+        mv target/omgrec-macos-arm64.tar.gz omgrec-macos-arm64.tar.gz
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -166,12 +166,12 @@ jobs:
           brew link --overwrite ffmpeg@6
         fi
 
-    - name: Build and package with FFmpeg libraries
+    - name: Build and package binary
       run: |
         # Create symlinks in /usr/include to satisfy hardcoded paths
         echo "=== Creating symlinks for FFmpeg headers ==="
         sudo mkdir -p /usr/include
-        
+
         # Find where FFmpeg is actually installed
         if [ -d "/usr/local/opt/ffmpeg@6" ]; then
           FFMPEG_PREFIX="/usr/local/opt/ffmpeg@6"
@@ -180,9 +180,9 @@ jobs:
         else
           FFMPEG_PREFIX="/usr/local"
         fi
-        
+
         echo "FFmpeg prefix: $FFMPEG_PREFIX"
-        
+
         # Create symlinks for all FFmpeg headers in /usr/include
         if [ -d "$FFMPEG_PREFIX/include" ]; then
           for dir in libavcodec libavformat libavutil libavfilter libavdevice libswscale libswresample; do
@@ -192,7 +192,7 @@ jobs:
             fi
           done
         fi
-        
+
         # Verify the symlinks
         if [ -f "/usr/include/libavcodec/avcodec.h" ]; then
           echo "✅ Successfully created symlinks"
@@ -200,7 +200,7 @@ jobs:
         else
           echo "⚠️ Symlinks may not have been created properly"
         fi
-        
+
         # Set up environment variables
         export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
         export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
@@ -208,32 +208,33 @@ jobs:
         export FFMPEG_PREFIX="$FFMPEG_PREFIX"
         export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
         export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
-        
+
         # Additional environment variables
         export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
         export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
         export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
         export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
-        
+
         # For bindgen
         export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
-        
+
         echo "=== Environment Variables ==="
         echo "FFMPEG_DIR: $FFMPEG_DIR"
         echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
         echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
         echo ""
-        
+
         echo "=== FFmpeg version ==="
         pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
         echo ""
-        
-        # Now run the build/package script
-        ./scripts/package-with-ffmpeg.sh
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
 
     - name: Rename tarball
       run: |
-        mv target/omgrec-macos-x86_64-bundled.tar.gz omgrec-macos-x86_64.tar.gz
+        mv target/omgrec-macos-x86_64.tar.gz omgrec-macos-x86_64.tar.gz
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -272,11 +273,7 @@ jobs:
           libxrandr-dev \
           libasound2-dev
 
-    - name: Install patchelf for RPATH modification
-      run: |
-        sudo apt-get install -y patchelf
-
-    - name: Build and package with FFmpeg libraries
+    - name: Build and package binary
       env:
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         # For Linux, FFmpeg is typically in /usr
@@ -291,13 +288,14 @@ jobs:
         echo "=== pkg-config info ==="
         pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
         echo ""
-        
-        chmod +x ./scripts/package-with-ffmpeg.sh
-        ./scripts/package-with-ffmpeg.sh
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
 
     - name: Rename tarball
       run: |
-        mv target/omgrec-linux-x86_64-bundled.tar.gz omgrec-linux-x86_64.tar.gz
+        mv target/omgrec-linux-x86_64.tar.gz omgrec-linux-x86_64.tar.gz
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
