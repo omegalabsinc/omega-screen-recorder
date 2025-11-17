@@ -506,6 +506,7 @@ fn get_mouse_position() -> Option<(f64, f64)> {
 /// Get active window information (process name and window title)
 #[cfg(target_os = "macos")]
 fn get_active_window_info() -> (String, String) {
+    log::debug!("get_active_window_info: macOS version called");
     match get_active_window() {
         Ok(window) => {
             let app_name = if window.app_name.is_empty() {
@@ -531,6 +532,7 @@ fn get_active_window_info() -> (String, String) {
 
 #[cfg(target_os = "windows")]
 fn get_active_window_info() -> (String, String) {
+    log::debug!("get_active_window_info: Windows version called");
     unsafe {
         // Get the foreground window
         let hwnd = GetForegroundWindow();
@@ -608,6 +610,7 @@ fn get_active_window_info() -> (String, String) {
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn get_active_window_info() -> (String, String) {
+    log::debug!("get_active_window_info: fallback version called (not macOS or Windows)");
     ("Unknown".to_string(), "".to_string())
 }
 
