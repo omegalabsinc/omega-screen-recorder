@@ -64,10 +64,6 @@ jobs:
 
     - name: Build and package binary
       run: |
-        # Create symlinks in /usr/include to satisfy hardcoded paths
-        echo "=== Creating symlinks for FFmpeg headers ==="
-        sudo mkdir -p /usr/include
-
         # Find where FFmpeg is actually installed
         if [ -d "/opt/homebrew/opt/ffmpeg@6" ]; then
           FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@6"
@@ -77,25 +73,17 @@ jobs:
           FFMPEG_PREFIX="/opt/homebrew"
         fi
 
+        echo "=== FFmpeg Setup ==="
         echo "FFmpeg prefix: $FFMPEG_PREFIX"
 
-        # Create symlinks for all FFmpeg headers in /usr/include
-        if [ -d "$FFMPEG_PREFIX/include" ]; then
-          for dir in libavcodec libavformat libavutil libavfilter libavdevice libswscale libswresample; do
-            if [ -d "$FFMPEG_PREFIX/include/$dir" ]; then
-              sudo ln -sf "$FFMPEG_PREFIX/include/$dir" "/usr/include/$dir"
-              echo "Created symlink: /usr/include/$dir -> $FFMPEG_PREFIX/include/$dir"
-            fi
-          done
-        fi
-
-        # Verify the symlinks
-        if [ -f "/usr/include/libavcodec/avcodec.h" ]; then
-          echo "✅ Successfully created symlinks"
-          ls -la /usr/include/libavcodec/ | head -5
+        # Verify FFmpeg headers exist
+        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
+          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
+          ls -la "$FFMPEG_PREFIX/include" | grep libav
         else
-          echo "⚠️ Symlinks may not have been created properly"
+          echo "⚠️ FFmpeg headers not found at expected location"
         fi
+        echo ""
 
         # Set up environment variables
         export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
@@ -168,10 +156,6 @@ jobs:
 
     - name: Build and package binary
       run: |
-        # Create symlinks in /usr/include to satisfy hardcoded paths
-        echo "=== Creating symlinks for FFmpeg headers ==="
-        sudo mkdir -p /usr/include
-
         # Find where FFmpeg is actually installed
         if [ -d "/usr/local/opt/ffmpeg@6" ]; then
           FFMPEG_PREFIX="/usr/local/opt/ffmpeg@6"
@@ -181,25 +165,17 @@ jobs:
           FFMPEG_PREFIX="/usr/local"
         fi
 
+        echo "=== FFmpeg Setup ==="
         echo "FFmpeg prefix: $FFMPEG_PREFIX"
 
-        # Create symlinks for all FFmpeg headers in /usr/include
-        if [ -d "$FFMPEG_PREFIX/include" ]; then
-          for dir in libavcodec libavformat libavutil libavfilter libavdevice libswscale libswresample; do
-            if [ -d "$FFMPEG_PREFIX/include/$dir" ]; then
-              sudo ln -sf "$FFMPEG_PREFIX/include/$dir" "/usr/include/$dir"
-              echo "Created symlink: /usr/include/$dir -> $FFMPEG_PREFIX/include/$dir"
-            fi
-          done
-        fi
-
-        # Verify the symlinks
-        if [ -f "/usr/include/libavcodec/avcodec.h" ]; then
-          echo "✅ Successfully created symlinks"
-          ls -la /usr/include/libavcodec/ | head -5
+        # Verify FFmpeg headers exist
+        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
+          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
+          ls -la "$FFMPEG_PREFIX/include" | grep libav
         else
-          echo "⚠️ Symlinks may not have been created properly"
+          echo "⚠️ FFmpeg headers not found at expected location"
         fi
+        echo ""
 
         # Set up environment variables
         export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
