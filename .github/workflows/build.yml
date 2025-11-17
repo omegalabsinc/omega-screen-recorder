@@ -220,71 +220,9 @@ jobs:
         name: omgrec-macos-x86_64
         path: omgrec-macos-x86_64.zip
 
-  build-linux:
-    name: Build Linux x86_64
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install Rust toolchain
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: stable
-        target: x86_64-unknown-linux-gnu
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libavcodec-dev \
-          libavformat-dev \
-          libavutil-dev \
-          libavfilter-dev \
-          libavdevice-dev \
-          libswscale-dev \
-          libswresample-dev \
-          pkg-config \
-          clang \
-          libx11-dev \
-          libxrandr-dev \
-          libasound2-dev
-
-    - name: Build and package binary
-      env:
-        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
-        # For Linux, FFmpeg is typically in /usr
-        FFMPEG_DIR: /usr
-        FFMPEG_INCLUDE_DIR: /usr/include
-        FFMPEG_LIB_DIR: /usr/lib/x86_64-linux-gnu
-      run: |
-        # Debug info
-        echo "=== FFmpeg headers check ==="
-        ls -la /usr/include/libavcodec/ | head -10 || echo "libavcodec headers not found"
-        echo ""
-        echo "=== pkg-config info ==="
-        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
-        echo ""
-
-        # Run the simplified packaging script (no FFmpeg bundling)
-        chmod +x ./scripts/package-simple.sh
-        ./scripts/package-simple.sh
-
-    - name: Create zip archive
-      run: |
-        cd target/package-linux-x86_64
-        zip -r ../omgrec-linux-x86_64.zip *
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: omgrec-linux-x86_64
-        path: omgrec-linux-x86_64.zip
-
   release:
     name: Create Release
-    needs: [build-macos-arm, build-macos-intel, build-linux]
+    needs: [build-macos-arm, build-macos-intel]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
 
@@ -312,7 +250,6 @@ jobs:
         files: |
           omgrec-macos-arm64/omgrec-macos-arm64.zip
           omgrec-macos-x86_64/omgrec-macos-x86_64.zip
-          omgrec-linux-x86_64/omgrec-linux-x86_64.zip
         draft: false
         prerelease: ${{ steps.vars.outputs.is_tag == 'false' }}
         generate_release_notes: true
