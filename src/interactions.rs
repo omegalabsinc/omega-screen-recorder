@@ -507,7 +507,7 @@ fn get_active_window_info() -> (String, String) {
             let title = window.title; // Keep original title even if empty
             (app_name, title)
         },
-        Err(e) => {
+        Err(_) => {
             // Log error only once to avoid spam
             static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
             if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
@@ -519,7 +519,7 @@ fn get_active_window_info() -> (String, String) {
                 }
                 #[cfg(target_os = "windows")]
                 {
-                    log::warn!("Cannot get active window info: {}", e);
+                    log::warn!("Cannot get active window info - this may require administrator privileges");
                     log::warn!("Process names and window titles will show as 'Unknown'");
                 }
             }
