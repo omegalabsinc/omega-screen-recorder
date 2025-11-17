@@ -116,15 +116,17 @@ jobs:
         chmod +x ./scripts/package-simple.sh
         ./scripts/package-simple.sh
 
-    - name: Rename tarball
+    - name: Create zip archive
       run: |
-        mv target/omgrec-macos-arm64.tar.gz omgrec-macos-arm64.tar.gz
+        cd target
+        zip -r omgrec-macos-arm64.zip release/omgrec README.md
+        mv omgrec-macos-arm64.zip ../omgrec-macos-arm64.zip
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-arm64
-        path: omgrec-macos-arm64.tar.gz
+        path: omgrec-macos-arm64.zip
 
   build-macos-intel:
     name: Build macOS x86_64
@@ -208,15 +210,17 @@ jobs:
         chmod +x ./scripts/package-simple.sh
         ./scripts/package-simple.sh
 
-    - name: Rename tarball
+    - name: Create zip archive
       run: |
-        mv target/omgrec-macos-x86_64.tar.gz omgrec-macos-x86_64.tar.gz
+        cd target
+        zip -r omgrec-macos-x86_64.zip release/omgrec README.md
+        mv omgrec-macos-x86_64.zip ../omgrec-macos-x86_64.zip
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-x86_64
-        path: omgrec-macos-x86_64.tar.gz
+        path: omgrec-macos-x86_64.zip
 
   build-linux:
     name: Build Linux x86_64
@@ -269,21 +273,23 @@ jobs:
         chmod +x ./scripts/package-simple.sh
         ./scripts/package-simple.sh
 
-    - name: Rename tarball
+    - name: Create zip archive
       run: |
-        mv target/omgrec-linux-x86_64.tar.gz omgrec-linux-x86_64.tar.gz
+        cd target
+        zip -r omgrec-linux-x86_64.zip release/omgrec README.md
+        mv omgrec-linux-x86_64.zip ../omgrec-linux-x86_64.zip
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: omgrec-linux-x86_64
-        path: omgrec-linux-x86_64.tar.gz
+        path: omgrec-linux-x86_64.zip
 
   release:
     name: Create Release
     needs: [build-macos-arm, build-macos-intel, build-linux]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/build' || startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
 
     steps:
     - name: Download all artifacts
@@ -307,9 +313,9 @@ jobs:
         tag_name: ${{ steps.vars.outputs.tag }}
         name: ${{ steps.vars.outputs.is_tag == 'true' && steps.vars.outputs.tag || format('Build {0}', steps.vars.outputs.tag) }}
         files: |
-          omgrec-macos-arm64/omgrec-macos-arm64.tar.gz
-          omgrec-macos-x86_64/omgrec-macos-x86_64.tar.gz
-          omgrec-linux-x86_64/omgrec-linux-x86_64.tar.gz
+          omgrec-macos-arm64/omgrec-macos-arm64.zip
+          omgrec-macos-x86_64/omgrec-macos-x86_64.zip
+          omgrec-linux-x86_64/omgrec-linux-x86_64.zip
         draft: false
         prerelease: ${{ steps.vars.outputs.is_tag == 'false' }}
         generate_release_notes: true
