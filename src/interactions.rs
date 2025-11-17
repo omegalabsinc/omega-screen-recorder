@@ -8,8 +8,15 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(target_os = "macos")]
 use active_win_pos_rs::get_active_window;
+
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::{HWND, MAX_PATH};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+#[cfg(target_os = "windows")]
+use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId};
 
 /// Unified interaction event for JSONL export (includes all event types with window info)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -495,7 +502,7 @@ fn get_mouse_position() -> Option<(f64, f64)> {
 }
 
 /// Get active window information (process name and window title)
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(target_os = "macos")]
 fn get_active_window_info() -> (String, String) {
     match get_active_window() {
         Ok(window) => {
@@ -511,20 +518,70 @@ fn get_active_window_info() -> (String, String) {
             // Log error only once to avoid spam
             static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
             if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
-                #[cfg(target_os = "macos")]
-                {
-                    log::warn!("Cannot get active window info - Accessibility permissions required");
-                    log::warn!("To enable: System Settings → Privacy & Security → Accessibility → Add this app");
-                    log::warn!("Process names and window titles will show as 'Unknown' until permission is granted");
-                }
-                #[cfg(target_os = "windows")]
-                {
-                    log::warn!("Cannot get active window info - this may require administrator privileges");
-                    log::warn!("Process names and window titles will show as 'Unknown'");
-                }
+                log::warn!("Cannot get active window info - Accessibility permissions required");
+                log::warn!("To enable: System Settings → Privacy & Security → Accessibility → Add this app");
+                log::warn!("Process names and window titles will show as 'Unknown' until permission is granted");
             }
             ("Unknown".to_string(), "".to_string())
         }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn get_active_window_info() -> (String, String) {
+    unsafe {
+        // Get the foreground window
+        let hwnd = GetForegroundWindow();
+        if hwnd.0 == 0 {
+            return ("Unknown".to_string(), "".to_string());
+        }
+
+        // Get window title
+        let mut title_buffer = [0u16; 512];
+        let title_len = GetWindowTextW(hwnd, &mut title_buffer);
+        let window_title = if title_len > 0 {
+            String::from_utf16_lossy(&title_buffer[..title_len as usize])
+        } else {
+            String::new()
+        };
+
+        // Get process ID
+        let mut process_id: u32 = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut process_id as *mut u32));
+
+        if process_id == 0 {
+            return ("Unknown".to_string(), window_title);
+        }
+
+        // Open process to get executable name
+        let process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id);
+
+        let process_name = if let Ok(handle) = process_handle {
+            if handle.0 != 0 {
+                let mut exe_path = [0u16; MAX_PATH as usize];
+                let mut size = MAX_PATH;
+
+                let result = QueryFullProcessImageNameW(handle, 0, &mut exe_path, &mut size);
+
+                if result.is_ok() && size > 0 {
+                    let full_path = String::from_utf16_lossy(&exe_path[..size as usize]);
+                    // Extract just the filename from the full path
+                    std::path::Path::new(&full_path)
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or("Unknown")
+                        .to_string()
+                } else {
+                    "Unknown".to_string()
+                }
+            } else {
+                "Unknown".to_string()
+            }
+        } else {
+            "Unknown".to_string()
+        };
+
+        (process_name, window_title)
     }
 }
 
