@@ -535,15 +535,20 @@ fn get_active_window_info() -> (String, String) {
         // Get the foreground window
         let hwnd = GetForegroundWindow();
         if hwnd.0 == 0 {
+            log::debug!("GetForegroundWindow returned NULL");
             return ("Unknown".to_string(), "".to_string());
         }
+        log::debug!("Got foreground window handle: {:?}", hwnd);
 
         // Get window title
         let mut title_buffer = [0u16; 512];
         let title_len = GetWindowTextW(hwnd, &mut title_buffer);
         let window_title = if title_len > 0 {
-            String::from_utf16_lossy(&title_buffer[..title_len as usize])
+            let title = String::from_utf16_lossy(&title_buffer[..title_len as usize]);
+            log::debug!("Window title: '{}'", title);
+            title
         } else {
+            log::debug!("No window title (GetWindowTextW returned 0)");
             String::new()
         };
 
@@ -552,8 +557,10 @@ fn get_active_window_info() -> (String, String) {
         GetWindowThreadProcessId(hwnd, Some(&mut process_id as *mut u32));
 
         if process_id == 0 {
+            log::debug!("GetWindowThreadProcessId returned 0");
             return ("Unknown".to_string(), window_title);
         }
+        log::debug!("Process ID: {}", process_id);
 
         // Open process to get executable name
         let process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id);
@@ -572,22 +579,29 @@ fn get_active_window_info() -> (String, String) {
 
                 if result.is_ok() && size > 0 {
                     let full_path = String::from_utf16_lossy(&exe_path[..size as usize]);
+                    log::debug!("Process full path: '{}'", full_path);
                     // Extract just the filename from the full path
-                    std::path::Path::new(&full_path)
+                    let name = std::path::Path::new(&full_path)
                         .file_name()
                         .and_then(|f| f.to_str())
                         .unwrap_or("Unknown")
-                        .to_string()
+                        .to_string();
+                    log::debug!("Process name: '{}'", name);
+                    name
                 } else {
+                    log::debug!("QueryFullProcessImageNameW failed or returned 0 size");
                     "Unknown".to_string()
                 }
             } else {
+                log::debug!("Process handle is NULL");
                 "Unknown".to_string()
             }
         } else {
+            log::debug!("OpenProcess failed: {:?}", process_handle);
             "Unknown".to_string()
         };
 
+        log::debug!("Returning: process='{}', title='{}'", process_name, window_title);
         (process_name, window_title)
     }
 }
