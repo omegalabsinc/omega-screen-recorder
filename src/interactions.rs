@@ -532,7 +532,13 @@ fn get_active_window_info() -> (String, String) {
 
 #[cfg(target_os = "windows")]
 fn get_active_window_info() -> (String, String) {
-    log::debug!("get_active_window_info: Windows version called");
+    // Compile-time verification that we're building for Windows
+    const _: () = {
+        #[cfg(not(target_os = "windows"))]
+        compile_error!("This function should only be compiled on Windows!");
+    };
+
+    log::debug!("get_active_window_info: Windows version called (WINDOWS_NATIVE_API)");
     unsafe {
         // Get the foreground window
         let hwnd = GetForegroundWindow();
