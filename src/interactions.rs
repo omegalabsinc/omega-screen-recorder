@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use active_win_pos_rs::get_active_window;
 
 /// Unified interaction event for JSONL export (includes all event types with window info)
@@ -495,7 +495,7 @@ fn get_mouse_position() -> Option<(f64, f64)> {
 }
 
 /// Get active window information (process name and window title)
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 fn get_active_window_info() -> (String, String) {
     match get_active_window() {
         Ok(window) => {
@@ -507,20 +507,28 @@ fn get_active_window_info() -> (String, String) {
             let title = window.title; // Keep original title even if empty
             (app_name, title)
         },
-        Err(_) => {
+        Err(e) => {
             // Log error only once to avoid spam
             static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
             if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
-                log::warn!("Cannot get active window info - Accessibility permissions required");
-                log::warn!("To enable: System Settings → Privacy & Security → Accessibility → Add this app");
-                log::warn!("Process names and window titles will show as 'Unknown' until permission is granted");
+                #[cfg(target_os = "macos")]
+                {
+                    log::warn!("Cannot get active window info - Accessibility permissions required");
+                    log::warn!("To enable: System Settings → Privacy & Security → Accessibility → Add this app");
+                    log::warn!("Process names and window titles will show as 'Unknown' until permission is granted");
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    log::warn!("Cannot get active window info: {}", e);
+                    log::warn!("Process names and window titles will show as 'Unknown'");
+                }
             }
-            ("Unknown".to_string(), "Unknown".to_string())
+            ("Unknown".to_string(), "".to_string())
         }
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn get_active_window_info() -> (String, String) {
     ("Unknown".to_string(), "".to_string())
 }
