@@ -125,7 +125,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-arm64
-        path: omgrec-macos-arm64.zip
+        path: target/omgrec-macos-arm64.zip
 
   build-macos-intel:
     name: Build macOS x86_64
@@ -218,17 +218,26 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-x86_64
-        path: omgrec-macos-x86_64.zip
+        path: target/omgrec-macos-x86_64.zip
 
   release:
     name: Create Release
     needs: [build-macos-arm, build-macos-intel]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
 
     steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
+
+    - name: List downloaded artifacts
+      run: |
+        echo "=== Downloaded artifacts ==="
+        ls -la
+        echo "=== Contents ==="
+        find . -type f
 
     - name: Get commit SHA for release tag
       id: vars
@@ -253,5 +262,6 @@ jobs:
         draft: false
         prerelease: ${{ steps.vars.outputs.is_tag == 'false' }}
         generate_release_notes: true
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
