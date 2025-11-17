@@ -118,9 +118,8 @@ jobs:
 
     - name: Create zip archive
       run: |
-        cd target
-        zip -r omgrec-macos-arm64.zip release/omgrec README.md
-        mv omgrec-macos-arm64.zip ../omgrec-macos-arm64.zip
+        cd target/package-macos-arm64
+        zip -r ../omgrec-macos-arm64.zip *
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -212,9 +211,8 @@ jobs:
 
     - name: Create zip archive
       run: |
-        cd target
-        zip -r omgrec-macos-x86_64.zip release/omgrec README.md
-        mv omgrec-macos-x86_64.zip ../omgrec-macos-x86_64.zip
+        cd target/package-macos-x86_64
+        zip -r ../omgrec-macos-x86_64.zip *
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -275,9 +273,8 @@ jobs:
 
     - name: Create zip archive
       run: |
-        cd target
-        zip -r omgrec-linux-x86_64.zip release/omgrec README.md
-        mv omgrec-linux-x86_64.zip ../omgrec-linux-x86_64.zip
+        cd target/package-linux-x86_64
+        zip -r ../omgrec-linux-x86_64.zip *
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
