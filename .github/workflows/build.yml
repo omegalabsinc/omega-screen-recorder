@@ -1,12 +1,11 @@
 name: Build and Release
 
-# This build bundles FFmpeg libraries with the binary (Option 2: Bundle FFmpeg dylibs)
-# Users do NOT need to install FFmpeg - everything is self-contained!
-# See STATIC-LINKING-EXPLAINED.md for technical details
+# This build does NOT bundle FFmpeg - users must have FFmpeg installed
+# Users can either install FFmpeg globally or use --ffmpeg-path argument
 
 on:
   push:
-    branches: [ main ]
+    branches: [ build ]
     tags:
       - 'v*'
   pull_request:
@@ -33,7 +32,17 @@ jobs:
 
     - name: Install FFmpeg and build dependencies
       run: |
-        brew install ffmpeg pkg-config nasm
+        # Install FFmpeg 6.x instead of 7.x to avoid compatibility issues
+        brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
+        brew tap homebrew/core
+        # Try to install FFmpeg 6.1 specifically
+        brew install ffmpeg@6 2>/dev/null || brew install ffmpeg
+        brew install pkg-config nasm
+        
+        # Link ffmpeg@6 if it was installed
+        if [ -d "/opt/homebrew/opt/ffmpeg@6" ]; then
+          brew link --overwrite ffmpeg@6
+        fi
 
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -53,18 +62,63 @@ jobs:
         path: target
         key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Build and package with FFmpeg libraries
-      env:
-        FFMPEG_DIR: /opt/homebrew
-        PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
-        CPATH: /opt/homebrew/include
-        LIBRARY_PATH: /opt/homebrew/lib
+    - name: Build and package binary
       run: |
-        ./scripts/package-with-ffmpeg.sh
+        # Find where FFmpeg is actually installed
+        if [ -d "/opt/homebrew/opt/ffmpeg@6" ]; then
+          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@6"
+        elif [ -d "/opt/homebrew/opt/ffmpeg" ]; then
+          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg"
+        else
+          FFMPEG_PREFIX="/opt/homebrew"
+        fi
+
+        echo "=== FFmpeg Setup ==="
+        echo "FFmpeg prefix: $FFMPEG_PREFIX"
+
+        # Verify FFmpeg headers exist
+        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
+          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
+          ls -la "$FFMPEG_PREFIX/include" | grep libav
+        else
+          echo "⚠️ FFmpeg headers not found at expected location"
+        fi
+        echo ""
+
+        # Set up environment variables
+        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
+        export FFMPEG_DIR="$FFMPEG_PREFIX"
+        export FFMPEG_PREFIX="$FFMPEG_PREFIX"
+        export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
+        export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
+
+        # Additional environment variables
+        export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
+        export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
+        export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
+
+        # For bindgen
+        export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
+
+        echo "=== Environment Variables ==="
+        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
+        echo ""
+
+        echo "=== FFmpeg version ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        echo ""
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
 
     - name: Rename tarball
       run: |
-        mv target/omgrec-macos-arm64-bundled.tar.gz omgrec-macos-arm64.tar.gz
+        mv target/omgrec-macos-arm64.tar.gz omgrec-macos-arm64.tar.gz
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -88,20 +142,75 @@ jobs:
 
     - name: Install FFmpeg and build dependencies
       run: |
-        brew install ffmpeg pkg-config nasm
+        # Install FFmpeg 6.x instead of 7.x to avoid compatibility issues
+        brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
+        brew tap homebrew/core
+        # Try to install FFmpeg 6.1 specifically
+        brew install ffmpeg@6 2>/dev/null || brew install ffmpeg
+        brew install pkg-config nasm
+        
+        # Link ffmpeg@6 if it was installed
+        if [ -d "/usr/local/opt/ffmpeg@6" ]; then
+          brew link --overwrite ffmpeg@6
+        fi
 
-    - name: Build and package with FFmpeg libraries
-      env:
-        FFMPEG_DIR: /usr/local
-        PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
-        CPATH: /usr/local/include
-        LIBRARY_PATH: /usr/local/lib
+    - name: Build and package binary
       run: |
-        ./scripts/package-with-ffmpeg.sh
+        # Find where FFmpeg is actually installed
+        if [ -d "/usr/local/opt/ffmpeg@6" ]; then
+          FFMPEG_PREFIX="/usr/local/opt/ffmpeg@6"
+        elif [ -d "/usr/local/opt/ffmpeg" ]; then
+          FFMPEG_PREFIX="/usr/local/opt/ffmpeg"
+        else
+          FFMPEG_PREFIX="/usr/local"
+        fi
+
+        echo "=== FFmpeg Setup ==="
+        echo "FFmpeg prefix: $FFMPEG_PREFIX"
+
+        # Verify FFmpeg headers exist
+        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
+          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
+          ls -la "$FFMPEG_PREFIX/include" | grep libav
+        else
+          echo "⚠️ FFmpeg headers not found at expected location"
+        fi
+        echo ""
+
+        # Set up environment variables
+        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
+        export FFMPEG_DIR="$FFMPEG_PREFIX"
+        export FFMPEG_PREFIX="$FFMPEG_PREFIX"
+        export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
+        export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
+
+        # Additional environment variables
+        export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
+        export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
+        export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
+
+        # For bindgen
+        export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
+
+        echo "=== Environment Variables ==="
+        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
+        echo ""
+
+        echo "=== FFmpeg version ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        echo ""
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
 
     - name: Rename tarball
       run: |
-        mv target/omgrec-macos-x86_64-bundled.tar.gz omgrec-macos-x86_64.tar.gz
+        mv target/omgrec-macos-x86_64.tar.gz omgrec-macos-x86_64.tar.gz
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -140,20 +249,29 @@ jobs:
           libxrandr-dev \
           libasound2-dev
 
-    - name: Install patchelf for RPATH modification
-      run: |
-        sudo apt-get install -y patchelf
-
-    - name: Build and package with FFmpeg libraries
+    - name: Build and package binary
       env:
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        # For Linux, FFmpeg is typically in /usr
+        FFMPEG_DIR: /usr
+        FFMPEG_INCLUDE_DIR: /usr/include
+        FFMPEG_LIB_DIR: /usr/lib/x86_64-linux-gnu
       run: |
-        chmod +x ./scripts/package-with-ffmpeg.sh
-        ./scripts/package-with-ffmpeg.sh
+        # Debug info
+        echo "=== FFmpeg headers check ==="
+        ls -la /usr/include/libavcodec/ | head -10 || echo "libavcodec headers not found"
+        echo ""
+        echo "=== pkg-config info ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        echo ""
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
 
     - name: Rename tarball
       run: |
-        mv target/omgrec-linux-x86_64-bundled.tar.gz omgrec-linux-x86_64.tar.gz
+        mv target/omgrec-linux-x86_64.tar.gz omgrec-linux-x86_64.tar.gz
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -165,21 +283,35 @@ jobs:
     name: Create Release
     needs: [build-macos-arm, build-macos-intel, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/build' || startsWith(github.ref, 'refs/tags/')
 
     steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
 
-    - name: Create Release
+    - name: Get commit SHA for release tag
+      id: vars
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "is_tag=true" >> $GITHUB_OUTPUT
+        else
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=build-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "is_tag=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create or Update Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ steps.vars.outputs.tag }}
+        name: ${{ steps.vars.outputs.is_tag == 'true' && steps.vars.outputs.tag || format('Build {0}', steps.vars.outputs.tag) }}
         files: |
           omgrec-macos-arm64/omgrec-macos-arm64.tar.gz
           omgrec-macos-x86_64/omgrec-macos-x86_64.tar.gz
           omgrec-linux-x86_64/omgrec-linux-x86_64.tar.gz
         draft: false
-        prerelease: false
+        prerelease: ${{ steps.vars.outputs.is_tag == 'false' }}
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -5,6 +5,7 @@ mod db;
 mod display_info;
 mod encoder;
 mod error;
+mod ffmpeg_utils;
 mod interactions;
 mod screenshot;
 
@@ -64,6 +65,19 @@ async fn main() -> Result<()> {
             } else {
                 audio
             };
+
+            // Find and validate FFmpeg binary
+            let ffmpeg_binary = ffmpeg_utils::find_ffmpeg_binary(ffmpeg_path.as_ref())?;
+
+            // Validate FFmpeg is working
+            match ffmpeg_utils::validate_ffmpeg(&ffmpeg_binary) {
+                Ok(version) => {
+                    log::info!("Using FFmpeg: {}", version);
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
             // Validate recording type requirements
             if recording_type == RecordingType::Task {
                 if task_id.is_none() {
@@ -385,7 +399,9 @@ async fn main() -> Result<()> {
                     let concat_list_path = output_dir.join("concat_list.txt");
                     let mut concat_content = String::new();
                     for chunk in &chunks {
-                        concat_content.push_str(&format!("file '{}'\n", chunk.file_path));
+                        // Build absolute path to chunk file
+                        let chunk_path = output_dir.join(&chunk.file_path);
+                        concat_content.push_str(&format!("file '{}'\n", chunk_path.display()));
                     }
                     std::fs::write(&concat_list_path, concat_content).map_err(|e| {
                         error::ScreenRecError::EncodingError(format!("Failed to write concat list: {}", e))
@@ -429,14 +445,9 @@ async fn main() -> Result<()> {
 
                     ffmpeg_args.push(final_output_path.to_str().unwrap().to_string());
 
-                    // Determine which ffmpeg binary to use
-                    let ffmpeg_cmd = ffmpeg_path.as_ref()
-                        .map(|p| p.to_str().unwrap().to_string())
-                        .unwrap_or_else(|| "ffmpeg".to_string());
+                    log::info!("Running FFmpeg concatenation: {}", ffmpeg_binary);
 
-                    log::info!("Using ffmpeg: {}", ffmpeg_cmd);
-
-                    let concat_result = std::process::Command::new(&ffmpeg_cmd)
+                    let concat_result = std::process::Command::new(&ffmpeg_binary)
                         .args(&ffmpeg_args)
                         .output()
                         .map_err(|e| {
@@ -459,17 +470,7 @@ async fn main() -> Result<()> {
 
                     // Get video metadata using ffprobe
                     log::info!("Extracting video metadata...");
-                    let ffprobe_cmd = ffmpeg_path.as_ref()
-                        .and_then(|p| p.parent())
-                        .and_then(|parent| {
-                            let ffprobe_path = parent.join("ffprobe");
-                            if ffprobe_path.exists() {
-                                Some(ffprobe_path.to_str().unwrap().to_string())
-                            } else {
-                                None
-                            }
-                        })
-                        .unwrap_or_else(|| "ffprobe".to_string());
+                    let ffprobe_cmd = ffmpeg_utils::find_ffprobe_binary(&ffmpeg_binary);
 
                     let ffprobe_result = std::process::Command::new(&ffprobe_cmd)
                         .args(&[
