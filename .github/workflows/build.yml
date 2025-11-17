@@ -229,6 +229,11 @@ jobs:
       contents: write
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Download all artifacts
       uses: actions/download-artifact@v4
 
@@ -239,28 +244,50 @@ jobs:
         echo "=== Contents ==="
         find . -type f
 
-    - name: Get commit SHA for release tag
+    - name: Determine version and create tag
       id: vars
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          echo "is_tag=true" >> $GITHUB_OUTPUT
+          # If triggered by a tag, use that tag
+          VERSION="${GITHUB_REF#refs/tags/}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_manual_tag=true" >> $GITHUB_OUTPUT
         else
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "tag=build-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "is_tag=false" >> $GITHUB_OUTPUT
+          # Read current version from VERSION file
+          if [ -f VERSION ]; then
+            BASE_VERSION=$(cat VERSION)
+          else
+            BASE_VERSION="0.2.0"
+          fi
+
+          # Get the build number from the run number
+          BUILD_NUMBER="${{ github.run_number }}"
+
+          # Create version with build number: v0.2.0-build.123
+          VERSION="v${BASE_VERSION}-build.${BUILD_NUMBER}"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_manual_tag=false" >> $GITHUB_OUTPUT
+
+          # Create and push the tag
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Auto-generated release $VERSION"
+          git push origin "$VERSION"
         fi
+
+        echo "📦 Release version: $VERSION"
 
     - name: Create or Update Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.vars.outputs.tag }}
-        name: ${{ steps.vars.outputs.is_tag == 'true' && steps.vars.outputs.tag || format('Build {0}', steps.vars.outputs.tag) }}
+        tag_name: ${{ steps.vars.outputs.version }}
+        name: ${{ steps.vars.outputs.version }}
         files: |
           omgrec-macos-arm64/omgrec-macos-arm64.zip
           omgrec-macos-x86_64/omgrec-macos-x86_64.zip
         draft: false
-        prerelease: ${{ steps.vars.outputs.is_tag == 'false' }}
+        prerelease: ${{ steps.vars.outputs.is_manual_tag == 'false' }}
         generate_release_notes: true
         fail_on_unmatched_files: true
       env:
