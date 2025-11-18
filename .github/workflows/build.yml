@@ -32,16 +32,16 @@ jobs:
 
     - name: Install FFmpeg and build dependencies
       run: |
-        # Install FFmpeg 6.x instead of 7.x to avoid compatibility issues
+        # Install FFmpeg 7.x
         brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
         brew tap homebrew/core
-        # Try to install FFmpeg 6.1 specifically
-        brew install ffmpeg@6 2>/dev/null || brew install ffmpeg
+        # Install FFmpeg 7 specifically
+        brew install ffmpeg@7 2>/dev/null || brew install ffmpeg
         brew install pkg-config nasm
-        
-        # Link ffmpeg@6 if it was installed
-        if [ -d "/opt/homebrew/opt/ffmpeg@6" ]; then
-          brew link --overwrite ffmpeg@6
+
+        # Link ffmpeg@7 if it was installed
+        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
+          brew link --overwrite ffmpeg@7
         fi
 
     - name: Cache cargo registry
@@ -65,8 +65,8 @@ jobs:
     - name: Build and package binary
       run: |
         # Find where FFmpeg is actually installed
-        if [ -d "/opt/homebrew/opt/ffmpeg@6" ]; then
-          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@6"
+        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
+          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@7"
         elif [ -d "/opt/homebrew/opt/ffmpeg" ]; then
           FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg"
         else
@@ -143,23 +143,23 @@ jobs:
 
     - name: Install FFmpeg and build dependencies
       run: |
-        # Install FFmpeg 6.x instead of 7.x to avoid compatibility issues
+        # Install FFmpeg 7.x
         brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
         brew tap homebrew/core
-        # Try to install FFmpeg 6.1 specifically
-        brew install ffmpeg@6 2>/dev/null || brew install ffmpeg
+        # Install FFmpeg 7 specifically
+        brew install ffmpeg@7 2>/dev/null || brew install ffmpeg
         brew install pkg-config nasm
-        
-        # Link ffmpeg@6 if it was installed
-        if [ -d "/usr/local/opt/ffmpeg@6" ]; then
-          brew link --overwrite ffmpeg@6
+
+        # Link ffmpeg@7 if it was installed
+        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
+          brew link --overwrite ffmpeg@7
         fi
 
     - name: Build and package binary
       run: |
         # Find where FFmpeg is actually installed
-        if [ -d "/usr/local/opt/ffmpeg@6" ]; then
-          FFMPEG_PREFIX="/usr/local/opt/ffmpeg@6"
+        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
+          FFMPEG_PREFIX="/usr/local/opt/ffmpeg@7"
         elif [ -d "/usr/local/opt/ffmpeg" ]; then
           FFMPEG_PREFIX="/usr/local/opt/ffmpeg"
         else
