@@ -82,10 +82,6 @@ pub enum Commands {
         #[arg(long)]
         task_id: Option<String>,
 
-        /// Whether this is the final recording (concatenate chunks when true, task mode only)
-        #[arg(long)]
-        is_final: bool,
-
         /// Chunk duration in seconds for time-based chunking
         #[arg(long, default_value = "10")]
         chunk_duration: u64,
@@ -93,6 +89,21 @@ pub enum Commands {
         /// Monitor switch check interval in seconds (only used with multiple monitors)
         #[arg(long, default_value = "1.0")]
         monitor_switch_interval: f64,
+
+        /// Path to ffmpeg binary (defaults to system ffmpeg)
+        #[arg(long)]
+        ffmpeg_path: Option<PathBuf>,
+    },
+
+    /// Concatenate video chunks for a completed task recording
+    Concat {
+        /// Task ID to concatenate chunks for
+        #[arg(short, long)]
+        task_id: String,
+
+        /// Output file path for the concatenated video (defaults to final.mp4 in output directory)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
 
         /// Path to ffmpeg binary (defaults to system ffmpeg)
         #[arg(long)]
