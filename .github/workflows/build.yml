@@ -220,25 +220,25 @@ jobs:
         cp target/x86_64-apple-darwin/release/omgrec "$PACKAGE_DIR/"
 
         # Create README
-        cat > "$PACKAGE_DIR/README.txt" << 'README_EOF'
-omgrec - Omega Screen Recorder
+        cat > "$PACKAGE_DIR/README.txt" << 'EOF'
+        omgrec - Omega Screen Recorder
 
-This package includes ONLY the omgrec binary. FFmpeg is NOT bundled.
+        This package includes ONLY the omgrec binary. FFmpeg is NOT bundled.
 
-Requirements:
-- FFmpeg must be installed on your system, OR
-- Provide the --ffmpeg-path argument when running omgrec
+        Requirements:
+        - FFmpeg must be installed on your system, OR
+        - Provide the --ffmpeg-path argument when running omgrec
 
-Installation:
+        Installation:
 
-1. Install FFmpeg:
-   macOS: brew install ffmpeg
+        1. Install FFmpeg:
+           macOS: brew install ffmpeg
 
-2. Extract this archive and run:
-   ./omgrec record --duration 10
+        2. Extract this archive and run:
+           ./omgrec record --duration 10
 
-For more information: https://github.com/omegalabsinc/omega-screen-recorder
-README_EOF
+        For more information: https://github.com/omegalabsinc/omega-screen-recorder
+        EOF
 
         echo "✅ Package created at: $PACKAGE_DIR"
 
