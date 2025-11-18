@@ -467,15 +467,57 @@ async fn main() -> Result<()> {
                     let mut valid_chunks = 0;
                     let mut skipped_chunks = 0;
 
+                    // Get ffprobe path for validation
+                    let ffprobe_cmd = if let Some(custom_path) = ffmpeg_path.as_ref() {
+                        custom_path.parent()
+                            .and_then(|parent| {
+                                let ffprobe_path = parent.join("ffprobe.exe");
+                                if ffprobe_path.exists() {
+                                    Some(ffprobe_path.to_string_lossy().to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap_or_else(|| "ffprobe".to_string())
+                    } else {
+                        "ffprobe".to_string()
+                    };
+
                     for chunk in &chunks {
                         let chunk_path = std::path::Path::new(&chunk.file_path);
 
                         // Check if file exists and has reasonable size (> 1KB)
-                        let is_valid = if let Ok(metadata) = std::fs::metadata(chunk_path) {
+                        let mut is_valid = if let Ok(metadata) = std::fs::metadata(chunk_path) {
                             metadata.len() > 1024
                         } else {
                             false
                         };
+
+                        // If basic check passes, validate MP4 structure using ffprobe
+                        if is_valid {
+                            let validation_result = std::process::Command::new(&ffprobe_cmd)
+                                .args(&[
+                                    "-v", "error",
+                                    "-show_entries", "format=duration",
+                                    "-of", "default=noprint_wrappers=1:nokey=1",
+                                    chunk_path.to_str().unwrap()
+                                ])
+                                .output();
+
+                            match validation_result {
+                                Ok(output) => {
+                                    if !output.status.success() {
+                                        let stderr = String::from_utf8_lossy(&output.stderr);
+                                        log::warn!("Chunk validation failed for {}: {}", chunk.file_path, stderr);
+                                        is_valid = false;
+                                    }
+                                }
+                                Err(e) => {
+                                    log::warn!("Failed to validate chunk {}: {}", chunk.file_path, e);
+                                    is_valid = false;
+                                }
+                            }
+                        }
 
                         if is_valid {
                             concat_content.push_str(&format!("file '{}'\n", chunk.file_path));
@@ -483,7 +525,7 @@ async fn main() -> Result<()> {
                         } else {
                             // Invalid chunk - delete from database and optionally delete file
                             if let Ok(metadata) = std::fs::metadata(chunk_path) {
-                                log::warn!("Removing corrupt chunk from database (too small): {} ({} bytes)",
+                                log::warn!("Removing corrupt chunk from database: {} ({} bytes)",
                                     chunk.file_path, metadata.len());
                             } else {
                                 log::warn!("Removing missing chunk from database: {}", chunk.file_path);
