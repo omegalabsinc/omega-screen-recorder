@@ -63,7 +63,7 @@ pub enum Commands {
         display: usize,
 
         /// Video quality (1-10, higher is better)
-        #[arg(short, long, default_value = "8")]
+        #[arg(short, long, default_value = "10")]
         quality: u8,
 
         /// Track mouse and keyboard interactions
