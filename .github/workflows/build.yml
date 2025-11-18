@@ -86,7 +86,7 @@ jobs:
         echo ""
 
         # Set up environment variables
-        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
         export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
         export FFMPEG_DIR="$FFMPEG_PREFIX"
         export FFMPEG_PREFIX="$FFMPEG_PREFIX"
@@ -129,7 +129,7 @@ jobs:
 
   build-macos-intel:
     name: Build macOS x86_64
-    runs-on: macos-14  # Use ARM runner for cross-compilation to Intel
+    runs-on: macos-13  # Native Intel runner (deprecated but still functional)
 
     steps:
     - name: Checkout code
@@ -150,20 +150,20 @@ jobs:
         brew install ffmpeg@7 2>/dev/null || brew install ffmpeg
         brew install pkg-config nasm
 
-        # Link ffmpeg@7 if it was installed
-        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
+        # Link ffmpeg@7 if it was installed (Intel uses /usr/local)
+        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
           brew link --overwrite ffmpeg@7
         fi
 
     - name: Build and package binary
       run: |
-        # Find where FFmpeg is actually installed (ARM paths on macos-14)
-        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
-          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@7"
-        elif [ -d "/opt/homebrew/opt/ffmpeg" ]; then
-          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg"
+        # Find where FFmpeg is actually installed (Intel paths on macos-13)
+        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
+          FFMPEG_PREFIX="/usr/local/opt/ffmpeg@7"
+        elif [ -d "/usr/local/opt/ffmpeg" ]; then
+          FFMPEG_PREFIX="/usr/local/opt/ffmpeg"
         else
-          FFMPEG_PREFIX="/opt/homebrew"
+          FFMPEG_PREFIX="/usr/local"
         fi
 
         echo "=== FFmpeg Setup ==="
@@ -179,7 +179,7 @@ jobs:
         echo ""
 
         # Set up environment variables
-        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
         export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
         export FFMPEG_DIR="$FFMPEG_PREFIX"
         export FFMPEG_PREFIX="$FFMPEG_PREFIX"
@@ -205,42 +205,9 @@ jobs:
         pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
         echo ""
 
-        # Add x86_64 target for cross-compilation
-        echo "=== Cross-compiling for x86_64 ==="
-
-        # Build for x86_64 target
-        cargo build --release --target x86_64-apple-darwin
-
-        # Create package directory manually
-        PACKAGE_DIR="target/package-macos-x86_64"
-        rm -rf "$PACKAGE_DIR"
-        mkdir -p "$PACKAGE_DIR"
-
-        # Copy binary
-        cp target/x86_64-apple-darwin/release/omgrec "$PACKAGE_DIR/"
-
-        # Create README
-        cat > "$PACKAGE_DIR/README.txt" << 'EOF'
-        omgrec - Omega Screen Recorder
-
-        This package includes ONLY the omgrec binary. FFmpeg is NOT bundled.
-
-        Requirements:
-        - FFmpeg must be installed on your system, OR
-        - Provide the --ffmpeg-path argument when running omgrec
-
-        Installation:
-
-        1. Install FFmpeg:
-           macOS: brew install ffmpeg
-
-        2. Extract this archive and run:
-           ./omgrec record --duration 10
-
-        For more information: https://github.com/omegalabsinc/omega-screen-recorder
-        EOF
-
-        echo "✅ Package created at: $PACKAGE_DIR"
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
 
     - name: Create zip archive
       run: |
