@@ -50,12 +50,12 @@ pub enum Commands {
         #[arg(long)]
         no_audio: bool,
 
-        /// Video width (0 for screen resolution)
-        #[arg(long, default_value = "1280")]
+        /// Video width (0 for native screen resolution)
+        #[arg(long, default_value = "0")]
         width: u32,
 
-        /// Video height (0 for screen resolution)
-        #[arg(long, default_value = "720")]
+        /// Video height (0 for native screen resolution)
+        #[arg(long, default_value = "0")]
         height: u32,
 
         /// Display to capture (0 for primary display)
