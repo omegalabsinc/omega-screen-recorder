@@ -129,7 +129,7 @@ jobs:
 
   build-macos-intel:
     name: Build macOS x86_64
-    runs-on: macos-12  # macOS 12 runs on Intel (macos-13 is deprecated)
+    runs-on: macos-14  # Use ARM runner for cross-compilation to Intel
 
     steps:
     - name: Checkout code
@@ -151,19 +151,19 @@ jobs:
         brew install pkg-config nasm
 
         # Link ffmpeg@7 if it was installed
-        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
+        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
           brew link --overwrite ffmpeg@7
         fi
 
     - name: Build and package binary
       run: |
-        # Find where FFmpeg is actually installed
-        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
-          FFMPEG_PREFIX="/usr/local/opt/ffmpeg@7"
-        elif [ -d "/usr/local/opt/ffmpeg" ]; then
-          FFMPEG_PREFIX="/usr/local/opt/ffmpeg"
+        # Find where FFmpeg is actually installed (ARM paths on macos-14)
+        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
+          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@7"
+        elif [ -d "/opt/homebrew/opt/ffmpeg" ]; then
+          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg"
         else
-          FFMPEG_PREFIX="/usr/local"
+          FFMPEG_PREFIX="/opt/homebrew"
         fi
 
         echo "=== FFmpeg Setup ==="
@@ -179,7 +179,7 @@ jobs:
         echo ""
 
         # Set up environment variables
-        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
         export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
         export FFMPEG_DIR="$FFMPEG_PREFIX"
         export FFMPEG_PREFIX="$FFMPEG_PREFIX"
@@ -204,6 +204,10 @@ jobs:
         echo "=== FFmpeg version ==="
         pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
         echo ""
+
+        # Add x86_64 target for cross-compilation
+        echo "=== Cross-compiling for x86_64 ==="
+        export CARGO_BUILD_TARGET=x86_64-apple-darwin
 
         # Run the simplified packaging script (no FFmpeg bundling)
         chmod +x ./scripts/package-simple.sh
