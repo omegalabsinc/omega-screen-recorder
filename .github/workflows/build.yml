@@ -207,11 +207,40 @@ jobs:
 
         # Add x86_64 target for cross-compilation
         echo "=== Cross-compiling for x86_64 ==="
-        export CARGO_BUILD_TARGET=x86_64-apple-darwin
 
-        # Run the simplified packaging script (no FFmpeg bundling)
-        chmod +x ./scripts/package-simple.sh
-        ./scripts/package-simple.sh
+        # Build for x86_64 target
+        cargo build --release --target x86_64-apple-darwin
+
+        # Create package directory manually
+        PACKAGE_DIR="target/package-macos-x86_64"
+        rm -rf "$PACKAGE_DIR"
+        mkdir -p "$PACKAGE_DIR"
+
+        # Copy binary
+        cp target/x86_64-apple-darwin/release/omgrec "$PACKAGE_DIR/"
+
+        # Create README
+        cat > "$PACKAGE_DIR/README.txt" << 'README_EOF'
+omgrec - Omega Screen Recorder
+
+This package includes ONLY the omgrec binary. FFmpeg is NOT bundled.
+
+Requirements:
+- FFmpeg must be installed on your system, OR
+- Provide the --ffmpeg-path argument when running omgrec
+
+Installation:
+
+1. Install FFmpeg:
+   macOS: brew install ffmpeg
+
+2. Extract this archive and run:
+   ./omgrec record --duration 10
+
+For more information: https://github.com/omegalabsinc/omega-screen-recorder
+README_EOF
+
+        echo "✅ Package created at: $PACKAGE_DIR"
 
     - name: Create zip archive
       run: |
