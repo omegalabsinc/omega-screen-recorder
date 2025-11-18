@@ -211,6 +211,9 @@ async fn main() -> Result<()> {
                 }
             });
 
+            // Create shutdown channel for graceful encoder termination
+            let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
+
             // Start encoder task with chunking support
             let db_for_encoder = db.clone();
             let device_name_for_encoder = device_name.clone();
@@ -231,6 +234,7 @@ async fn main() -> Result<()> {
                     Some(device_name_for_encoder),
                     Some(recording_type_str),
                     task_id_for_encoder,
+                    Some(shutdown_rx),
                 )
                 .await
             });
@@ -302,13 +306,62 @@ async fn main() -> Result<()> {
             // Set up Ctrl+C handler for graceful shutdown
             let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
             let r = running.clone();
+
+            // Wrap shutdown_tx in Arc<Mutex<Option<_>>> so we can move it into the handler
+            let shutdown_tx_for_handler = Arc::new(std::sync::Mutex::new(Some(shutdown_tx)));
+            let shutdown_tx_clone = shutdown_tx_for_handler.clone();
+
             ctrlc::set_handler(move || {
                 log::info!("Received Ctrl+C, stopping recording...");
+
+                // Signal encoder to finish current chunk
+                if let Ok(mut tx_opt) = shutdown_tx_clone.lock() {
+                    if let Some(tx) = tx_opt.take() {
+                        log::info!("Signaling encoder to finalize current chunk...");
+                        let _ = tx.send(());
+                        // Give encoder a moment to finish
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+                    }
+                }
+
+                // Then signal capture to stop
                 r.store(false, std::sync::atomic::Ordering::SeqCst);
             })
             .map_err(|e| {
                 error::ScreenRecError::ConfigError(format!("Failed to set Ctrl+C handler: {}", e))
             })?;
+
+            // Also handle SIGTERM (Unix only) for graceful shutdown on kill
+            #[cfg(unix)]
+            {
+                let running_sigterm = running.clone();
+                let shutdown_tx_sigterm = shutdown_tx_for_handler.clone();
+                tokio::spawn(async move {
+                    use tokio::signal::unix::{signal, SignalKind};
+                    let mut sigterm = signal(SignalKind::terminate())
+                        .expect("Failed to register SIGTERM handler");
+
+                    sigterm.recv().await;
+                    log::info!("Received SIGTERM, stopping recording...");
+
+                    // Signal encoder to finish current chunk
+                    {
+                        if let Ok(mut tx_opt) = shutdown_tx_sigterm.lock() {
+                            if let Some(tx) = tx_opt.take() {
+                                log::info!("Signaling encoder to finalize current chunk...");
+                                let _ = tx.send(());
+                            }
+                        }
+                        // Guard is dropped here before the await
+                    }
+
+                    // Give encoder a moment to finish
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+                    // Then signal capture to stop
+                    running_sigterm.store(false, std::sync::atomic::Ordering::SeqCst);
+                });
+            }
 
             // Calculate target frames based on duration and fps
             let target_frames = if duration > 0 {
