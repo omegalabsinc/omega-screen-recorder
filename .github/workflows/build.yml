@@ -18,7 +18,7 @@ env:
 jobs:
   build-macos-arm:
     name: Build macOS ARM64
-    runs-on: macos-14  # macOS 14 runs on Apple Silicon (M1/M2)
+    runs-on: macos-latest  # Latest macOS ARM64 runner
 
     steps:
     - name: Checkout code
@@ -129,7 +129,7 @@ jobs:
 
   build-macos-intel:
     name: Build macOS x86_64
-    runs-on: macos-13  # Native Intel runner (deprecated but still functional)
+    runs-on: macos-15-intel  # macOS 15 Intel runner
 
     steps:
     - name: Checkout code
