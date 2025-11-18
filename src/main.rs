@@ -467,7 +467,7 @@ async fn main() -> Result<()> {
                     let mut valid_chunks = 0;
                     let mut skipped_chunks = 0;
 
-                    // Get ffprobe path for validation
+                    // Get ffprobe path for validation (optional)
                     let ffprobe_cmd = if let Some(custom_path) = ffmpeg_path.as_ref() {
                         custom_path.parent()
                             .and_then(|parent| {
@@ -478,24 +478,36 @@ async fn main() -> Result<()> {
                                     None
                                 }
                             })
-                            .unwrap_or_else(|| "ffprobe".to_string())
                     } else {
-                        "ffprobe".to_string()
+                        // Check if ffprobe is available in PATH
+                        std::process::Command::new("ffprobe")
+                            .arg("-version")
+                            .output()
+                            .ok()
+                            .and_then(|output| if output.status.success() {
+                                Some("ffprobe".to_string())
+                            } else {
+                                None
+                            })
                     };
+
+                    if ffprobe_cmd.is_none() {
+                        log::warn!("ffprobe not found - using basic file size validation only");
+                    }
 
                     for chunk in &chunks {
                         let chunk_path = std::path::Path::new(&chunk.file_path);
 
-                        // Check if file exists and has reasonable size (> 1KB)
+                        // Check if file exists and has reasonable size (> 10KB)
                         let mut is_valid = if let Ok(metadata) = std::fs::metadata(chunk_path) {
-                            metadata.len() > 1024
+                            metadata.len() > 10240
                         } else {
                             false
                         };
 
-                        // If basic check passes, validate MP4 structure using ffprobe
-                        if is_valid {
-                            let validation_result = std::process::Command::new(&ffprobe_cmd)
+                        // If basic check passes and ffprobe is available, validate MP4 structure
+                        if is_valid && ffprobe_cmd.is_some() {
+                            let validation_result = std::process::Command::new(ffprobe_cmd.as_ref().unwrap())
                                 .args(&[
                                     "-v", "error",
                                     "-show_entries", "format=duration",
@@ -513,8 +525,8 @@ async fn main() -> Result<()> {
                                     }
                                 }
                                 Err(e) => {
-                                    log::warn!("Failed to validate chunk {}: {}", chunk.file_path, e);
-                                    is_valid = false;
+                                    log::warn!("Failed to run ffprobe on chunk {}: {}", chunk.file_path, e);
+                                    // Don't mark as invalid - ffprobe execution failed, not the file
                                 }
                             }
                         }
