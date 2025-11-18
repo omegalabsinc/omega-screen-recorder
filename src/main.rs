@@ -476,6 +476,10 @@ async fn concatenate_chunks(
     let mut concat_content = String::new();
     let mut existing_chunks = 0;
     let mut missing_chunks = 0;
+    let mut invalid_chunks = 0;
+
+    // Get ffprobe path for validating chunks
+    let ffprobe_cmd = ffmpeg_utils::find_ffprobe_binary(&ffmpeg_binary);
 
     for chunk in &chunks {
         // Build absolute path to chunk file
@@ -487,10 +491,30 @@ async fn concatenate_chunks(
 
         // Only include files that actually exist
         if chunk_path.exists() {
-            // Escape single quotes in the path by replacing ' with '\''
-            let path_str = chunk_path.to_string_lossy().replace("'", r"'\''");
-            concat_content.push_str(&format!("file '{}'\n", path_str));
-            existing_chunks += 1;
+            // Validate that the chunk has valid video streams using ffprobe
+            let has_valid_stream = std::process::Command::new(&ffprobe_cmd)
+                .args(&[
+                    "-v", "quiet",
+                    "-select_streams", "v:0",
+                    "-show_entries", "stream=codec_type",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    chunk_path.to_str().unwrap()
+                ])
+                .output()
+                .map(|output| {
+                    output.status.success() && !output.stdout.is_empty()
+                })
+                .unwrap_or(false);
+
+            if has_valid_stream {
+                // Escape single quotes in the path by replacing ' with '\''
+                let path_str = chunk_path.to_string_lossy().replace("'", r"'\''");
+                concat_content.push_str(&format!("file '{}'\n", path_str));
+                existing_chunks += 1;
+            } else {
+                log::warn!("Skipping chunk with no video stream: {}", chunk_path.display());
+                invalid_chunks += 1;
+            }
         } else {
             log::warn!("Skipping missing chunk file: {}", chunk_path.display());
             missing_chunks += 1;
@@ -503,11 +527,20 @@ async fn concatenate_chunks(
         ));
     }
 
-    if missing_chunks > 0 {
-        println!("⚠️  [PROGRESS] Warning: {} chunk files missing, using {} available chunks",
-                 missing_chunks, existing_chunks);
-        log::warn!("{} chunk files are missing, concatenating {} existing chunks",
-                   missing_chunks, existing_chunks);
+    if missing_chunks > 0 || invalid_chunks > 0 {
+        let mut warning_parts = Vec::new();
+        if missing_chunks > 0 {
+            warning_parts.push(format!("{} missing", missing_chunks));
+        }
+        if invalid_chunks > 0 {
+            warning_parts.push(format!("{} invalid (no video streams)", invalid_chunks));
+        }
+        let warning_msg = warning_parts.join(", ");
+
+        println!("⚠️  [PROGRESS] Warning: {} chunk files skipped ({}), using {} valid chunks",
+                 missing_chunks + invalid_chunks, warning_msg, existing_chunks);
+        log::warn!("{} chunk files skipped ({}), concatenating {} valid chunks",
+                   missing_chunks + invalid_chunks, warning_msg, existing_chunks);
     }
 
     std::fs::write(&concat_list_path, concat_content).map_err(|e| {
