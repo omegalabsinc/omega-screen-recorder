@@ -129,7 +129,7 @@ jobs:
 
   build-macos-intel:
     name: Build macOS x86_64
-    runs-on: macos-13  # macOS 13 runs on Intel
+    runs-on: macos-12  # macOS 12 runs on Intel (macos-13 is deprecated)
 
     steps:
     - name: Checkout code
