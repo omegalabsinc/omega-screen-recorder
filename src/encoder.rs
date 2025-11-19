@@ -114,23 +114,26 @@ impl VideoEncoder {
                 // libx264-specific options
                 let crf = Self::quality_to_crf(quality);
                 opts.set("crf", &crf.to_string());
-                opts.set("preset", "medium");
-                opts.set("tune", "stillimage");    // Optimize for screen content with sharp edges
-                opts.set("profile", "high");        // Use H.264 High Profile for better compression
+                opts.set("preset", "slow");             // Use slow preset for better quality
+                // No tune - stillimage was causing aggressive P-frame compression
+                opts.set("profile", "high");            // Use H.264 High Profile for better compression
 
-                // Keyframe settings - keyframe every 2 seconds to prevent quality degradation
-                let gop_size = (fps * 2).to_string();  // GOP size = 2 seconds of frames
+                // Keyframe settings - keyframe every 2 seconds for seeking and quality
+                let gop_size = (fps * 2).to_string();   // GOP size = 2 seconds of frames
                 opts.set("g", &gop_size);               // Set keyframe interval
                 opts.set("keyint_min", &gop_size);      // Minimum keyframe interval
 
-                // Encoding settings
-                opts.set("bf", "0");                    // No B-frames for lower latency
+                // Encoding settings for screen content
+                opts.set("bf", "0");                    // No B-frames for lower latency and better quality
                 opts.set("refs", "3");                  // Number of reference frames
 
                 // Screen recording specific optimizations
                 opts.set("sc_threshold", "0");          // Disable scene cut detection (not needed for screen)
                 opts.set("qmin", "10");                 // Minimum quantizer (prevents too much compression)
-                opts.set("qmax", "30");                 // Maximum quantizer (maintains quality)
+                opts.set("qmax", "25");                 // Maximum quantizer (tighter quality control)
+
+                // Force higher bitrate for better quality
+                opts.set("crf_max", "18");              // Cap worst-case CRF to maintain quality
 
                 // Windows Media Foundation compatibility
                 opts.set("movflags", "+faststart");     // Enable fast start for MP4
@@ -444,14 +447,16 @@ impl VideoEncoder {
     fn quality_to_crf(quality: u8) -> u8 {
         #[cfg(target_os = "windows")]
         {
-            // For Windows screen recording, use lower CRF values for sharper text
-            // Quality 1 (lowest) -> CRF 28
-            // Quality 5 (medium) -> CRF 20
-            // Quality 8 (high)   -> CRF 15
-            // Quality 10 (max)   -> CRF 12
+            // For Windows screen recording, use very low CRF values for crystal-clear text and UI
+            // Quality 1 (lowest) -> CRF 28 (acceptable for low-detail content)
+            // Quality 5 (medium) -> CRF 18 (good balance)
+            // Quality 8 (high)   -> CRF 12 (excellent quality)
+            // Quality 10 (max)   -> CRF 8  (near-lossless for screen content)
             let q = quality.clamp(1, 10) as i32;
-            let mapped = 30 - (q * 2); // More aggressive mapping for screen content
-            mapped.clamp(12, 28) as u8
+            // Use quadratic mapping for better quality at high settings
+            // Formula: 30 - (q * 2.2) to get more aggressive at higher quality
+            let mapped = 30 - ((q * 22) / 10); // More aggressive: q=8 -> CRF 12, q=10 -> CRF 8
+            mapped.clamp(8, 28) as u8
         }
 
         #[cfg(not(target_os = "windows"))]

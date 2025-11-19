@@ -11,6 +11,15 @@ use std::time::Instant;
 #[cfg(target_os = "macos")]
 use active_win_pos_rs::get_active_window;
 
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::{HWND, MAX_PATH};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_NAME_FORMAT};
+#[cfg(target_os = "windows")]
+use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId};
+#[cfg(target_os = "windows")]
+use windows::core::PWSTR;
+
 /// Unified interaction event for JSONL export (includes all event types with window info)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InteractionEvent {
@@ -497,6 +506,7 @@ fn get_mouse_position() -> Option<(f64, f64)> {
 /// Get active window information (process name and window title)
 #[cfg(target_os = "macos")]
 fn get_active_window_info() -> (String, String) {
+    log::debug!("get_active_window_info: macOS version called");
     match get_active_window() {
         Ok(window) => {
             let app_name = if window.app_name.is_empty() {
@@ -515,13 +525,98 @@ fn get_active_window_info() -> (String, String) {
                 log::warn!("To enable: System Settings → Privacy & Security → Accessibility → Add this app");
                 log::warn!("Process names and window titles will show as 'Unknown' until permission is granted");
             }
-            ("Unknown".to_string(), "Unknown".to_string())
+            ("Unknown".to_string(), "".to_string())
         }
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
 fn get_active_window_info() -> (String, String) {
+    // Compile-time verification that we're building for Windows
+    const _: () = {
+        #[cfg(not(target_os = "windows"))]
+        compile_error!("This function should only be compiled on Windows!");
+    };
+
+    log::debug!("get_active_window_info: Windows version called (WINDOWS_NATIVE_API)");
+    unsafe {
+        // Get the foreground window
+        let hwnd = GetForegroundWindow();
+        if hwnd.0 == 0 {
+            log::debug!("GetForegroundWindow returned NULL");
+            return ("Unknown".to_string(), "".to_string());
+        }
+        log::debug!("Got foreground window handle: {:?}", hwnd);
+
+        // Get window title
+        let mut title_buffer = [0u16; 512];
+        let title_len = GetWindowTextW(hwnd, &mut title_buffer);
+        let window_title = if title_len > 0 {
+            let title = String::from_utf16_lossy(&title_buffer[..title_len as usize]);
+            log::debug!("Window title: '{}'", title);
+            title
+        } else {
+            log::debug!("No window title (GetWindowTextW returned 0)");
+            String::new()
+        };
+
+        // Get process ID
+        let mut process_id: u32 = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut process_id as *mut u32));
+
+        if process_id == 0 {
+            log::debug!("GetWindowThreadProcessId returned 0");
+            return ("Unknown".to_string(), window_title);
+        }
+        log::debug!("Process ID: {}", process_id);
+
+        // Open process to get executable name
+        let process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id);
+
+        let process_name = if let Ok(handle) = process_handle {
+            if handle.0 != 0 {
+                let mut exe_path = [0u16; MAX_PATH as usize];
+                let mut size = MAX_PATH;
+
+                let result = QueryFullProcessImageNameW(
+                    handle,
+                    PROCESS_NAME_FORMAT(0),
+                    PWSTR(exe_path.as_mut_ptr()),
+                    &mut size
+                );
+
+                if result.is_ok() && size > 0 {
+                    let full_path = String::from_utf16_lossy(&exe_path[..size as usize]);
+                    log::debug!("Process full path: '{}'", full_path);
+                    // Extract just the filename from the full path
+                    let name = std::path::Path::new(&full_path)
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or("Unknown")
+                        .to_string();
+                    log::debug!("Process name: '{}'", name);
+                    name
+                } else {
+                    log::debug!("QueryFullProcessImageNameW failed or returned 0 size");
+                    "Unknown".to_string()
+                }
+            } else {
+                log::debug!("Process handle is NULL");
+                "Unknown".to_string()
+            }
+        } else {
+            log::debug!("OpenProcess failed: {:?}", process_handle);
+            "Unknown".to_string()
+        };
+
+        log::debug!("Returning: process='{}', title='{}'", process_name, window_title);
+        (process_name, window_title)
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn get_active_window_info() -> (String, String) {
+    log::debug!("get_active_window_info: fallback version called (not macOS or Windows)");
     ("Unknown".to_string(), "".to_string())
 }
 

@@ -330,8 +330,20 @@ impl Database {
         Ok(rows)
     }
 
-    /// Delete a video chunk by ID (also deletes associated frames due to foreign key cascade)
+    /// Delete a video chunk by ID (also deletes associated frames)
     pub async fn delete_chunk(&self, chunk_id: i64) -> Result<()> {
+        // First delete all frames associated with this chunk to avoid foreign key constraint
+        sqlx::query(
+            r#"
+            DELETE FROM frames
+            WHERE video_chunk_id = ?1
+            "#,
+        )
+        .bind(chunk_id)
+        .execute(&self.pool)
+        .await?;
+
+        // Then delete the chunk itself
         sqlx::query(
             r#"
             DELETE FROM video_chunks

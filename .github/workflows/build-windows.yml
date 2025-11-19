@@ -72,6 +72,10 @@ jobs:
         echo "FFMPEG_INCLUDE_DIR=C:\vcpkg\installed\x64-windows-static-md\include" >> $env:GITHUB_ENV
         echo "FFMPEG_LIB_DIR=C:\vcpkg\installed\x64-windows-static-md\lib" >> $env:GITHUB_ENV
 
+    - name: Clean cargo cache to force fresh build
+      run: |
+        cargo clean
+
     - name: Build release binary
       env:
         FFMPEG_STATIC: "1"
@@ -82,7 +86,7 @@ jobs:
     - name: Create artifact directory
       run: |
         New-Item -ItemType Directory -Force -Path artifacts
-        Copy-Item target/release/screenrec.exe artifacts/screenrec.exe
+        Copy-Item target/release/omgrec.exe artifacts/screenrec.exe
 
     - name: Upload Windows binary
       uses: actions/upload-artifact@v4
