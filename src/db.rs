@@ -14,14 +14,54 @@ impl Database {
         let db_url = format!("sqlite://{}?mode=rwc", db_path.as_ref().display());
 
         let pool = SqlitePoolOptions::new()
-            .max_connections(5)
+            .max_connections(10) // Increased for better concurrency
+            .acquire_timeout(std::time::Duration::from_secs(5)) // Longer timeout for locks
             .connect(&db_url)
             .await?;
 
         let db = Self { pool };
+
+        // Enable WAL mode for better concurrent write performance
+        db.enable_wal_mode().await?;
+
+        // Optimize pragmas for high-frequency writes
+        db.optimize_for_writes().await?;
+
         db.create_schema().await?;
 
         Ok(db)
+    }
+
+    /// Enable Write-Ahead Logging (WAL) mode for better concurrency
+    async fn enable_wal_mode(&self) -> Result<()> {
+        // WAL mode allows concurrent reads and writes
+        sqlx::query("PRAGMA journal_mode = WAL")
+            .execute(&self.pool)
+            .await?;
+
+        log::info!("SQLite WAL mode enabled for better write concurrency");
+        Ok(())
+    }
+
+    /// Optimize SQLite settings for high-frequency writes
+    async fn optimize_for_writes(&self) -> Result<()> {
+        // Increase cache size (in KB) - default is ~2MB, we set to 10MB
+        sqlx::query("PRAGMA cache_size = -10000")
+            .execute(&self.pool)
+            .await?;
+
+        // Set synchronous to NORMAL for better performance (still safe with WAL)
+        sqlx::query("PRAGMA synchronous = NORMAL")
+            .execute(&self.pool)
+            .await?;
+
+        // Increase busy timeout to 5 seconds
+        sqlx::query("PRAGMA busy_timeout = 5000")
+            .execute(&self.pool)
+            .await?;
+
+        log::debug!("SQLite optimized for high-frequency writes");
+        Ok(())
     }
 
     /// Create database schema if it doesn't exist

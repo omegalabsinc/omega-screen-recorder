@@ -516,6 +516,7 @@ pub async fn process_frames_chunked(
     device_name: Option<String>,
     recording_type: Option<String>,
     task_id: Option<String>,
+    mut shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>,
 ) -> Result<Vec<RecordingOutput>> {
     log::info!("Starting chunked frame processing with {}-second chunks", chunk_duration_secs);
 
@@ -553,71 +554,166 @@ pub async fn process_frames_chunked(
         }
     }
 
-    while let Some(frame) = rx.recv().await {
-        let captured_at = frame.captured_at;
+    loop {
+        // Wait for either a frame or shutdown signal
+        let should_shutdown = if let Some(ref mut shutdown) = shutdown_rx {
+            tokio::select! {
+                frame_opt = rx.recv() => {
+                    if let Some(frame) = frame_opt {
+                        let captured_at = frame.captured_at;
 
-        // Check if we need to start a new chunk
-        if frames_in_current_chunk >= frames_per_chunk {
-            log::info!("Finishing chunk {} with {} frames", chunk_index, frames_in_current_chunk);
+                        // Check if we need to start a new chunk
+                        if frames_in_current_chunk >= frames_per_chunk {
+                            log::info!("Finishing chunk {} with {} frames", chunk_index, frames_in_current_chunk);
 
-            // Finish current encoder
-            let output = current_encoder.finish()?;
-            chunk_outputs.push(output);
+                            // Finish current encoder
+                            let output = current_encoder.finish()?;
+                            chunk_outputs.push(output);
 
-            // Start new chunk
-            chunk_index += 1;
-            frames_in_current_chunk = 0;
+                            // Start new chunk
+                            chunk_index += 1;
+                            frames_in_current_chunk = 0;
 
-            let now = chrono::Local::now();
-            let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
-            let chunk_path = base_output_dir.join(&chunk_filename);
+                            let now = chrono::Local::now();
+                            let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
+                            let chunk_path = base_output_dir.join(&chunk_filename);
 
-            log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
+                            log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
 
-            current_encoder = VideoEncoder::new(
-                &chunk_path,
-                width,
-                height,
-                fps,
-                quality,
-                None::<fn(&str)>,
-            )?;
+                            current_encoder = VideoEncoder::new(
+                                &chunk_path,
+                                width,
+                                height,
+                                fps,
+                                quality,
+                                None::<fn(&str)>,
+                            )?;
 
-            // Insert new video chunk into database
-            if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
-                if let Err(e) = db.insert_video_chunk(
-                    chunk_path.to_str().unwrap_or(""),
-                    device,
-                    recording_type.as_deref(),
-                    task_id.as_deref(),
-                    Some(chunk_index),
-                ).await {
-                    log::error!("Failed to insert video chunk into database: {}", e);
+                            // Insert new video chunk into database
+                            if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+                                if let Err(e) = db.insert_video_chunk(
+                                    chunk_path.to_str().unwrap_or(""),
+                                    device,
+                                    recording_type.as_deref(),
+                                    task_id.as_deref(),
+                                    Some(chunk_index),
+                                ).await {
+                                    log::error!("Failed to insert video chunk into database: {}", e);
+                                }
+                            }
+                        }
+
+                        // Encode frame and get metadata
+                        let metadata = current_encoder.encode_frame(frame)?;
+                        frames_in_current_chunk += 1;
+
+                        // Insert frame into database with metadata if enabled
+                        if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+                            if let Err(e) = db
+                                .insert_frame(
+                                    device,
+                                    Some(captured_at),
+                                    metadata.is_keyframe,
+                                    metadata.pts,
+                                    metadata.dts,
+                                    Some(metadata.display_index as i64),
+                                    Some(metadata.width as i64),
+                                    Some(metadata.height as i64),
+                                )
+                                .await
+                            {
+                                log::error!("Failed to insert frame into database: {}", e);
+                            }
+                        }
+                        false
+                    } else {
+                        // Channel closed, finish processing
+                        break;
+                    }
+                }
+                _ = shutdown => {
+                    log::warn!("Shutdown signal received, finalizing current chunk...");
+                    true
                 }
             }
-        }
+        } else {
+            // No shutdown receiver, just wait for frame
+            if let Some(frame) = rx.recv().await {
+                let captured_at = frame.captured_at;
 
-        // Encode frame and get metadata
-        let metadata = current_encoder.encode_frame(frame)?;
-        frames_in_current_chunk += 1;
+                // Check if we need to start a new chunk
+                if frames_in_current_chunk >= frames_per_chunk {
+                    log::info!("Finishing chunk {} with {} frames", chunk_index, frames_in_current_chunk);
 
-        // Insert frame into database with metadata if enabled
-        if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
-            if let Err(e) = db
-                .insert_frame(
-                    device,
-                    Some(captured_at),
-                    metadata.is_keyframe,
-                    metadata.pts,
-                    metadata.dts,
-                    Some(metadata.display_index as i64),
-                    Some(metadata.width as i64),
-                    Some(metadata.height as i64),
-                )
-                .await
-            {
-                log::error!("Failed to insert frame into database: {}", e);
+                    // Finish current encoder
+                    let output = current_encoder.finish()?;
+                    chunk_outputs.push(output);
+
+                    // Start new chunk
+                    chunk_index += 1;
+                    frames_in_current_chunk = 0;
+
+                    let now = chrono::Local::now();
+                    let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
+                    let chunk_path = base_output_dir.join(&chunk_filename);
+
+                    log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
+
+                    current_encoder = VideoEncoder::new(
+                        &chunk_path,
+                        width,
+                        height,
+                        fps,
+                        quality,
+                        None::<fn(&str)>,
+                    )?;
+
+                    // Insert new video chunk into database
+                    if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+                        if let Err(e) = db.insert_video_chunk(
+                            chunk_path.to_str().unwrap_or(""),
+                            device,
+                            recording_type.as_deref(),
+                            task_id.as_deref(),
+                            Some(chunk_index),
+                        ).await {
+                            log::error!("Failed to insert video chunk into database: {}", e);
+                        }
+                    }
+                }
+
+                // Encode frame and get metadata
+                let metadata = current_encoder.encode_frame(frame)?;
+                frames_in_current_chunk += 1;
+
+                // Insert frame into database with metadata if enabled
+                if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
+                    if let Err(e) = db
+                        .insert_frame(
+                            device,
+                            Some(captured_at),
+                            metadata.is_keyframe,
+                            metadata.pts,
+                            metadata.dts,
+                            Some(metadata.display_index as i64),
+                            Some(metadata.width as i64),
+                            Some(metadata.height as i64),
+                        )
+                        .await
+                    {
+                        log::error!("Failed to insert frame into database: {}", e);
+                    }
+                }
+                false
+            } else {
+                // Channel closed, finish processing
+                break;
             }
+        };
+
+        if should_shutdown {
+            log::info!("Gracefully shutting down encoder...");
+            break;
         }
     }
 

@@ -1,8 +1,7 @@
 name: Build and Release
 
-# This build bundles FFmpeg libraries with the binary (Option 2: Bundle FFmpeg dylibs)
-# Users do NOT need to install FFmpeg - everything is self-contained!
-# See STATIC-LINKING-EXPLAINED.md for technical details
+# This build does NOT bundle FFmpeg - users must have FFmpeg installed
+# Users can either install FFmpeg globally or use --ffmpeg-path argument
 
 on:
   push:
@@ -19,7 +18,7 @@ env:
 jobs:
   build-macos-arm:
     name: Build macOS ARM64
-    runs-on: macos-14  # macOS 14 runs on Apple Silicon (M1/M2)
+    runs-on: macos-latest  # Latest macOS ARM64 runner
 
     steps:
     - name: Checkout code
@@ -33,7 +32,17 @@ jobs:
 
     - name: Install FFmpeg and build dependencies
       run: |
-        brew install ffmpeg pkg-config nasm
+        # Install FFmpeg 7.x
+        brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
+        brew tap homebrew/core
+        # Install FFmpeg 7 specifically
+        brew install ffmpeg@7 2>/dev/null || brew install ffmpeg
+        brew install pkg-config nasm
+
+        # Link ffmpeg@7 if it was installed
+        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
+          brew link --overwrite ffmpeg@7
+        fi
 
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -53,28 +62,74 @@ jobs:
         path: target
         key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Build and package with FFmpeg libraries
-      env:
-        FFMPEG_DIR: /opt/homebrew
-        PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
-        CPATH: /opt/homebrew/include
-        LIBRARY_PATH: /opt/homebrew/lib
+    - name: Build and package binary
       run: |
-        ./scripts/package-with-ffmpeg.sh
+        # Find where FFmpeg is actually installed
+        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
+          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@7"
+        elif [ -d "/opt/homebrew/opt/ffmpeg" ]; then
+          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg"
+        else
+          FFMPEG_PREFIX="/opt/homebrew"
+        fi
 
-    - name: Rename tarball
+        echo "=== FFmpeg Setup ==="
+        echo "FFmpeg prefix: $FFMPEG_PREFIX"
+
+        # Verify FFmpeg headers exist
+        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
+          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
+          ls -la "$FFMPEG_PREFIX/include" | grep libav
+        else
+          echo "⚠️ FFmpeg headers not found at expected location"
+        fi
+        echo ""
+
+        # Set up environment variables
+        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
+        export FFMPEG_DIR="$FFMPEG_PREFIX"
+        export FFMPEG_PREFIX="$FFMPEG_PREFIX"
+        export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
+        export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
+
+        # Additional environment variables
+        export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
+        export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
+        export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
+
+        # For bindgen
+        export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
+
+        echo "=== Environment Variables ==="
+        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
+        echo ""
+
+        echo "=== FFmpeg version ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        echo ""
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
+
+    - name: Create zip archive
       run: |
-        mv target/omgrec-macos-arm64-bundled.tar.gz omgrec-macos-arm64.tar.gz
+        cd target/package-macos-arm64
+        zip -r ../omgrec-macos-arm64.zip *
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-arm64
-        path: omgrec-macos-arm64.tar.gz
+        path: target/omgrec-macos-arm64.zip
 
   build-macos-intel:
     name: Build macOS x86_64
-    runs-on: macos-13  # macOS 13 runs on Intel
+    runs-on: macos-15-intel  # macOS 15 Intel runner
 
     steps:
     - name: Checkout code
@@ -88,98 +143,152 @@ jobs:
 
     - name: Install FFmpeg and build dependencies
       run: |
-        brew install ffmpeg pkg-config nasm
+        # Install FFmpeg 7.x
+        brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
+        brew tap homebrew/core
+        # Install FFmpeg 7 specifically
+        brew install ffmpeg@7 2>/dev/null || brew install ffmpeg
+        brew install pkg-config nasm
 
-    - name: Build and package with FFmpeg libraries
-      env:
-        FFMPEG_DIR: /usr/local
-        PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
-        CPATH: /usr/local/include
-        LIBRARY_PATH: /usr/local/lib
-      run: |
-        ./scripts/package-with-ffmpeg.sh
+        # Link ffmpeg@7 if it was installed (Intel uses /usr/local)
+        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
+          brew link --overwrite ffmpeg@7
+        fi
 
-    - name: Rename tarball
+    - name: Build and package binary
       run: |
-        mv target/omgrec-macos-x86_64-bundled.tar.gz omgrec-macos-x86_64.tar.gz
+        # Find where FFmpeg is actually installed (Intel paths on macos-13)
+        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
+          FFMPEG_PREFIX="/usr/local/opt/ffmpeg@7"
+        elif [ -d "/usr/local/opt/ffmpeg" ]; then
+          FFMPEG_PREFIX="/usr/local/opt/ffmpeg"
+        else
+          FFMPEG_PREFIX="/usr/local"
+        fi
+
+        echo "=== FFmpeg Setup ==="
+        echo "FFmpeg prefix: $FFMPEG_PREFIX"
+
+        # Verify FFmpeg headers exist
+        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
+          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
+          ls -la "$FFMPEG_PREFIX/include" | grep libav
+        else
+          echo "⚠️ FFmpeg headers not found at expected location"
+        fi
+        echo ""
+
+        # Set up environment variables
+        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
+        export FFMPEG_DIR="$FFMPEG_PREFIX"
+        export FFMPEG_PREFIX="$FFMPEG_PREFIX"
+        export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
+        export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
+
+        # Additional environment variables
+        export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
+        export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
+        export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
+
+        # For bindgen
+        export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
+
+        echo "=== Environment Variables ==="
+        echo "FFMPEG_DIR: $FFMPEG_DIR"
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
+        echo ""
+
+        echo "=== FFmpeg version ==="
+        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
+        echo ""
+
+        # Run the simplified packaging script (no FFmpeg bundling)
+        chmod +x ./scripts/package-simple.sh
+        ./scripts/package-simple.sh
+
+    - name: Create zip archive
+      run: |
+        cd target/package-macos-x86_64
+        zip -r ../omgrec-macos-x86_64.zip *
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: omgrec-macos-x86_64
-        path: omgrec-macos-x86_64.tar.gz
+        path: target/omgrec-macos-x86_64.zip
 
-  build-linux:
-    name: Build Linux x86_64
+  release:
+    name: Create Release
+    needs: [build-macos-arm, build-macos-intel]
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Install Rust toolchain
-      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: stable
-        target: x86_64-unknown-linux-gnu
+        fetch-depth: 0
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libavcodec-dev \
-          libavformat-dev \
-          libavutil-dev \
-          libavfilter-dev \
-          libavdevice-dev \
-          libswscale-dev \
-          libswresample-dev \
-          pkg-config \
-          clang \
-          libx11-dev \
-          libxrandr-dev \
-          libasound2-dev
-
-    - name: Install patchelf for RPATH modification
-      run: |
-        sudo apt-get install -y patchelf
-
-    - name: Build and package with FFmpeg libraries
-      env:
-        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
-      run: |
-        chmod +x ./scripts/package-with-ffmpeg.sh
-        ./scripts/package-with-ffmpeg.sh
-
-    - name: Rename tarball
-      run: |
-        mv target/omgrec-linux-x86_64-bundled.tar.gz omgrec-linux-x86_64.tar.gz
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: omgrec-linux-x86_64
-        path: omgrec-linux-x86_64.tar.gz
-
-  release:
-    name: Create Release
-    needs: [build-macos-arm, build-macos-intel, build-linux]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-
-    steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
 
-    - name: Create Release
+    - name: List downloaded artifacts
+      run: |
+        echo "=== Downloaded artifacts ==="
+        ls -la
+        echo "=== Contents ==="
+        find . -type f
+
+    - name: Determine version and create tag
+      id: vars
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          # If triggered by a tag, use that tag
+          VERSION="${GITHUB_REF#refs/tags/}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_manual_tag=true" >> $GITHUB_OUTPUT
+        else
+          # Read current version from VERSION file
+          if [ -f VERSION ]; then
+            BASE_VERSION=$(cat VERSION)
+          else
+            BASE_VERSION="0.2.0"
+          fi
+
+          # Get the build number from the run number
+          BUILD_NUMBER="${{ github.run_number }}"
+
+          # Create version with build number: v0.2.0-build.123
+          VERSION="v${BASE_VERSION}-build.${BUILD_NUMBER}"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_manual_tag=false" >> $GITHUB_OUTPUT
+
+          # Create and push the tag
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Auto-generated release $VERSION"
+          git push origin "$VERSION"
+        fi
+
+        echo "📦 Release version: $VERSION"
+
+    - name: Create or Update Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ steps.vars.outputs.version }}
+        name: ${{ steps.vars.outputs.version }}
         files: |
-          omgrec-macos-arm64/omgrec-macos-arm64.tar.gz
-          omgrec-macos-x86_64/omgrec-macos-x86_64.tar.gz
-          omgrec-linux-x86_64/omgrec-linux-x86_64.tar.gz
+          omgrec-macos-arm64/omgrec-macos-arm64.zip
+          omgrec-macos-x86_64/omgrec-macos-x86_64.zip
         draft: false
-        prerelease: false
+        prerelease: ${{ steps.vars.outputs.is_manual_tag == 'false' }}
         generate_release_notes: true
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
