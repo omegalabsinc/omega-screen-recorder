@@ -11,19 +11,43 @@ use std::time::Instant;
 #[cfg(target_os = "macos")]
 use active_win_pos_rs::get_active_window;
 
-/// Represents a click event for JSONL export
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::{HWND, MAX_PATH};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_NAME_FORMAT};
+#[cfg(target_os = "windows")]
+use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId};
+#[cfg(target_os = "windows")]
+use windows::core::PWSTR;
+
+/// Unified interaction event for JSONL export (includes all event types with window info)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClickEvent {
-    pub x: i32,
-    pub y: i32,
-    pub button: String,
+pub struct InteractionEvent {
+    #[serde(rename = "type")]
+    pub event_type: String,  // "click", "move", "scroll", "keypress", "keyrelease"
+    pub timestamp: String,  // ISO 8601 format
+    pub timestamp_ms: u64,  // Milliseconds from recording start
     #[serde(rename = "taskId")]
     pub task_id: String,
-    pub timestamp: String,  // ISO 8601 format
     #[serde(rename = "processName")]
     pub process_name: String,
     #[serde(rename = "windowTitle")]
     pub window_title: String,
+    // Mouse-specific fields (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub button: Option<String>,
+    // Keyboard-specific fields (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    // Scroll-specific fields (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_x: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_y: Option<i64>,
 }
 
 /// Represents a mouse event
@@ -217,20 +241,25 @@ impl InteractionTracker {
                         if let Some(ref tid) = task_id {
                             log::debug!("Click detected at ({}, {}) for task {}", x, y, tid);
                             let (process_name, window_title) = get_active_window_info();
-                            let click_event = ClickEvent {
-                                x: x as i32,
-                                y: y as i32,
-                                button: button_name,
-                                task_id: tid.clone(),
+                            let interaction_event = InteractionEvent {
+                                event_type: "click".to_string(),
                                 timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
                                 process_name,
                                 window_title,
+                                x: Some(x),
+                                y: Some(y),
+                                button: Some(button_name),
+                                key: None,
+                                delta_x: None,
+                                delta_y: None,
                             };
 
                             if let Ok(mut file_opt) = jsonl_file.lock() {
                                 if let Some(ref mut writer) = *file_opt {
                                     // Write as compact single line (JSONL format: one JSON object per line)
-                                    if let Ok(json) = serde_json::to_string(&click_event) {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
                                         match writeln!(writer, "{}", json) {
                                             Ok(_) => {
                                                 let _ = writer.flush();
@@ -280,27 +309,114 @@ impl InteractionTracker {
                         if let Ok(mut events) = mouse_events.lock() {
                             events.push(mouse_event);
                         }
+
+                        // Write to JSONL if task-based tracking
+                        if let Some(ref tid) = task_id {
+                            let (process_name, window_title) = get_active_window_info();
+                            let interaction_event = InteractionEvent {
+                                event_type: "scroll".to_string(),
+                                timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
+                                process_name,
+                                window_title,
+                                x: Some(x),
+                                y: Some(y),
+                                button: None,
+                                key: None,
+                                delta_x: Some(delta_x),
+                                delta_y: Some(delta_y),
+                            };
+
+                            if let Ok(mut file_opt) = jsonl_file.lock() {
+                                if let Some(ref mut writer) = *file_opt {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
+                                        if let Err(e) = writeln!(writer, "{}", json) {
+                                            log::error!("Failed to write scroll to JSONL: {}", e);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     EventType::KeyPress(key) => {
                         let key_name = format_key(key);
                         let keyboard_event = KeyboardEvent {
                             timestamp_ms,
-                            key: key_name,
+                            key: key_name.clone(),
                             event_type: "press".to_string(),
                         };
                         if let Ok(mut events) = keyboard_events.lock() {
                             events.push(keyboard_event);
+                        }
+
+                        // Write to JSONL if task-based tracking
+                        if let Some(ref tid) = task_id {
+                            let (process_name, window_title) = get_active_window_info();
+                            let interaction_event = InteractionEvent {
+                                event_type: "keypress".to_string(),
+                                timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
+                                process_name,
+                                window_title,
+                                x: None,
+                                y: None,
+                                button: None,
+                                key: Some(key_name),
+                                delta_x: None,
+                                delta_y: None,
+                            };
+
+                            if let Ok(mut file_opt) = jsonl_file.lock() {
+                                if let Some(ref mut writer) = *file_opt {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
+                                        if let Err(e) = writeln!(writer, "{}", json) {
+                                            log::error!("Failed to write keypress to JSONL: {}", e);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     EventType::KeyRelease(key) => {
                         let key_name = format_key(key);
                         let keyboard_event = KeyboardEvent {
                             timestamp_ms,
-                            key: key_name,
+                            key: key_name.clone(),
                             event_type: "release".to_string(),
                         };
                         if let Ok(mut events) = keyboard_events.lock() {
                             events.push(keyboard_event);
+                        }
+
+                        // Write to JSONL if task-based tracking
+                        if let Some(ref tid) = task_id {
+                            let (process_name, window_title) = get_active_window_info();
+                            let interaction_event = InteractionEvent {
+                                event_type: "keyrelease".to_string(),
+                                timestamp: Utc::now().to_rfc3339(),
+                                timestamp_ms,
+                                task_id: tid.clone(),
+                                process_name,
+                                window_title,
+                                x: None,
+                                y: None,
+                                button: None,
+                                key: Some(key_name),
+                                delta_x: None,
+                                delta_y: None,
+                            };
+
+                            if let Ok(mut file_opt) = jsonl_file.lock() {
+                                if let Some(ref mut writer) = *file_opt {
+                                    if let Ok(json) = serde_json::to_string(&interaction_event) {
+                                        if let Err(e) = writeln!(writer, "{}", json) {
+                                            log::error!("Failed to write keyrelease to JSONL: {}", e);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -390,6 +506,7 @@ fn get_mouse_position() -> Option<(f64, f64)> {
 /// Get active window information (process name and window title)
 #[cfg(target_os = "macos")]
 fn get_active_window_info() -> (String, String) {
+    log::debug!("get_active_window_info: macOS version called");
     match get_active_window() {
         Ok(window) => {
             let app_name = if window.app_name.is_empty() {
@@ -408,13 +525,98 @@ fn get_active_window_info() -> (String, String) {
                 log::warn!("To enable: System Settings → Privacy & Security → Accessibility → Add this app");
                 log::warn!("Process names and window titles will show as 'Unknown' until permission is granted");
             }
-            ("Unknown".to_string(), "Unknown".to_string())
+            ("Unknown".to_string(), "".to_string())
         }
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
 fn get_active_window_info() -> (String, String) {
+    // Compile-time verification that we're building for Windows
+    const _: () = {
+        #[cfg(not(target_os = "windows"))]
+        compile_error!("This function should only be compiled on Windows!");
+    };
+
+    log::debug!("get_active_window_info: Windows version called (WINDOWS_NATIVE_API)");
+    unsafe {
+        // Get the foreground window
+        let hwnd = GetForegroundWindow();
+        if hwnd.0 == 0 {
+            log::debug!("GetForegroundWindow returned NULL");
+            return ("Unknown".to_string(), "".to_string());
+        }
+        log::debug!("Got foreground window handle: {:?}", hwnd);
+
+        // Get window title
+        let mut title_buffer = [0u16; 512];
+        let title_len = GetWindowTextW(hwnd, &mut title_buffer);
+        let window_title = if title_len > 0 {
+            let title = String::from_utf16_lossy(&title_buffer[..title_len as usize]);
+            log::debug!("Window title: '{}'", title);
+            title
+        } else {
+            log::debug!("No window title (GetWindowTextW returned 0)");
+            String::new()
+        };
+
+        // Get process ID
+        let mut process_id: u32 = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut process_id as *mut u32));
+
+        if process_id == 0 {
+            log::debug!("GetWindowThreadProcessId returned 0");
+            return ("Unknown".to_string(), window_title);
+        }
+        log::debug!("Process ID: {}", process_id);
+
+        // Open process to get executable name
+        let process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id);
+
+        let process_name = if let Ok(handle) = process_handle {
+            if handle.0 != 0 {
+                let mut exe_path = [0u16; MAX_PATH as usize];
+                let mut size = MAX_PATH;
+
+                let result = QueryFullProcessImageNameW(
+                    handle,
+                    PROCESS_NAME_FORMAT(0),
+                    PWSTR(exe_path.as_mut_ptr()),
+                    &mut size
+                );
+
+                if result.is_ok() && size > 0 {
+                    let full_path = String::from_utf16_lossy(&exe_path[..size as usize]);
+                    log::debug!("Process full path: '{}'", full_path);
+                    // Extract just the filename from the full path
+                    let name = std::path::Path::new(&full_path)
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or("Unknown")
+                        .to_string();
+                    log::debug!("Process name: '{}'", name);
+                    name
+                } else {
+                    log::debug!("QueryFullProcessImageNameW failed or returned 0 size");
+                    "Unknown".to_string()
+                }
+            } else {
+                log::debug!("Process handle is NULL");
+                "Unknown".to_string()
+            }
+        } else {
+            log::debug!("OpenProcess failed: {:?}", process_handle);
+            "Unknown".to_string()
+        };
+
+        log::debug!("Returning: process='{}', title='{}'", process_name, window_title);
+        (process_name, window_title)
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn get_active_window_info() -> (String, String) {
+    log::debug!("get_active_window_info: fallback version called (not macOS or Windows)");
     ("Unknown".to_string(), "".to_string())
 }
 

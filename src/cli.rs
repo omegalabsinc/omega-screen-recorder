@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "omgrec")]
+#[command(name = "screenrec")]
 #[command(author = "Omega Labs")]
 #[command(version = "0.1.0")]
 #[command(about = "High-performance cross-platform screen recording CLI tool", long_about = None)]
@@ -50,12 +50,12 @@ pub enum Commands {
         #[arg(long)]
         no_audio: bool,
 
-        /// Video width (0 for screen resolution)
-        #[arg(long, default_value = "1280")]
+        /// Video width (0 for native screen resolution)
+        #[arg(long, default_value = "0")]
         width: u32,
 
-        /// Video height (0 for screen resolution)
-        #[arg(long, default_value = "720")]
+        /// Video height (0 for native screen resolution)
+        #[arg(long, default_value = "0")]
         height: u32,
 
         /// Display to capture (0 for primary display)
@@ -63,7 +63,7 @@ pub enum Commands {
         display: usize,
 
         /// Video quality (1-10, higher is better)
-        #[arg(short, long, default_value = "8")]
+        #[arg(short, long, default_value = "10")]
         quality: u8,
 
         /// Track mouse and keyboard interactions

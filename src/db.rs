@@ -330,6 +330,33 @@ impl Database {
         Ok(rows)
     }
 
+    /// Delete a video chunk by ID (also deletes associated frames)
+    pub async fn delete_chunk(&self, chunk_id: i64) -> Result<()> {
+        // First delete all frames associated with this chunk to avoid foreign key constraint
+        sqlx::query(
+            r#"
+            DELETE FROM frames
+            WHERE video_chunk_id = ?1
+            "#,
+        )
+        .bind(chunk_id)
+        .execute(&self.pool)
+        .await?;
+
+        // Then delete the chunk itself
+        sqlx::query(
+            r#"
+            DELETE FROM video_chunks
+            WHERE id = ?1
+            "#,
+        )
+        .bind(chunk_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     /// Get all frames for a specific task_id across all chunks
     pub async fn get_frames_by_task_id(&self, task_id: &str) -> Result<Vec<FrameInfo>> {
         let rows = sqlx::query_as::<_, FrameInfo>(

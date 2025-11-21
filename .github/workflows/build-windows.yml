@@ -1,0 +1,106 @@
+name: Build Windows Binary
+
+on:
+  push:
+    branches: [main, windows-recorder-builder]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-pc-windows-msvc
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo build
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache vcpkg FFmpeg with x264
+      uses: actions/cache@v4
+      id: cache-vcpkg-ffmpeg
+      with:
+        path: |
+          C:\vcpkg\installed\x64-windows-static-md
+          C:\vcpkg\packages
+          C:\vcpkg\downloads
+          C:\vcpkg\buildtrees
+        key: ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-v4
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-ffmpeg-x264-x64-windows-static-md-
+
+    - name: Install LLVM and Clang
+      run: |
+        choco install llvm -y
+
+    - name: Install FFmpeg with x264 support
+      if: steps.cache-vcpkg-ffmpeg.outputs.cache-hit != 'true'
+      run: |
+        # Install FFmpeg with x264 for best quality screen recording
+        vcpkg install ffmpeg[x264]:x64-windows-static-md --recurse
+
+    - name: Set FFmpeg environment variables
+      run: |
+        echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
+        echo "FFMPEG_DIR=C:\vcpkg\installed\x64-windows-static-md" >> $env:GITHUB_ENV
+        echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows-static-md\lib\pkgconfig" >> $env:GITHUB_ENV
+        # Set environment for ffmpeg-sys-next
+        echo "FFMPEG_INCLUDE_DIR=C:\vcpkg\installed\x64-windows-static-md\include" >> $env:GITHUB_ENV
+        echo "FFMPEG_LIB_DIR=C:\vcpkg\installed\x64-windows-static-md\lib" >> $env:GITHUB_ENV
+
+    - name: Clean cargo cache to force fresh build
+      run: |
+        cargo clean
+
+    - name: Build release binary
+      env:
+        FFMPEG_STATIC: "1"
+        VCPKG_DEFAULT_TRIPLET: "x64-windows-static-md"
+      run: |
+        cargo build --release --verbose
+
+    - name: Create artifact directory
+      run: |
+        New-Item -ItemType Directory -Force -Path artifacts
+        Copy-Item target/release/omgrec.exe artifacts/screenrec.exe
+
+    - name: Upload Windows binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: screenrec-windows-x86_64
+        path: artifacts/screenrec.exe
+        retention-days: 30
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/screenrec.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

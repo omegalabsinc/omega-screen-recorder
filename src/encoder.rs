@@ -1,3 +1,4 @@
+#[cfg(target_os = "macos")]
 use crate::audio::AudioSample;
 use crate::capture::Frame;
 use crate::db::Database;
@@ -73,9 +74,21 @@ impl VideoEncoder {
             ScreenRecError::EncodingError(format!("Failed to create output context: {}", e))
         })?;
 
-        // Find H.264 encoder
+        // Find H.264 encoder - Windows: prefer libx264 for better quality, Mac: use system default
+        #[cfg(target_os = "windows")]
+        let codec = ffmpeg::encoder::find_by_name("libx264")
+            .or_else(|| ffmpeg::encoder::find_by_name("h264_qsv"))  // Intel QuickSync fallback
+            .or_else(|| ffmpeg::encoder::find_by_name("h264_nvenc")) // NVIDIA fallback
+            .or_else(|| ffmpeg::encoder::find_by_name("h264_amf"))   // AMD fallback
+            .or_else(|| ffmpeg::encoder::find(ffmpeg::codec::Id::H264)) // System fallback
+            .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
+
+        #[cfg(not(target_os = "windows"))]
         let codec = ffmpeg::encoder::find(ffmpeg::codec::Id::H264)
             .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
+
+        let encoder_name = codec.name();
+        log::info!("Using encoder: {}", encoder_name);
 
         // Create encoder context from codec
         let encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
@@ -90,11 +103,88 @@ impl VideoEncoder {
         video_encoder.set_time_base(ffmpeg::Rational::new(1, fps as i32));
         video_encoder.set_frame_rate(Some(ffmpeg::Rational::new(fps as i32, 1)));
 
-        // Set quality (CRF)
-        let crf = Self::quality_to_crf(quality);
+        // Set quality and encoder-specific options
         let mut opts = ffmpeg::Dictionary::new();
-        opts.set("crf", &crf.to_string());
-        opts.set("preset", "medium");
+
+        // Windows-specific optimizations for screen recording
+        #[cfg(target_os = "windows")]
+        {
+            // Check which encoder we're using and apply appropriate options
+            if encoder_name == "libx264" {
+                // libx264-specific options
+                let crf = Self::quality_to_crf(quality);
+                opts.set("crf", &crf.to_string());
+                opts.set("preset", "slow");             // Use slow preset for better quality
+                // No tune - stillimage was causing aggressive P-frame compression
+                opts.set("profile", "high");            // Use H.264 High Profile for better compression
+
+                // Keyframe settings - keyframe every 2 seconds for seeking and quality
+                let gop_size = (fps * 2).to_string();   // GOP size = 2 seconds of frames
+                opts.set("g", &gop_size);               // Set keyframe interval
+                opts.set("keyint_min", &gop_size);      // Minimum keyframe interval
+
+                // Encoding settings for screen content
+                opts.set("bf", "0");                    // No B-frames for lower latency and better quality
+                opts.set("refs", "3");                  // Number of reference frames
+
+                // Screen recording specific optimizations
+                opts.set("sc_threshold", "0");          // Disable scene cut detection (not needed for screen)
+                opts.set("qmin", "10");                 // Minimum quantizer (prevents too much compression)
+                opts.set("qmax", "25");                 // Maximum quantizer (tighter quality control)
+
+                // Force higher bitrate for better quality
+                opts.set("crf_max", "18");              // Cap worst-case CRF to maintain quality
+
+                // Windows Media Foundation compatibility
+                opts.set("movflags", "+faststart");     // Enable fast start for MP4
+            } else if encoder_name == "h264_mf" {
+                // Windows Media Foundation encoder - use bitrate-based quality
+                // Calculate reasonable bitrate for screen recording
+                // Base: 0.1 bits per pixel (conservative for screen content)
+                // Quality multiplier: 0.5x to 2.5x based on quality setting (1-10)
+                let base_bpp = 0.1; // bits per pixel
+                let quality_multiplier = 0.5 + (quality as f64 / 10.0) * 2.0; // 0.5 to 2.5
+                let bitrate = (width * height) as f64 * (fps as f64) * base_bpp * quality_multiplier;
+                video_encoder.set_bit_rate((bitrate / 1000.0) as usize); // Convert to kbps
+
+                log::info!("h264_mf bitrate: {} kbps (quality: {})", (bitrate / 1000.0) as usize, quality);
+
+                // Keyframe interval - more frequent for better quality
+                let gop_size = fps;  // GOP size = 1 second (not 2) for better quality
+                opts.set("g", &gop_size.to_string());
+
+                // Rate control mode - use quality-based VBR
+                opts.set("rate_control", "quality");
+
+                // Quality setting for h264_mf (0-100, higher is better)
+                let mf_quality = ((quality as f32 / 10.0) * 100.0).min(100.0) as i32;
+                opts.set("quality", &mf_quality.to_string());
+
+                // Low latency mode for better frame quality
+                opts.set("low_latency", "1");
+            } else if encoder_name == "h264_qsv" || encoder_name == "h264_nvenc" || encoder_name == "h264_amf" {
+                // Hardware encoder options (QSV/NVENC/AMF)
+                let crf = Self::quality_to_crf(quality);
+                opts.set("qp", &crf.to_string());  // Use QP instead of CRF for hardware encoders
+                opts.set("preset", "medium");
+
+                let gop_size = (fps * 2).to_string();
+                opts.set("g", &gop_size);
+            } else {
+                // Generic fallback for unknown encoders
+                let crf = Self::quality_to_crf(quality);
+                opts.set("crf", &crf.to_string());
+                opts.set("preset", "medium");
+            }
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            // Non-Windows platforms - use standard libx264 options
+            let crf = Self::quality_to_crf(quality);
+            opts.set("crf", &crf.to_string());
+            opts.set("preset", "medium");
+        }
 
         // Open encoder with options
         let encoder = video_encoder.open_with(opts).map_err(|e| {
@@ -355,9 +445,27 @@ impl VideoEncoder {
     }
 
     fn quality_to_crf(quality: u8) -> u8 {
-        let q = quality.clamp(1, 10) as i32;
-        let mapped = 42 - q * 3;
-        mapped.clamp(12, 35) as u8
+        #[cfg(target_os = "windows")]
+        {
+            // For Windows screen recording, use very low CRF values for crystal-clear text and UI
+            // Quality 1 (lowest) -> CRF 28 (acceptable for low-detail content)
+            // Quality 5 (medium) -> CRF 18 (good balance)
+            // Quality 8 (high)   -> CRF 12 (excellent quality)
+            // Quality 10 (max)   -> CRF 8  (near-lossless for screen content)
+            let q = quality.clamp(1, 10) as i32;
+            // Use quadratic mapping for better quality at high settings
+            // Formula: 30 - (q * 2.2) to get more aggressive at higher quality
+            let mapped = 30 - ((q * 22) / 10); // More aggressive: q=8 -> CRF 12, q=10 -> CRF 8
+            mapped.clamp(8, 28) as u8
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            // Mac/Linux: use original mapping
+            let q = quality.clamp(1, 10) as i32;
+            let mapped = 42 - q * 3;
+            mapped.clamp(12, 35) as u8
+        }
     }
 }
 
@@ -624,6 +732,7 @@ pub async fn process_frames_chunked(
 }
 
 /// Process audio samples (currently just logs them, can be extended to save audio file)
+#[cfg(target_os = "macos")]
 pub async fn process_audio(mut rx: mpsc::Receiver<AudioSample>) -> Result<()> {
     log::info!("Starting audio processing");
 
