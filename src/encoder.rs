@@ -38,20 +38,6 @@ pub struct VideoEncoder {
 }
 
 impl VideoEncoder {
-    pub fn new<F>(
-        output_path: &Path,
-        width: usize,
-        height: usize,
-        fps: u32,
-        quality: u8,
-        on_chunk_created: Option<F>,
-    ) -> Result<Self>
-    where
-        F: FnOnce(&str),
-    {
-        Self::new_with_pts_offset(output_path, width, height, fps, quality, 0, on_chunk_created)
-    }
-
     pub fn new_with_pts_offset<F>(
         output_path: &Path,
         width: usize,
