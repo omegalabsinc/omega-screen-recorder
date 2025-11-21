@@ -66,6 +66,22 @@ impl Database {
 
     /// Create database schema if it doesn't exist
     async fn create_schema(&self) -> Result<()> {
+        // Create recording_sessions table first (referenced by video_chunks)
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS recording_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                device_name TEXT NOT NULL,
+                started_at TIMESTAMP NOT NULL,
+                ended_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS video_chunks (
@@ -75,7 +91,9 @@ impl Database {
                 recording_type TEXT,
                 task_id TEXT,
                 chunk_index INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                session_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES recording_sessions(id)
             )
             "#,
         )
@@ -155,7 +173,78 @@ impl Database {
                 .await?;
         }
 
+        // Migration: Add session_id column to video_chunks if it doesn't exist
+        let chunk_columns: Vec<(i64, String, String, i64, Option<String>, i64)> =
+            sqlx::query_as("PRAGMA table_info(video_chunks)")
+            .fetch_all(&self.pool)
+            .await
+            .unwrap_or_default();
+
+        let chunk_column_names: Vec<String> = chunk_columns.iter().map(|(_, name, _, _, _, _)| name.clone()).collect();
+        log::debug!("Existing video_chunks table columns: {:?}", chunk_column_names);
+
+        if !chunk_column_names.contains(&"session_id".to_string()) {
+            log::info!("Adding session_id column to video_chunks table");
+            sqlx::query("ALTER TABLE video_chunks ADD COLUMN session_id INTEGER REFERENCES recording_sessions(id)")
+                .execute(&self.pool)
+                .await?;
+        }
+
         Ok(())
+    }
+
+    /// Create a new recording session and return its ID
+    pub async fn create_recording_session(
+        &self,
+        task_id: &str,
+        device_name: &str,
+        started_at: DateTime<Utc>,
+    ) -> Result<i64> {
+        let result = sqlx::query(
+            "INSERT INTO recording_sessions (task_id, device_name, started_at) VALUES (?1, ?2, ?3)",
+        )
+        .bind(task_id)
+        .bind(device_name)
+        .bind(started_at)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.last_insert_rowid())
+    }
+
+    /// Update a recording session with end time
+    pub async fn end_recording_session(
+        &self,
+        session_id: i64,
+        ended_at: DateTime<Utc>,
+    ) -> Result<()> {
+        sqlx::query(
+            "UPDATE recording_sessions SET ended_at = ?1 WHERE id = ?2",
+        )
+        .bind(ended_at)
+        .bind(session_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Get total recording time for a task_id (sum of all session durations)
+    pub async fn get_total_recording_time(&self, task_id: &str) -> Result<f64> {
+        let total_seconds: Option<f64> = sqlx::query_scalar(
+            r#"
+            SELECT SUM(
+                CAST((julianday(ended_at) - julianday(started_at)) * 86400 AS REAL)
+            )
+            FROM recording_sessions
+            WHERE task_id = ?1 AND ended_at IS NOT NULL
+            "#,
+        )
+        .bind(task_id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(total_seconds.unwrap_or(0.0))
     }
 
     /// Insert a new video chunk and return its ID
@@ -166,23 +255,103 @@ impl Database {
         recording_type: Option<&str>,
         task_id: Option<&str>,
         chunk_index: Option<i64>,
+        session_id: Option<i64>,
     ) -> Result<i64> {
-        let result = sqlx::query(
-            "INSERT INTO video_chunks (file_path, device_name, recording_type, task_id, chunk_index) VALUES (?1, ?2, ?3, ?4, ?5)",
-        )
-        .bind(file_path)
-        .bind(device_name)
-        .bind(recording_type)
-        .bind(task_id)
-        .bind(chunk_index)
-        .execute(&self.pool)
-        .await?;
+        // Retry logic for database locking issues
+        const MAX_RETRIES: u32 = 5;
+        const INITIAL_BACKOFF_MS: u64 = 10;
 
-        Ok(result.last_insert_rowid())
+        let mut attempt = 0;
+        loop {
+            match sqlx::query(
+                "INSERT INTO video_chunks (file_path, device_name, recording_type, task_id, chunk_index, session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            )
+            .bind(file_path)
+            .bind(device_name)
+            .bind(recording_type)
+            .bind(task_id)
+            .bind(chunk_index)
+            .bind(session_id)
+            .execute(&self.pool)
+            .await {
+                Ok(result) => return Ok(result.last_insert_rowid()),
+                Err(e) => {
+                    // Check if it's a database locking error (code 5 or 517)
+                    let error_str = e.to_string();
+                    let is_lock_error = error_str.contains("database is locked")
+                        || error_str.contains("code: 5")
+                        || error_str.contains("code: 517");
+
+                    if is_lock_error && attempt < MAX_RETRIES {
+                        attempt += 1;
+                        // Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms
+                        let backoff_ms = INITIAL_BACKOFF_MS * (1 << (attempt - 1));
+                        log::debug!("Database lock detected on video chunk insert, retrying in {}ms (attempt {}/{})",
+                                   backoff_ms, attempt, MAX_RETRIES);
+                        tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
+                    } else {
+                        // Either not a lock error or max retries exceeded
+                        return Err(e.into());
+                    }
+                }
+            }
+        }
     }
 
     /// Insert a frame with auto-incrementing offset_index
     pub async fn insert_frame(
+        &self,
+        device_name: &str,
+        timestamp: Option<DateTime<Utc>>,
+        is_keyframe: bool,
+        pts: Option<i64>,
+        dts: Option<i64>,
+        display_index: Option<i64>,
+        display_width: Option<i64>,
+        display_height: Option<i64>,
+    ) -> Result<i64> {
+        // Retry logic for database locking issues
+        const MAX_RETRIES: u32 = 5;
+        const INITIAL_BACKOFF_MS: u64 = 10;
+
+        let mut attempt = 0;
+        loop {
+            match self.insert_frame_impl(
+                device_name,
+                timestamp,
+                is_keyframe,
+                pts,
+                dts,
+                display_index,
+                display_width,
+                display_height,
+            ).await {
+                Ok(id) => return Ok(id),
+                Err(e) => {
+                    // Check if it's a database locking error (code 5 or 517)
+                    let error_str = e.to_string();
+                    let is_lock_error = error_str.contains("database is locked")
+                        || error_str.contains("code: 5")
+                        || error_str.contains("code: 517");
+
+                    if is_lock_error && attempt < MAX_RETRIES {
+                        attempt += 1;
+                        // Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms
+                        let backoff_ms = INITIAL_BACKOFF_MS * (1 << (attempt - 1));
+                        log::debug!("Database lock detected, retrying in {}ms (attempt {}/{})",
+                                   backoff_ms, attempt, MAX_RETRIES);
+                        tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
+                    } else {
+                        // Either not a lock error or max retries exceeded
+                        return Err(e);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Internal implementation of frame insertion
+    async fn insert_frame_impl(
         &self,
         device_name: &str,
         timestamp: Option<DateTime<Utc>>,

@@ -267,60 +267,62 @@ impl ScreenCapture {
                 }
             }
 
-            // Capture frame
-            match capturer.frame() {
-                Ok(frame) => {
-                    // Convert BGRA to RGB (removing alpha channel for better compression)
-                    let mut rgb_data = Vec::with_capacity(width * height * 3);
-                    for chunk in frame.chunks_exact(4) {
-                        rgb_data.push(chunk[2]); // R
-                        rgb_data.push(chunk[1]); // G
-                        rgb_data.push(chunk[0]); // B
+            // Capture frame - retry loop for WouldBlock
+            let captured_frame = loop {
+                match capturer.frame() {
+                    Ok(frame) => {
+                        // Convert BGRA to RGB (removing alpha channel for better compression)
+                        let mut rgb_data = Vec::with_capacity(width * height * 3);
+                        for chunk in frame.chunks_exact(4) {
+                            rgb_data.push(chunk[2]); // R
+                            rgb_data.push(chunk[1]); // G
+                            rgb_data.push(chunk[0]); // B
+                        }
+
+                        // Draw cursor on frame
+                        if let Some((cursor_x, cursor_y)) = get_cursor_position() {
+                            draw_cursor(&mut rgb_data, width, height, cursor_x, cursor_y);
+                        }
+
+                        // Start the timer on first successful frame
+                        if start_time.is_none() {
+                            start_time = Some(Instant::now());
+                            log::info!("First frame captured, recording started!");
+                        }
+
+                        break Frame {
+                            data: rgb_data,
+                            width,
+                            height,
+                            timestamp: start_time.unwrap().elapsed(),
+                            captured_at: Utc::now(),
+                            display_index: self.display_index,
+                        };
                     }
-
-                    // Draw cursor on frame
-                    if let Some((cursor_x, cursor_y)) = get_cursor_position() {
-                        draw_cursor(&mut rgb_data, width, height, cursor_x, cursor_y);
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        // Frame not ready yet, wait a bit and retry
+                        std::thread::sleep(Duration::from_millis(1));
+                        // Continue the inner loop to retry capture
                     }
-
-                    // Start the timer on first successful frame
-                    if start_time.is_none() {
-                        start_time = Some(Instant::now());
-                        log::info!("First frame captured, recording started!");
-                    }
-
-                    let captured_frame = Frame {
-                        data: rgb_data,
-                        width,
-                        height,
-                        timestamp: start_time.unwrap().elapsed(),
-                        captured_at: Utc::now(),
-                        display_index: self.display_index,
-                    };
-
-                    // Send frame through channel
-                    if tx.send(captured_frame).is_err() {
-                        log::warn!("Frame receiver dropped, stopping capture");
-                        break;
-                    }
-
-                    frame_count += 1;
-                    if frame_count % (self.fps as u64) == 0 {
-                        log::debug!("Captured {} frames", frame_count);
+                    Err(e) => {
+                        log::error!("Frame capture error: {}", e);
+                        return Err(ScreenRecError::CaptureError(format!(
+                            "Failed to capture frame: {}",
+                            e
+                        )));
                     }
                 }
-                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    // Frame not ready yet, wait a bit
-                    std::thread::sleep(Duration::from_millis(1));
-                    continue;
-                }
-                Err(e) => {
-                    log::error!("Frame capture error: {}", e);
-                    return Err(ScreenRecError::CaptureError(format!(
-                        "Failed to capture frame: {}",
-                        e
-                    )));
-                }
+            };
+
+            // Send frame through channel
+            if tx.send(captured_frame).is_err() {
+                log::warn!("Frame receiver dropped, stopping capture");
+                break;
+            }
+
+            frame_count += 1;
+            if frame_count % (self.fps as u64) == 0 {
+                log::debug!("Captured {} frames", frame_count);
             }
 
             // Maintain frame rate
@@ -330,7 +332,13 @@ impl ScreenCapture {
             }
         }
 
+        let elapsed_time = start_time.map(|st| st.elapsed()).unwrap_or(Duration::from_secs(0));
         log::info!("Screen capture finished. Total frames: {}", frame_count);
+        log::info!("Capture duration: {:.2}s, Expected frames at {}fps: {:.0}, Actual captured: {}",
+                   elapsed_time.as_secs_f64(),
+                   self.fps,
+                   elapsed_time.as_secs_f64() * self.fps as f64,
+                   frame_count);
         Ok(())
     }
 
@@ -415,65 +423,67 @@ impl ScreenCapture {
                 }
             }
 
-            // Get current capturer
-            let current_capturer = capturers.get_mut(&current_display_index).ok_or_else(|| {
-                ScreenRecError::CaptureError(format!("Capturer for display {} not found", current_display_index))
-            })?;
+            // Capture frame - retry loop for WouldBlock
+            let captured_frame = loop {
+                // Get current capturer
+                let current_capturer = capturers.get_mut(&current_display_index).ok_or_else(|| {
+                    ScreenRecError::CaptureError(format!("Capturer for display {} not found", current_display_index))
+                })?;
 
-            // Capture frame
-            match current_capturer.frame() {
-                Ok(frame) => {
-                    // Convert BGRA to RGB (removing alpha channel for better compression)
-                    let mut rgb_data = Vec::with_capacity(width * height * 3);
-                    for chunk in frame.chunks_exact(4) {
-                        rgb_data.push(chunk[2]); // R
-                        rgb_data.push(chunk[1]); // G
-                        rgb_data.push(chunk[0]); // B
+                match current_capturer.frame() {
+                    Ok(frame) => {
+                        // Convert BGRA to RGB (removing alpha channel for better compression)
+                        let mut rgb_data = Vec::with_capacity(width * height * 3);
+                        for chunk in frame.chunks_exact(4) {
+                            rgb_data.push(chunk[2]); // R
+                            rgb_data.push(chunk[1]); // G
+                            rgb_data.push(chunk[0]); // B
+                        }
+
+                        // Draw cursor on frame
+                        if let Some((cursor_x, cursor_y)) = get_cursor_position() {
+                            draw_cursor(&mut rgb_data, width, height, cursor_x, cursor_y);
+                        }
+
+                        // Start the timer on first successful frame
+                        if start_time.is_none() {
+                            start_time = Some(Instant::now());
+                            log::info!("First frame captured, recording started!");
+                        }
+
+                        break Frame {
+                            data: rgb_data,
+                            width,
+                            height,
+                            timestamp: start_time.unwrap().elapsed(),
+                            captured_at: Utc::now(),
+                            display_index: current_display_index,
+                        };
                     }
-
-                    // Draw cursor on frame
-                    if let Some((cursor_x, cursor_y)) = get_cursor_position() {
-                        draw_cursor(&mut rgb_data, width, height, cursor_x, cursor_y);
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        // Frame not ready yet, wait a bit and retry
+                        std::thread::sleep(Duration::from_millis(1));
+                        // Continue the inner loop to retry capture
                     }
-
-                    // Start the timer on first successful frame
-                    if start_time.is_none() {
-                        start_time = Some(Instant::now());
-                        log::info!("First frame captured, recording started!");
-                    }
-
-                    let captured_frame = Frame {
-                        data: rgb_data,
-                        width,
-                        height,
-                        timestamp: start_time.unwrap().elapsed(),
-                        captured_at: Utc::now(),
-                        display_index: current_display_index,
-                    };
-
-                    // Send frame through channel
-                    if tx.send(captured_frame).is_err() {
-                        log::warn!("Frame receiver dropped, stopping capture");
-                        break;
-                    }
-
-                    frame_count += 1;
-                    if frame_count % (self.fps as u64) == 0 {
-                        log::debug!("Captured {} frames", frame_count);
+                    Err(e) => {
+                        log::error!("Frame capture error: {}", e);
+                        return Err(ScreenRecError::CaptureError(format!(
+                            "Failed to capture frame: {}",
+                            e
+                        )));
                     }
                 }
-                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    // Frame not ready yet, wait a bit
-                    std::thread::sleep(Duration::from_millis(1));
-                    continue;
-                }
-                Err(e) => {
-                    log::error!("Frame capture error: {}", e);
-                    return Err(ScreenRecError::CaptureError(format!(
-                        "Failed to capture frame: {}",
-                        e
-                    )));
-                }
+            };
+
+            // Send frame through channel
+            if tx.send(captured_frame).is_err() {
+                log::warn!("Frame receiver dropped, stopping capture");
+                break;
+            }
+
+            frame_count += 1;
+            if frame_count % (self.fps as u64) == 0 {
+                log::debug!("Captured {} frames", frame_count);
             }
 
             // Maintain frame rate
@@ -483,7 +493,13 @@ impl ScreenCapture {
             }
         }
 
+        let elapsed_time = start_time.map(|st| st.elapsed()).unwrap_or(Duration::from_secs(0));
         log::info!("Multi-monitor screen capture finished. Total frames: {}", frame_count);
+        log::info!("Capture duration: {:.2}s, Expected frames at {}fps: {:.0}, Actual captured: {}",
+                   elapsed_time.as_secs_f64(),
+                   self.fps,
+                   elapsed_time.as_secs_f64() * self.fps as f64,
+                   frame_count);
         Ok(())
     }
 }

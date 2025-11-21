@@ -135,6 +135,17 @@ async fn main() -> Result<()> {
                 .and_then(|h| h.into_string().ok())
                 .unwrap_or_else(|| "unknown".to_string());
 
+            // Create recording session (capture start time)
+            let session_start_time = chrono::Utc::now();
+            let session_id = if recording_type == RecordingType::Task && task_id.is_some() {
+                let tid = task_id.as_ref().unwrap();
+                let id = db.create_recording_session(tid, &device_name, session_start_time).await?;
+                log::info!("Created recording session {} for task {}", id, tid);
+                Some(id)
+            } else {
+                None
+            };
+
             log::info!("Starting screen recording...");
             log::info!("  Recording type: {}", recording_type);
             if let Some(tid) = &task_id {
@@ -200,17 +211,34 @@ async fn main() -> Result<()> {
 
             log::info!("Capture resolution: {}x{}", capture_width, capture_height);
 
-            // Create channels for frame and audio data
+            // Create channels for frame data
             let (frame_tx_std, frame_rx_std) = std_mpsc::channel(); // Sync channel for capture thread
-            let (frame_tx, frame_rx) = mpsc::channel(60); // Async channel for encoder
+            // Increased buffer from 60 to 300 frames (10 seconds at 30fps) to prevent blocking during database writes
+            let (frame_tx, frame_rx) = mpsc::channel(300); // Async channel for encoder
 
-            // Bridge: sync receiver -> async sender
+            // Bridge: sync receiver -> async sender (NO DROPS - blocks if encoder is slow)
             let bridge_handle = tokio::spawn(async move {
+                let mut total_frames = 0u64;
+                let mut last_log = std::time::Instant::now();
+
                 while let Ok(frame) = frame_rx_std.recv() {
+                    total_frames += 1;
+
+                    // Log progress every 5 seconds
+                    if last_log.elapsed() >= std::time::Duration::from_secs(5) {
+                        log::info!("Bridge: {} frames forwarded to encoder", total_frames);
+                        last_log = std::time::Instant::now();
+                    }
+
+                    // Send frame - will block if channel is full (encoder is slow)
+                    // This is CORRECT - we want to preserve all frames, not drop them!
                     if frame_tx.send(frame).await.is_err() {
+                        log::error!("Encoder channel closed unexpectedly");
                         break;
                     }
                 }
+
+                log::info!("Bridge completed: {} total frames forwarded", total_frames);
             });
 
             // Create shutdown channel for graceful encoder termination
@@ -236,6 +264,7 @@ async fn main() -> Result<()> {
                     Some(device_name_for_encoder),
                     Some(recording_type_str),
                     task_id_for_encoder,
+                    session_id,
                     Some(shutdown_rx),
                 )
                 .await
@@ -407,6 +436,17 @@ async fn main() -> Result<()> {
                 error::ScreenRecError::EncodingError(format!("Encoder task failed: {}", e))
             })??;
 
+            // Update recording session end time
+            if let Some(sid) = session_id {
+                let session_end_time = chrono::Utc::now();
+                if let Err(e) = db.end_recording_session(sid, session_end_time).await {
+                    log::error!("Failed to update recording session end time: {}", e);
+                } else {
+                    let duration = (session_end_time - session_start_time).num_seconds();
+                    log::info!("Recording session {} ended. Duration: {}s", sid, duration);
+                }
+            }
+
             // Wait for audio processing if it was started
             if let Some(handle) = audio_handle {
                 let _ = handle.await;
@@ -543,11 +583,14 @@ async fn concatenate_chunks(
     let mut existing_chunks = 0;
     let mut missing_chunks = 0;
     let mut invalid_chunks = 0;
+    let mut total_chunk_duration = 0.0;
 
     // Get ffprobe path for validating chunks
     let ffprobe_cmd = ffmpeg_utils::find_ffprobe_binary(&ffmpeg_binary);
 
-    for chunk in &chunks {
+    log::info!("===== CHUNK VALIDATION =====");
+
+    for (idx, chunk) in chunks.iter().enumerate() {
         // Build absolute path to chunk file
         let chunk_path = if std::path::Path::new(&chunk.file_path).is_absolute() {
             std::path::PathBuf::from(&chunk.file_path)
@@ -557,6 +600,16 @@ async fn concatenate_chunks(
 
         // Only include files that actually exist
         if chunk_path.exists() {
+            // Get chunk duration
+            let duration_result = std::process::Command::new(&ffprobe_cmd)
+                .args(&[
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    chunk_path.to_str().unwrap()
+                ])
+                .output();
+
             // Validate that the chunk has valid video streams using ffprobe
             let has_valid_stream = std::process::Command::new(&ffprobe_cmd)
                 .args(&[
@@ -573,6 +626,16 @@ async fn concatenate_chunks(
                 .unwrap_or(false);
 
             if has_valid_stream {
+                // Log chunk duration
+                if let Ok(result) = duration_result {
+                    if let Ok(duration_str) = String::from_utf8(result.stdout) {
+                        if let Ok(duration) = duration_str.trim().parse::<f64>() {
+                            total_chunk_duration += duration;
+                            log::info!("Chunk {}: {:.2}s - {}", idx, duration, chunk_path.file_name().unwrap_or_default().to_string_lossy());
+                        }
+                    }
+                }
+
                 // Escape single quotes in the path by replacing ' with '\''
                 let path_str = chunk_path.to_string_lossy().replace("'", r"'\''");
                 concat_content.push_str(&format!("file '{}'\n", path_str));
@@ -586,6 +649,9 @@ async fn concatenate_chunks(
             missing_chunks += 1;
         }
     }
+
+    log::info!("Total duration from chunks: {:.2}s ({:.1} minutes)", total_chunk_duration, total_chunk_duration / 60.0);
+    log::info!("============================");
 
     if existing_chunks == 0 {
         return Err(error::ScreenRecError::InvalidParameter(
@@ -645,8 +711,10 @@ async fn concatenate_chunks(
             "-crf".to_string(), "23".to_string(),
         ]);
     } else {
-        // No normalization needed, use copy
+        // No normalization needed, use copy mode
+        // Add -fflags +genpts to regenerate presentation timestamps for smooth concatenation
         ffmpeg_args.extend(vec![
+            "-fflags".to_string(), "+genpts".to_string(),
             "-c".to_string(), "copy".to_string(),
         ]);
     }
@@ -678,6 +746,8 @@ async fn concatenate_chunks(
     log::info!("✅ Final video created: {}", final_output_path.display());
     println!("✅ Final video saved to: {}", final_output_path.display());
 
+    log::info!("===== DURATION COMPARISON =====");
+
     // Get video metadata using ffprobe
     println!("🔄 [PROGRESS] Extracting video metadata...");
     log::info!("Extracting video metadata...");
@@ -706,6 +776,16 @@ async fn concatenate_chunks(
                 if let Some(format_obj) = json_data.get("format") {
                     if let Some(duration_str) = format_obj.get("duration").and_then(|v| v.as_str()) {
                         video_duration_secs = duration_str.parse::<f64>().unwrap_or(0.0);
+                        log::info!("Sum of chunk durations: {:.2}s ({:.1} min)", total_chunk_duration, total_chunk_duration / 60.0);
+                        log::info!("Final video duration:    {:.2}s ({:.1} min)", video_duration_secs, video_duration_secs / 60.0);
+                        let diff = (video_duration_secs - total_chunk_duration).abs();
+                        let diff_pct = (diff / total_chunk_duration * 100.0).abs();
+                        if diff > 1.0 {
+                            log::warn!("Duration mismatch: {:.2}s difference ({:.1}%)", diff, diff_pct);
+                        } else {
+                            log::info!("Duration match: within {:.2}s ({:.2}%)", diff, diff_pct);
+                        }
+                        log::info!("==============================");
                     }
                     if let Some(bitrate_str) = format_obj.get("bit_rate").and_then(|v| v.as_str()) {
                         video_bitrate = bitrate_str.parse::<i64>().unwrap_or(0);
@@ -763,6 +843,9 @@ async fn concatenate_chunks(
         })
     }).collect();
 
+    // Get total recording time from database
+    let total_recording_time_secs = db.get_total_recording_time(task_id).await.unwrap_or(0.0);
+
     // Export comprehensive metadata to JSON
     println!("🔄 [PROGRESS] Generating metadata files...");
     log::info!("Exporting comprehensive metadata to JSON...");
@@ -773,6 +856,24 @@ async fn concatenate_chunks(
         "device_name": device_name,
         "recording_type": "task",
         "created_at": chunks.first().map(|c| c.created_at.to_rfc3339()).unwrap_or_default(),
+        "recording_time": {
+            "total_seconds": total_recording_time_secs,
+            "total_formatted": format!("{}h {}m {:.1}s",
+                (total_recording_time_secs / 3600.0) as i64,
+                ((total_recording_time_secs % 3600.0) / 60.0) as i64,
+                total_recording_time_secs % 60.0
+            ),
+            "overhead_seconds": if total_recording_time_secs > video_duration_secs {
+                total_recording_time_secs - video_duration_secs
+            } else {
+                0.0
+            },
+            "efficiency_percent": if total_recording_time_secs > 0.0 {
+                (video_duration_secs / total_recording_time_secs) * 100.0
+            } else {
+                0.0
+            },
+        },
         "video": {
             "final_video_path": final_output_path.file_name().and_then(|n| n.to_str()).unwrap_or("final.mp4"),
             "duration_seconds": video_duration_secs,
@@ -868,7 +969,7 @@ async fn concatenate_chunks(
         }).collect::<Vec<_>>()
     });
 
-    let frames_path = output_dir.join(format!("{}_frames.json", task_id));
+    let frames_path = output_dir.join("frames.json");
     std::fs::write(&frames_path, serde_json::to_string_pretty(&frames_output).unwrap())
         .map_err(|e| {
             error::ScreenRecError::EncodingError(format!("Failed to write frames JSON: {}", e))
@@ -879,11 +980,25 @@ async fn concatenate_chunks(
     println!("   📄 {}", frames_path.display());
 
     println!("\n🎉 [PROGRESS] Concatenation complete!");
-    println!("   Duration: {:.1}s | Size: {:.2}MB | Frames: {}",
+    println!("   Video Duration: {:.1}s | Size: {:.2}MB | Frames: {}",
         video_duration_secs,
         file_size_bytes as f64 / 1024.0 / 1024.0,
         frames.len()
     );
+
+    if total_recording_time_secs > 0.0 {
+        println!("   Recording Time: {:.1}s | Overhead: {:.1}s | Efficiency: {:.1}%",
+            total_recording_time_secs,
+            total_recording_time_secs - video_duration_secs,
+            (video_duration_secs / total_recording_time_secs) * 100.0
+        );
+        log::info!("===== RECORDING TIME COMPARISON =====");
+        log::info!("Total recording time: {:.1}s ({:.1} min)", total_recording_time_secs, total_recording_time_secs / 60.0);
+        log::info!("Video duration:       {:.1}s ({:.1} min)", video_duration_secs, video_duration_secs / 60.0);
+        log::info!("Overhead:             {:.1}s", total_recording_time_secs - video_duration_secs);
+        log::info!("Efficiency:           {:.1}%", (video_duration_secs / total_recording_time_secs) * 100.0);
+        log::info!("====================================");
+    }
 
     Ok(())
 }

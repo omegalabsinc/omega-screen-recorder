@@ -28,6 +28,7 @@ pub struct VideoEncoder {
     octx: ffmpeg::format::context::Output,
     stream_index: usize,
     frame_count: u64,
+    pts_offset: i64, // Starting PTS for continuous timeline across chunks
     width: usize,
     height: usize,
     fps: u32,
@@ -43,6 +44,21 @@ impl VideoEncoder {
         height: usize,
         fps: u32,
         quality: u8,
+        on_chunk_created: Option<F>,
+    ) -> Result<Self>
+    where
+        F: FnOnce(&str),
+    {
+        Self::new_with_pts_offset(output_path, width, height, fps, quality, 0, on_chunk_created)
+    }
+
+    pub fn new_with_pts_offset<F>(
+        output_path: &Path,
+        width: usize,
+        height: usize,
+        fps: u32,
+        quality: u8,
+        pts_offset: i64,
         on_chunk_created: Option<F>,
     ) -> Result<Self>
     where
@@ -216,12 +232,15 @@ impl VideoEncoder {
             callback(output_path.to_str().unwrap_or("unknown"));
         }
 
+        log::info!("Encoder initialized with PTS offset: {}", pts_offset);
+
         Ok(Self {
             output_path,
             encoder,
             octx,
             stream_index,
             frame_count: 0,
+            pts_offset,
             width,
             height,
             fps,
@@ -251,8 +270,10 @@ impl VideoEncoder {
         );
 
         // Set PTS in encoder time_base units (1/fps)
-        // Just use frame count as PTS since encoder time_base is 1/fps
-        yuv_frame.set_pts(Some(self.frame_count as i64));
+        // Each chunk's PTS should start from 0 for the file itself
+        // pts_offset is only used for tracking logical frame numbers
+        let pts = self.frame_count as i64;
+        yuv_frame.set_pts(Some(pts));
 
         // Convert RGB to YUV420P
         Self::rgb_to_yuv420p(&processed_data, self.width, self.height, &mut yuv_frame)?;
@@ -307,6 +328,12 @@ impl VideoEncoder {
                 })?;
         }
         Ok(())
+    }
+
+    /// Get the next logical frame number that should be used for the next chunk
+    /// This is for tracking purposes, not for PTS (each chunk starts PTS at 0)
+    pub fn get_next_pts(&self) -> i64 {
+        self.pts_offset + (self.frame_count as i64)
     }
 
     pub fn finish(mut self) -> Result<RecordingOutput> {
@@ -521,6 +548,7 @@ pub async fn process_frames_chunked(
     device_name: Option<String>,
     recording_type: Option<String>,
     task_id: Option<String>,
+    session_id: Option<i64>,
     mut shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>,
 ) -> Result<Vec<RecordingOutput>> {
     log::info!("Starting chunked frame processing with {}-second chunks", chunk_duration_secs);
@@ -529,20 +557,23 @@ pub async fn process_frames_chunked(
     let mut chunk_index = 0i64;
     let frames_per_chunk = (fps as u64) * chunk_duration_secs;
     let mut frames_in_current_chunk = 0u64;
+    let mut next_pts_offset = 0i64; // Track continuous PTS across chunks
+    let mut total_frames_encoded = 0u64;
 
     // Create first chunk
     let now = chrono::Local::now();
     let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
     let chunk_path = base_output_dir.join(&chunk_filename);
 
-    log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
+    log::info!("Creating chunk {}: {} (PTS offset: {})", chunk_index, chunk_path.display(), next_pts_offset);
 
-    let mut current_encoder = VideoEncoder::new(
+    let mut current_encoder = VideoEncoder::new_with_pts_offset(
         &chunk_path,
         width,
         height,
         fps,
         quality,
+        next_pts_offset,
         None::<fn(&str)>,
     )?;
 
@@ -554,6 +585,7 @@ pub async fn process_frames_chunked(
             recording_type.as_deref(),
             task_id.as_deref(),
             Some(chunk_index),
+            session_id,
         ).await {
             log::error!("Failed to insert video chunk into database: {}", e);
         }
@@ -571,6 +603,9 @@ pub async fn process_frames_chunked(
                         if frames_in_current_chunk >= frames_per_chunk {
                             log::info!("Finishing chunk {} with {} frames", chunk_index, frames_in_current_chunk);
 
+                            // Get next PTS before finishing encoder
+                            next_pts_offset = current_encoder.get_next_pts();
+
                             // Finish current encoder
                             let output = current_encoder.finish()?;
                             chunk_outputs.push(output);
@@ -583,14 +618,15 @@ pub async fn process_frames_chunked(
                             let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
                             let chunk_path = base_output_dir.join(&chunk_filename);
 
-                            log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
+                            log::info!("Creating chunk {}: {} (PTS offset: {})", chunk_index, chunk_path.display(), next_pts_offset);
 
-                            current_encoder = VideoEncoder::new(
+                            current_encoder = VideoEncoder::new_with_pts_offset(
                                 &chunk_path,
                                 width,
                                 height,
                                 fps,
                                 quality,
+                                next_pts_offset,
                                 None::<fn(&str)>,
                             )?;
 
@@ -602,6 +638,7 @@ pub async fn process_frames_chunked(
                                     recording_type.as_deref(),
                                     task_id.as_deref(),
                                     Some(chunk_index),
+                                    session_id,
                                 ).await {
                                     log::error!("Failed to insert video chunk into database: {}", e);
                                 }
@@ -611,6 +648,7 @@ pub async fn process_frames_chunked(
                         // Encode frame and get metadata
                         let metadata = current_encoder.encode_frame(frame)?;
                         frames_in_current_chunk += 1;
+                        total_frames_encoded += 1;
 
                         // Insert frame into database with metadata if enabled
                         if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
@@ -648,7 +686,11 @@ pub async fn process_frames_chunked(
 
                 // Check if we need to start a new chunk
                 if frames_in_current_chunk >= frames_per_chunk {
+                    log::debug!("Starting new chunk - total frames encoded so far: {}", total_frames_encoded);
                     log::info!("Finishing chunk {} with {} frames", chunk_index, frames_in_current_chunk);
+
+                    // Get next PTS before finishing encoder
+                    next_pts_offset = current_encoder.get_next_pts();
 
                     // Finish current encoder
                     let output = current_encoder.finish()?;
@@ -662,14 +704,15 @@ pub async fn process_frames_chunked(
                     let chunk_filename = format!("{}.mp4", now.format("%Y-%m-%d_%H-%M-%S"));
                     let chunk_path = base_output_dir.join(&chunk_filename);
 
-                    log::info!("Creating chunk {}: {}", chunk_index, chunk_path.display());
+                    log::info!("Creating chunk {}: {} (PTS offset: {})", chunk_index, chunk_path.display(), next_pts_offset);
 
-                    current_encoder = VideoEncoder::new(
+                    current_encoder = VideoEncoder::new_with_pts_offset(
                         &chunk_path,
                         width,
                         height,
                         fps,
                         quality,
+                        next_pts_offset,
                         None::<fn(&str)>,
                     )?;
 
@@ -681,6 +724,7 @@ pub async fn process_frames_chunked(
                             recording_type.as_deref(),
                             task_id.as_deref(),
                             Some(chunk_index),
+                            session_id,
                         ).await {
                             log::error!("Failed to insert video chunk into database: {}", e);
                         }
@@ -690,6 +734,12 @@ pub async fn process_frames_chunked(
                 // Encode frame and get metadata
                 let metadata = current_encoder.encode_frame(frame)?;
                 frames_in_current_chunk += 1;
+                total_frames_encoded += 1;
+
+                // Log every second worth of frames
+                if total_frames_encoded % fps as u64 == 0 {
+                    log::debug!("Encoded {} total frames ({} in current chunk)", total_frames_encoded, frames_in_current_chunk);
+                }
 
                 // Insert frame into database with metadata if enabled
                 if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
@@ -727,7 +777,11 @@ pub async fn process_frames_chunked(
     let output = current_encoder.finish()?;
     chunk_outputs.push(output);
 
-    log::info!("Chunked encoding complete: {} chunks created", chunk_outputs.len());
+    log::info!("===== ENCODING COMPLETE =====");
+    log::info!("Total frames encoded: {}", total_frames_encoded);
+    log::info!("Chunks created: {}", chunk_outputs.len());
+    log::info!("Expected frames per chunk: {}", frames_per_chunk);
+    log::info!("============================");
     Ok(chunk_outputs)
 }
 
