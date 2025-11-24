@@ -572,6 +572,7 @@ pub async fn process_frames_chunked(
             task_id.as_deref(),
             Some(chunk_index),
             session_id,
+            Some(fps as i64),
         ).await {
             log::error!("Failed to insert video chunk into database: {}", e);
         }
@@ -625,6 +626,7 @@ pub async fn process_frames_chunked(
                                     task_id.as_deref(),
                                     Some(chunk_index),
                                     session_id,
+                                    Some(fps as i64),
                                 ).await {
                                     log::error!("Failed to insert video chunk into database: {}", e);
                                 }
@@ -711,6 +713,7 @@ pub async fn process_frames_chunked(
                             task_id.as_deref(),
                             Some(chunk_index),
                             session_id,
+                            Some(fps as i64),
                         ).await {
                             log::error!("Failed to insert video chunk into database: {}", e);
                         }

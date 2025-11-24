@@ -109,6 +109,13 @@ pub enum Commands {
         #[arg(long)]
         ffmpeg_path: Option<PathBuf>,
     },
+
+    /// Inspect recording sessions for a task
+    InspectSessions {
+        /// Task ID to inspect sessions for
+        #[arg(short, long)]
+        task_id: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

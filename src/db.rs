@@ -92,6 +92,7 @@ impl Database {
                 task_id TEXT,
                 chunk_index INTEGER,
                 session_id INTEGER,
+                fps INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (session_id) REFERENCES recording_sessions(id)
             )
@@ -190,6 +191,13 @@ impl Database {
                 .await?;
         }
 
+        if !chunk_column_names.contains(&"fps".to_string()) {
+            log::info!("Adding fps column to video_chunks table");
+            sqlx::query("ALTER TABLE video_chunks ADD COLUMN fps INTEGER")
+                .execute(&self.pool)
+                .await?;
+        }
+
         Ok(())
     }
 
@@ -213,13 +221,14 @@ impl Database {
     }
 
     /// Update a recording session with end time
+    /// Only updates if ended_at is NULL to prevent overwriting an earlier end time
     pub async fn end_recording_session(
         &self,
         session_id: i64,
         ended_at: DateTime<Utc>,
     ) -> Result<()> {
         sqlx::query(
-            "UPDATE recording_sessions SET ended_at = ?1 WHERE id = ?2",
+            "UPDATE recording_sessions SET ended_at = ?1 WHERE id = ?2 AND ended_at IS NULL",
         )
         .bind(ended_at)
         .bind(session_id)
@@ -227,6 +236,33 @@ impl Database {
         .await?;
 
         Ok(())
+    }
+
+    /// Force WAL checkpoint to ensure all writes are visible to new connections
+    pub async fn checkpoint_wal(&self) -> Result<()> {
+        sqlx::query("PRAGMA wal_checkpoint(FULL)")
+            .execute(&self.pool)
+            .await?;
+
+        log::debug!("WAL checkpoint completed");
+        Ok(())
+    }
+
+    /// Get all recording sessions for a task_id
+    pub async fn get_sessions_for_task(&self, task_id: &str) -> Result<Vec<RecordingSessionInfo>> {
+        let rows = sqlx::query_as::<_, RecordingSessionInfo>(
+            r#"
+            SELECT id, task_id, device_name, started_at, ended_at, created_at
+            FROM recording_sessions
+            WHERE task_id = ?1
+            ORDER BY started_at ASC
+            "#,
+        )
+        .bind(task_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
     }
 
     /// Get total recording time for a task_id (sum of all session durations)
@@ -256,6 +292,7 @@ impl Database {
         task_id: Option<&str>,
         chunk_index: Option<i64>,
         session_id: Option<i64>,
+        fps: Option<i64>,
     ) -> Result<i64> {
         // Retry logic for database locking issues
         const MAX_RETRIES: u32 = 5;
@@ -264,7 +301,7 @@ impl Database {
         let mut attempt = 0;
         loop {
             match sqlx::query(
-                "INSERT INTO video_chunks (file_path, device_name, recording_type, task_id, chunk_index, session_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                "INSERT INTO video_chunks (file_path, device_name, recording_type, task_id, chunk_index, session_id, fps) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             )
             .bind(file_path)
             .bind(device_name)
@@ -272,6 +309,7 @@ impl Database {
             .bind(task_id)
             .bind(chunk_index)
             .bind(session_id)
+            .bind(fps)
             .execute(&self.pool)
             .await {
                 Ok(result) => return Ok(result.last_insert_rowid()),
@@ -486,7 +524,7 @@ impl Database {
     pub async fn get_chunks_by_task_id(&self, task_id: &str) -> Result<Vec<VideoChunkInfo>> {
         let rows = sqlx::query_as::<_, VideoChunkInfo>(
             r#"
-            SELECT id, file_path, device_name, recording_type, task_id, chunk_index, created_at
+            SELECT id, file_path, device_name, recording_type, task_id, chunk_index, created_at, fps
             FROM video_chunks
             WHERE task_id = ?1
             ORDER BY created_at ASC
@@ -556,5 +594,17 @@ pub struct VideoChunkInfo {
     pub recording_type: Option<String>,
     pub task_id: Option<String>,
     pub chunk_index: Option<i64>,
+    pub created_at: DateTime<Utc>,
+    pub fps: Option<i64>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+#[allow(dead_code)]
+pub struct RecordingSessionInfo {
+    pub id: i64,
+    pub task_id: String,
+    pub device_name: String,
+    pub started_at: DateTime<Utc>,
+    pub ended_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }

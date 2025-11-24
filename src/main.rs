@@ -47,6 +47,11 @@ async fn main() -> Result<()> {
             concatenate_chunks(&task_id, output, ffmpeg_path).await?;
         }
 
+        Commands::InspectSessions { task_id } => {
+            log::info!("Inspecting sessions for task_id: {}", task_id);
+            inspect_sessions(&task_id).await?;
+        }
+
         Commands::Record {
             output,
             duration,
@@ -353,8 +358,28 @@ async fn main() -> Result<()> {
             let shutdown_tx_for_handler = Arc::new(std::sync::Mutex::new(Some(shutdown_tx)));
             let shutdown_tx_clone = shutdown_tx_for_handler.clone();
 
+            // Clone db and session_id for signal handler
+            let db_for_ctrlc = db.clone();
+            let session_id_for_ctrlc = session_id;
+
             ctrlc::set_handler(move || {
                 log::info!("Received Ctrl+C, stopping recording...");
+
+                // End recording session immediately
+                if let Some(sid) = session_id_for_ctrlc {
+                    let session_end_time = chrono::Utc::now();
+                    let db_clone = db_for_ctrlc.clone();
+                    std::thread::spawn(move || {
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            if let Err(e) = db_clone.end_recording_session(sid, session_end_time).await {
+                                log::error!("Failed to update recording session end time in Ctrl+C handler: {}", e);
+                            } else {
+                                log::info!("Recording session {} ended via Ctrl+C", sid);
+                            }
+                        });
+                    });
+                }
 
                 // Signal encoder to finish current chunk
                 if let Ok(mut tx_opt) = shutdown_tx_clone.lock() {
@@ -378,6 +403,9 @@ async fn main() -> Result<()> {
             {
                 let running_sigterm = running.clone();
                 let shutdown_tx_sigterm = shutdown_tx_for_handler.clone();
+                let db_for_sigterm = db.clone();
+                let session_id_for_sigterm = session_id;
+
                 tokio::spawn(async move {
                     use tokio::signal::unix::{signal, SignalKind};
                     let mut sigterm = signal(SignalKind::terminate())
@@ -385,6 +413,16 @@ async fn main() -> Result<()> {
 
                     sigterm.recv().await;
                     log::info!("Received SIGTERM, stopping recording...");
+
+                    // End recording session immediately
+                    if let Some(sid) = session_id_for_sigterm {
+                        let session_end_time = chrono::Utc::now();
+                        if let Err(e) = db_for_sigterm.end_recording_session(sid, session_end_time).await {
+                            log::error!("Failed to update recording session end time in SIGTERM handler: {}", e);
+                        } else {
+                            log::info!("Recording session {} ended via SIGTERM", sid);
+                        }
+                    }
 
                     // Signal encoder to finish current chunk
                     {
@@ -485,6 +523,77 @@ async fn main() -> Result<()> {
 }
 
 /// Concatenate video chunks for a completed task recording
+async fn inspect_sessions(task_id: &str) -> Result<()> {
+    println!("🔍 Inspecting recording sessions for task: {}", task_id);
+
+    // Set up database path
+    let omega_dir = dirs::home_dir()
+        .ok_or_else(|| error::ScreenRecError::ConfigError("Could not find home directory".to_string()))?
+        .join(".omega");
+
+    let db_path = omega_dir.join("db.sqlite");
+    let db = Database::new(&db_path).await?;
+
+    // Get all sessions for this task
+    let sessions = db.get_sessions_for_task(task_id).await?;
+
+    if sessions.is_empty() {
+        println!("❌ No recording sessions found for task_id: {}", task_id);
+        return Ok(());
+    }
+
+    println!("\n📊 Found {} recording session(s):\n", sessions.len());
+    println!("{:<6} {:<22} {:<22} {:<12} {:<15}",
+             "ID", "Started At", "Ended At", "Duration (s)", "Status");
+    println!("{}", "=".repeat(80));
+
+    let mut total_duration = 0.0;
+
+    for session in &sessions {
+        let duration = if let Some(ended_at) = session.ended_at {
+            let duration_secs = (ended_at - session.started_at).num_seconds() as f64;
+            total_duration += duration_secs;
+            format!("{:.2}", duration_secs)
+        } else {
+            "N/A".to_string()
+        };
+
+        let status = if session.ended_at.is_some() {
+            "Completed"
+        } else {
+            "In Progress"
+        };
+
+        let ended_at_str = if let Some(ended_at) = session.ended_at {
+            ended_at.format("%Y-%m-%d %H:%M:%S").to_string()
+        } else {
+            "N/A".to_string()
+        };
+
+        println!("{:<6} {:<22} {:<22} {:<12} {:<15}",
+                 session.id,
+                 session.started_at.format("%Y-%m-%d %H:%M:%S"),
+                 ended_at_str,
+                 duration,
+                 status);
+    }
+
+    println!("{}", "=".repeat(80));
+    println!("\n✅ Total accumulated recording time: {:.2} seconds ({:.2} minutes)",
+             total_duration, total_duration / 60.0);
+
+    // Also get and display the database-calculated total for verification
+    let db_total = db.get_total_recording_time(task_id).await?;
+    println!("✅ Database calculated total: {:.2} seconds ({:.2} minutes)",
+             db_total, db_total / 60.0);
+
+    if (total_duration - db_total).abs() > 0.01 {
+        println!("⚠️  WARNING: Mismatch between manual sum and database calculation!");
+    }
+
+    Ok(())
+}
+
 async fn concatenate_chunks(
     task_id: &str,
     output_path: Option<std::path::PathBuf>,
@@ -532,6 +641,12 @@ async fn concatenate_chunks(
 
     println!("✅ [PROGRESS] Found {} video chunks to concatenate", chunks.len());
     log::info!("Found {} chunks to concatenate", chunks.len());
+
+    // Extract FPS from chunks (use first chunk's FPS, default to 30 if not set)
+    let fps = chunks.iter()
+        .find_map(|chunk| chunk.fps)
+        .unwrap_or(30);
+    log::info!("Using FPS: {}", fps);
 
     // Determine output directory from first chunk
     let first_chunk_path = std::path::Path::new(&chunks[0].file_path);
@@ -719,6 +834,12 @@ async fn concatenate_chunks(
         ]);
     }
 
+    // Add explicit frame rate parameters to ensure correct playback speed
+    ffmpeg_args.extend(vec![
+        "-r".to_string(), fps.to_string(),
+        "-fps_mode".to_string(), "cfr".to_string(),
+    ]);
+
     ffmpeg_args.push(final_output_path.to_str().unwrap().to_string());
 
     log::info!("Running FFmpeg concatenation: {}", ffmpeg_binary);
@@ -843,8 +964,43 @@ async fn concatenate_chunks(
         })
     }).collect();
 
+    // Force WAL checkpoint to ensure all writes from recording sessions are visible
+    log::debug!("Forcing WAL checkpoint before reading session times");
+    if let Err(e) = db.checkpoint_wal().await {
+        log::warn!("Failed to checkpoint WAL: {}", e);
+    }
+
+    // Get all sessions to verify they exist
+    let sessions = db.get_sessions_for_task(task_id).await?;
+    log::info!("Found {} recording sessions for task {}", sessions.len(), task_id);
+
+    for session in &sessions {
+        if let Some(ended_at) = session.ended_at {
+            let duration = (ended_at - session.started_at).num_seconds();
+            log::debug!("Session {}: duration = {}s (started: {}, ended: {})",
+                       session.id, duration, session.started_at, ended_at);
+        } else {
+            log::warn!("Session {} has no end time (incomplete session)", session.id);
+        }
+    }
+
     // Get total recording time from database
-    let total_recording_time_secs = db.get_total_recording_time(task_id).await.unwrap_or(0.0);
+    log::debug!("Querying total recording time for task {}", task_id);
+    let total_recording_time_secs = match db.get_total_recording_time(task_id).await {
+        Ok(time) => {
+            log::info!("Total recording time retrieved: {:.2}s ({:.2} minutes)", time, time / 60.0);
+            if time == 0.0 && !sessions.is_empty() {
+                log::error!("WARNING: Database returned 0.0 seconds but {} sessions exist!", sessions.len());
+                log::error!("This indicates a data integrity issue - sessions may be missing end times");
+            }
+            time
+        }
+        Err(e) => {
+            log::error!("Failed to get total recording time: {}", e);
+            log::error!("Defaulting to 0.0 - metadata will be incorrect!");
+            0.0
+        }
+    };
 
     // Export comprehensive metadata to JSON
     println!("🔄 [PROGRESS] Generating metadata files...");
