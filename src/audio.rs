@@ -15,6 +15,82 @@ pub struct AudioCapture {
     config: StreamConfig,
 }
 
+/// Enumerate audio devices based on source type
+fn enumerate_audio_devices(
+    host: &cpal::Host,
+    source: &AudioSource,
+) -> Result<Vec<(Device, String)>> {
+    let mut devices = Vec::new();
+
+    match source {
+        AudioSource::None => return Ok(devices),
+        AudioSource::Mic | AudioSource::Both => {
+            // Try default input device first
+            if let Some(device) = host.default_input_device() {
+                let name = device.name().unwrap_or_else(|_| "Default Input".to_string());
+                log::debug!("Found default input device: {}", name);
+                devices.push((device, name));
+            }
+
+            // Enumerate all input devices
+            if let Ok(input_devices) = host.input_devices() {
+                for device in input_devices {
+                    if let Ok(name) = device.name() {
+                        if !devices.iter().any(|(_, n)| n == &name) {
+                            log::debug!("Found input device: {}", name);
+                            devices.push((device, name));
+                        }
+                    }
+                }
+            }
+        }
+        AudioSource::System => {
+            // Platform-specific system audio device detection
+            #[cfg(target_os = "macos")]
+            {
+                if let Ok(devices_iter) = host.input_devices() {
+                    for device in devices_iter {
+                        if let Ok(name) = device.name() {
+                            if name.contains("Soundflower") ||
+                               name.contains("BlackHole") ||
+                               name.contains("Loopback") {
+                                log::debug!("Found system audio device: {}", name);
+                                devices.push((device, name));
+                            }
+                        }
+                    }
+                }
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                if let Ok(devices_iter) = host.input_devices() {
+                    for device in devices_iter {
+                        if let Ok(name) = device.name() {
+                            if name.contains("Stereo Mix") ||
+                               name.contains("What U Hear") {
+                                log::debug!("Found system audio device: {}", name);
+                                devices.push((device, name));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fallback to default input if no system audio device found
+            if devices.is_empty() {
+                log::warn!("No system audio device found, using default input");
+                if let Some(device) = host.default_input_device() {
+                    let name = device.name().unwrap_or_else(|_| "Default Input".to_string());
+                    devices.push((device, name));
+                }
+            }
+        }
+    }
+
+    Ok(devices)
+}
+
 impl AudioCapture {
     pub fn new(source: AudioSource) -> Result<Option<Self>> {
         if source == AudioSource::None {
@@ -26,36 +102,38 @@ impl AudioCapture {
 
         let host = cpal::default_host();
 
-        // Get the appropriate device based on source
-        let device = match source {
-            AudioSource::None => return Ok(None),
-            AudioSource::Mic | AudioSource::Both => {
-                // For microphone, use default input device
-                host.default_input_device().ok_or_else(|| {
-                    ScreenRecError::AudioError("No input device found".to_string())
-                })?
+        // Enumerate available devices
+        let available_devices = enumerate_audio_devices(&host, &source)?;
+
+        if available_devices.is_empty() {
+            log::warn!("No audio devices found for source: {:?}", source);
+            return Err(ScreenRecError::AudioDeviceUnavailable(vec![]));
+        }
+
+        log::info!("Found {} audio device(s)", available_devices.len());
+
+        // Try devices in order
+        let mut tried_devices = Vec::new();
+
+        for (device, device_name) in available_devices {
+            log::info!("Trying audio device: {}", device_name);
+            tried_devices.push(device_name.clone());
+
+            match device.default_input_config() {
+                Ok(config) => {
+                    log::info!("✓ Successfully initialized audio device: {}", device_name);
+                    return Ok(Some(Self { device, config: config.config() }));
+                }
+                Err(e) => {
+                    log::warn!("Failed to initialize device '{}': {}", device_name, e);
+                    continue;
+                }
             }
-            AudioSource::System => {
-                // For system audio, try to get loopback device
-                // Note: System audio capture is tricky on some platforms
-                host.default_input_device().ok_or_else(|| {
-                    ScreenRecError::AudioError("No input device found".to_string())
-                })?
-            }
-        };
+        }
 
-        let device_name = device.name().unwrap_or_else(|_| "Unknown".to_string());
-        log::info!("Using audio device: {}", device_name);
-
-        // Get supported config
-        let config = device
-            .default_input_config()
-            .map_err(|e| ScreenRecError::AudioError(format!("Failed to get audio config: {}", e)))?
-            .config();
-
-        log::info!("Audio config: {:?}", config);
-
-        Ok(Some(Self { device, config }))
+        // All devices failed
+        log::warn!("All audio devices failed. Tried: {:?}", tried_devices);
+        Err(ScreenRecError::AudioDeviceUnavailable(tried_devices))
     }
 
     #[allow(dead_code)]

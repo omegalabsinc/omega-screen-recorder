@@ -1,7 +1,7 @@
 name: Build and Release
 
-# This build does NOT bundle FFmpeg - users must have FFmpeg installed
-# Users can either install FFmpeg globally or use --ffmpeg-path argument
+# This workflow builds self-contained macOS binaries with bundled FFmpeg libraries
+# Users do NOT need to install FFmpeg - all required dylibs are included
 
 on:
   push:
@@ -112,14 +112,27 @@ jobs:
         pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
         echo ""
 
-        # Run the simplified packaging script (no FFmpeg bundling)
-        chmod +x ./scripts/package-simple.sh
-        ./scripts/package-simple.sh
+        # Build the release binary
+        cargo build --release --target aarch64-apple-darwin
+
+        # Bundle FFmpeg libraries with the binary
+        echo "=== Bundling FFmpeg libraries ==="
+        chmod +x ./scripts/bundle-ffmpeg-libs.sh
+        ./scripts/bundle-ffmpeg-libs.sh ./target/aarch64-apple-darwin/release/omgrec
+
+        # Create distribution package
+        mkdir -p target/package-macos-arm64
+        cp ./target/aarch64-apple-darwin/release/omgrec target/package-macos-arm64/
+        cp -r ./target/aarch64-apple-darwin/release/lib target/package-macos-arm64/
+
+        echo "=== Package contents ==="
+        ls -lh target/package-macos-arm64/
+        ls -lh target/package-macos-arm64/lib/
 
     - name: Create zip archive
       run: |
         cd target/package-macos-arm64
-        zip -r ../omgrec-macos-arm64.zip *
+        zip -r ../omgrec-macos-arm64.zip omgrec lib/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -205,14 +218,27 @@ jobs:
         pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
         echo ""
 
-        # Run the simplified packaging script (no FFmpeg bundling)
-        chmod +x ./scripts/package-simple.sh
-        ./scripts/package-simple.sh
+        # Build the release binary
+        cargo build --release --target x86_64-apple-darwin
+
+        # Bundle FFmpeg libraries with the binary
+        echo "=== Bundling FFmpeg libraries ==="
+        chmod +x ./scripts/bundle-ffmpeg-libs.sh
+        ./scripts/bundle-ffmpeg-libs.sh ./target/x86_64-apple-darwin/release/omgrec
+
+        # Create distribution package
+        mkdir -p target/package-macos-x86_64
+        cp ./target/x86_64-apple-darwin/release/omgrec target/package-macos-x86_64/
+        cp -r ./target/x86_64-apple-darwin/release/lib target/package-macos-x86_64/
+
+        echo "=== Package contents ==="
+        ls -lh target/package-macos-x86_64/
+        ls -lh target/package-macos-x86_64/lib/
 
     - name: Create zip archive
       run: |
         cd target/package-macos-x86_64
-        zip -r ../omgrec-macos-x86_64.zip *
+        zip -r ../omgrec-macos-x86_64.zip omgrec lib/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

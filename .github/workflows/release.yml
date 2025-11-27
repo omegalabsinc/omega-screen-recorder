@@ -65,7 +65,8 @@ jobs:
     - name: Install FFmpeg (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install ffmpeg pkg-config
+        brew install ffmpeg@7 pkg-config
+        echo "PKG_CONFIG_PATH=$(brew --prefix ffmpeg@7)/lib/pkgconfig" >> $GITHUB_ENV
 
     - name: Install FFmpeg (Linux)
       if: runner.os == 'Linux'
@@ -77,12 +78,27 @@ jobs:
       run: |
         cargo build --release --target ${{ matrix.target }} --verbose
 
+    - name: Bundle FFmpeg libraries (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        chmod +x ./scripts/bundle-ffmpeg-libs.sh
+        ./scripts/bundle-ffmpeg-libs.sh ./target/${{ matrix.target }}/release/omgrec
+
     - name: Prepare artifact (Unix)
       if: runner.os != 'Windows'
       run: |
         mkdir -p artifacts
-        cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} artifacts/${{ matrix.release_name }}
-        chmod +x artifacts/${{ matrix.release_name }}
+        if [ -d "target/${{ matrix.target }}/release/lib" ]; then
+          # For macOS with bundled libraries
+          mkdir -p artifacts/lib
+          cp target/${{ matrix.target }}/release/omgrec artifacts/
+          cp -r target/${{ matrix.target }}/release/lib artifacts/
+          chmod +x artifacts/omgrec
+        else
+          # For Linux
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} artifacts/${{ matrix.release_name }}
+          chmod +x artifacts/${{ matrix.release_name }}
+        fi
 
     - name: Prepare artifact (Windows)
       if: runner.os == 'Windows'
@@ -90,18 +106,29 @@ jobs:
         New-Item -ItemType Directory -Force -Path artifacts
         Copy-Item target/${{ matrix.target }}/release/${{ matrix.artifact_name }} artifacts/${{ matrix.release_name }}
 
+    - name: Create distribution package (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        cd artifacts
+        tar -czf ${{ matrix.release_name }}.tar.gz omgrec lib
+        cd ..
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.release_name }}
-        path: artifacts/${{ matrix.release_name }}
+        path: |
+          artifacts/${{ matrix.release_name }}*
+          artifacts/*.tar.gz
         retention-days: 30
 
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v1
       with:
-        files: artifacts/${{ matrix.release_name }}
+        files: |
+          artifacts/${{ matrix.release_name }}
+          artifacts/*.tar.gz
         draft: false
         prerelease: false
       env:

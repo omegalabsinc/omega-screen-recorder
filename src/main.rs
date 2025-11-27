@@ -15,7 +15,7 @@ use crate::audio::AudioCapture;
 use crate::capture::ScreenCapture;
 use crate::cli::{Cli, Commands, RecordingType};
 use crate::db::Database;
-use crate::error::Result;
+use crate::error::{Result, ScreenRecError};
 use crate::interactions::InteractionTracker;
 use clap::Parser;
 use std::sync::mpsc as std_mpsc;
@@ -278,9 +278,9 @@ async fn main() -> Result<()> {
             // Initialize audio capture if requested (macOS only)
             #[cfg(target_os = "macos")]
             let audio_handle = if audio != cli::AudioSource::None {
-                let (audio_tx, audio_rx) = mpsc::channel(1000);
-                match AudioCapture::new(audio)? {
-                    Some(audio_capture) => {
+                match AudioCapture::new(audio) {
+                    Ok(Some(audio_capture)) => {
+                        let (audio_tx, audio_rx) = mpsc::channel(1000);
                         // Start audio capture in a separate thread (cpal requires non-async)
                         let audio_tx_clone = audio_tx.clone();
                         std::thread::spawn(move || {
@@ -294,8 +294,22 @@ async fn main() -> Result<()> {
                             encoder::process_audio(audio_rx).await
                         }))
                     }
-                    None => {
+                    Ok(None) => {
                         log::info!("Audio capture disabled");
+                        None
+                    }
+                    Err(e) => {
+                        // Audio failed, but continue with video-only recording
+                        match e {
+                            ScreenRecError::AudioDeviceUnavailable(tried) => {
+                                log::warn!("Audio unavailable (tried: {:?}). Continuing with video only.", tried);
+                                println!("⚠️  Audio capture failed. Recording video only.");
+                            }
+                            _ => {
+                                log::warn!("Audio init failed: {}. Continuing with video only.", e);
+                                println!("⚠️  Audio initialization failed. Recording video only.");
+                            }
+                        }
                         None
                     }
                 }

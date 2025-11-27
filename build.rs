@@ -26,13 +26,26 @@ fn main() {
             println!("cargo:rustc-link-search=native={}/lib", ffmpeg_dir);
         }
 
-        // For static linking, we need to link additional system frameworks
+        // For static linking, we need to link additional system frameworks and libraries
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
         println!("cargo:rustc-link-lib=framework=CoreMedia");
         println!("cargo:rustc-link-lib=framework=CoreVideo");
         println!("cargo:rustc-link-lib=framework=VideoToolbox");
         println!("cargo:rustc-link-lib=framework=AudioToolbox");
         println!("cargo:rustc-link-lib=framework=Security");
+
+        // Additional frameworks needed for static FFmpeg
+        println!("cargo:rustc-link-lib=framework=CoreGraphics");
+        println!("cargo:rustc-link-lib=framework=CoreServices");
+        println!("cargo:rustc-link-lib=framework=AppKit");
+        println!("cargo:rustc-link-lib=framework=IOSurface");
+        println!("cargo:rustc-link-lib=framework=OpenCL");
+        println!("cargo:rustc-link-lib=framework=OpenGL");
+
+        // System libraries needed for static linking
+        println!("cargo:rustc-link-lib=dylib=iconv");
+        println!("cargo:rustc-link-lib=dylib=bz2");
+        println!("cargo:rustc-link-lib=dylib=z");
     }
 
     // Link DirectShow libraries on Windows for FFmpeg

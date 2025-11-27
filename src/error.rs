@@ -29,6 +29,21 @@ pub enum ScreenRecError {
 
     #[error("Database error: {0}")]
     DatabaseError(String),
+
+    #[error("Encoder busy or in use: {0}")]
+    EncoderBusy(String),
+
+    #[error("Hardware encoder unavailable: {0}")]
+    HardwareEncoderUnavailable(String),
+
+    #[error("Encoder initialization failed after {1} retries: {0}")]
+    EncoderInitializationFailed(String, u32),
+
+    #[error("Audio device unavailable, tried: {0:?}")]
+    AudioDeviceUnavailable(Vec<String>),
+
+    #[error("Encoder failure during recording: {0}")]
+    EncoderRuntimeFailure(String),
 }
 
 impl From<anyhow::Error> for ScreenRecError {

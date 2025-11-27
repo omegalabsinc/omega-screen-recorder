@@ -25,8 +25,7 @@ scrap = "0.5"
 cpal = "0.15"
 
 # Video encoding
-# Note: Using dynamic linking for easier local builds
-# Static linking can be enabled for releases
+# Using dynamic linking - dylibs will be bundled with the binary
 ffmpeg-next = { version = "7.0" }
 
 # Serialization for config files
@@ -92,3 +91,6 @@ strip = true
 
 [profile.dev]
 opt-level = 1
+
+[dev-dependencies]
+tempfile = "3.8"

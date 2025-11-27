@@ -22,6 +22,23 @@ pub struct FrameMetadata {
     pub height: usize,
 }
 
+/// Encoder type classification
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum EncoderType {
+    HardwareGpu,
+    HardwareCpu,  // QuickSync on CPU
+    Software,
+}
+
+/// Encoder backend identification
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EncoderInfo {
+    pub name: String,
+    pub encoder_type: EncoderType,
+    pub priority: u8,  // Lower is higher priority
+}
+
 pub struct VideoEncoder {
     output_path: PathBuf,
     encoder: ffmpeg::encoder::Video,
@@ -35,6 +52,270 @@ pub struct VideoEncoder {
     last_packet_keyframe: bool,
     last_packet_pts: Option<i64>,
     last_packet_dts: Option<i64>,
+    encoder_info: EncoderInfo,  // Track which encoder is being used
+}
+
+/// Get platform-specific encoder priority list (GPU first)
+fn get_encoder_priority_list() -> Vec<EncoderInfo> {
+    #[cfg(target_os = "windows")]
+    {
+        vec![
+            EncoderInfo { name: "h264_nvenc".to_string(), encoder_type: EncoderType::HardwareGpu, priority: 0 },
+            EncoderInfo { name: "h264_qsv".to_string(), encoder_type: EncoderType::HardwareCpu, priority: 1 },
+            EncoderInfo { name: "h264_amf".to_string(), encoder_type: EncoderType::HardwareGpu, priority: 2 },
+            EncoderInfo { name: "libx264".to_string(), encoder_type: EncoderType::Software, priority: 10 },
+            EncoderInfo { name: "h264".to_string(), encoder_type: EncoderType::Software, priority: 11 },
+        ]
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        vec![
+            EncoderInfo { name: "h264_videotoolbox".to_string(), encoder_type: EncoderType::HardwareGpu, priority: 0 },
+            EncoderInfo { name: "libx264".to_string(), encoder_type: EncoderType::Software, priority: 10 },
+            EncoderInfo { name: "h264".to_string(), encoder_type: EncoderType::Software, priority: 11 },
+        ]
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        vec![
+            EncoderInfo { name: "h264_vaapi".to_string(), encoder_type: EncoderType::HardwareGpu, priority: 0 },
+            EncoderInfo { name: "h264_nvenc".to_string(), encoder_type: EncoderType::HardwareGpu, priority: 1 },
+            EncoderInfo { name: "libx264".to_string(), encoder_type: EncoderType::Software, priority: 10 },
+            EncoderInfo { name: "h264".to_string(), encoder_type: EncoderType::Software, priority: 11 },
+        ]
+    }
+}
+
+/// Get available encoders sorted by priority
+fn get_available_encoders() -> Vec<EncoderInfo> {
+    let priority_list = get_encoder_priority_list();
+    let mut available = Vec::new();
+
+    for encoder_info in priority_list {
+        if ffmpeg::encoder::find_by_name(&encoder_info.name).is_some() {
+            log::debug!("Encoder '{}' is available", encoder_info.name);
+            available.push(encoder_info);
+        } else {
+            log::debug!("Encoder '{}' not available", encoder_info.name);
+        }
+    }
+
+    log::info!("Available encoders: {:?}", available.iter().map(|e| &e.name).collect::<Vec<_>>());
+    available
+}
+
+/// Retry configuration for encoder initialization
+struct RetryConfig {
+    max_retries: u32,
+    initial_delay_ms: u64,
+    backoff_multiplier: f64,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_delay_ms: 100,
+            backoff_multiplier: 3.0,  // 100ms, 300ms, 900ms
+        }
+    }
+}
+
+impl RetryConfig {
+    fn get_delay_ms(&self, attempt: u32) -> u64 {
+        if attempt == 0 {
+            return 0;
+        }
+        let delay = self.initial_delay_ms as f64 * self.backoff_multiplier.powi(attempt as i32 - 1);
+        delay as u64
+    }
+}
+
+/// Configure encoder-specific options
+fn configure_encoder_options(
+    encoder_name: &str,
+    quality: u8,
+    fps: u32,
+    opts: &mut ffmpeg::Dictionary,
+) {
+    match encoder_name {
+        "libx264" => {
+            let crf = VideoEncoder::quality_to_crf(quality);
+            opts.set("crf", &crf.to_string());
+            opts.set("preset", "slow");
+            opts.set("profile", "high");
+            let gop_size = (fps * 2).to_string();
+            opts.set("g", &gop_size);
+            opts.set("keyint_min", &gop_size);
+            opts.set("bf", "0");
+            opts.set("refs", "3");
+            opts.set("sc_threshold", "0");
+            opts.set("qmin", "10");
+            opts.set("qmax", "25");
+            opts.set("crf_max", "18");
+            opts.set("movflags", "+faststart");
+        }
+        "h264_videotoolbox" => {
+            let crf = VideoEncoder::quality_to_crf(quality);
+            opts.set("q:v", &crf.to_string());
+            opts.set("profile", "high");
+            opts.set("allow_sw", "1");
+            let gop_size = (fps * 2).to_string();
+            opts.set("g", &gop_size);
+        }
+        "h264_nvenc" => {
+            let crf = VideoEncoder::quality_to_crf(quality);
+            opts.set("cq", &crf.to_string());
+            opts.set("preset", "p4");
+            opts.set("tune", "hq");
+            opts.set("profile", "high");
+            let gop_size = (fps * 2).to_string();
+            opts.set("g", &gop_size);
+            opts.set("bf", "0");
+        }
+        "h264_qsv" => {
+            let crf = VideoEncoder::quality_to_crf(quality);
+            opts.set("global_quality", &crf.to_string());
+            opts.set("preset", "medium");
+            let gop_size = (fps * 2).to_string();
+            opts.set("g", &gop_size);
+        }
+        "h264_amf" => {
+            let crf = VideoEncoder::quality_to_crf(quality);
+            opts.set("qp_i", &crf.to_string());
+            opts.set("qp_p", &crf.to_string());
+            opts.set("quality", "quality");
+            opts.set("profile", "high");
+            let gop_size = (fps * 2).to_string();
+            opts.set("gops_per_idr", "1");
+            opts.set("keyint_min", &gop_size);
+        }
+        "h264_vaapi" => {
+            let crf = VideoEncoder::quality_to_crf(quality);
+            opts.set("qp", &crf.to_string());
+            opts.set("quality", "1");
+            let gop_size = (fps * 2).to_string();
+            opts.set("g", &gop_size);
+        }
+        "h264_mf" => {
+            // Windows Media Foundation encoder
+            opts.set("rate_control", "quality");
+            let mf_quality = ((quality as f32 / 10.0) * 100.0).min(100.0) as i32;
+            opts.set("quality", &mf_quality.to_string());
+            opts.set("low_latency", "1");
+            let gop_size = fps.to_string();
+            opts.set("g", &gop_size);
+        }
+        _ => {
+            // Generic fallback
+            let crf = VideoEncoder::quality_to_crf(quality);
+            opts.set("crf", &crf.to_string());
+            opts.set("preset", "medium");
+        }
+    }
+}
+
+/// Single attempt to initialize encoder (no retries)
+fn try_init_encoder_once(
+    encoder_name: &str,
+    width: u32,
+    height: u32,
+    fps: u32,
+    quality: u8,
+) -> Result<ffmpeg::encoder::Video> {
+    // Find encoder
+    let codec = ffmpeg::encoder::find_by_name(encoder_name)
+        .ok_or_else(|| ScreenRecError::HardwareEncoderUnavailable(
+            format!("Encoder '{}' not found", encoder_name)
+        ))?;
+
+    // Create encoder context
+    let encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
+    let mut video_encoder = encoder_ctx.encoder().video()
+        .map_err(|e| ScreenRecError::EncodingError(format!("Failed to get video encoder: {}", e)))?;
+
+    // Configure encoder
+    video_encoder.set_width(width);
+    video_encoder.set_height(height);
+    video_encoder.set_format(ffmpeg::format::Pixel::YUV420P);
+    video_encoder.set_time_base(ffmpeg::Rational::new(1, fps as i32));
+    video_encoder.set_frame_rate(Some(ffmpeg::Rational::new(fps as i32, 1)));
+
+    // Set encoder-specific options
+    let mut opts = ffmpeg::Dictionary::new();
+    configure_encoder_options(encoder_name, quality, fps, &mut opts);
+
+    // Open encoder - this is where resource conflicts occur
+    let encoder = video_encoder.open_with(opts)
+        .map_err(|e| {
+            let error_str = format!("{}", e);
+            if error_str.contains("busy") || error_str.contains("in use") {
+                ScreenRecError::EncoderBusy(format!("Encoder '{}' is busy: {}", encoder_name, e))
+            } else {
+                ScreenRecError::EncodingError(format!("Failed to open encoder '{}': {}", encoder_name, e))
+            }
+        })?;
+
+    Ok(encoder)
+}
+
+/// Try to initialize an encoder with retries
+fn try_init_encoder_with_retries(
+    encoder_name: &str,
+    width: u32,
+    height: u32,
+    fps: u32,
+    quality: u8,
+    retry_config: &RetryConfig,
+) -> Result<(ffmpeg::encoder::Video, EncoderInfo)> {
+    let encoder_info = get_encoder_priority_list()
+        .into_iter()
+        .find(|e| e.name == encoder_name)
+        .unwrap_or_else(|| EncoderInfo {
+            name: encoder_name.to_string(),
+            encoder_type: EncoderType::Software,
+            priority: 255,
+        });
+
+    let mut _last_error = None;
+
+    for attempt in 0..=retry_config.max_retries {
+        if attempt > 0 {
+            let delay_ms = retry_config.get_delay_ms(attempt);
+            log::info!("Retry attempt {} for encoder '{}' after {}ms delay",
+                      attempt, encoder_name, delay_ms);
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        }
+
+        match try_init_encoder_once(encoder_name, width, height, fps, quality) {
+            Ok(encoder) => {
+                if attempt > 0 {
+                    log::info!("Encoder '{}' initialized successfully on retry {}", encoder_name, attempt);
+                }
+                return Ok((encoder, encoder_info));
+            }
+            Err(e) => {
+                log::warn!("Encoder '{}' initialization failed (attempt {}): {}",
+                          encoder_name, attempt + 1, e);
+                _last_error = Some(e);
+
+                // Smart retry decisions based on error type
+                if let Some(ref err) = _last_error {
+                    let error_str = format!("{:?}", err);
+                    if error_str.contains("not found") || error_str.contains("No such") {
+                        break; // Don't retry if encoder doesn't exist
+                    }
+                }
+            }
+        }
+    }
+
+    Err(ScreenRecError::EncoderInitializationFailed(
+        format!("Failed to initialize '{}' after {} retries", encoder_name, retry_config.max_retries),
+        retry_config.max_retries,
+    ))
 }
 
 impl VideoEncoder {
@@ -76,122 +357,64 @@ impl VideoEncoder {
             ScreenRecError::EncodingError(format!("Failed to create output context: {}", e))
         })?;
 
-        // Find H.264 encoder - Windows: prefer libx264 for better quality, Mac: use system default
-        #[cfg(target_os = "windows")]
-        let codec = ffmpeg::encoder::find_by_name("libx264")
-            .or_else(|| ffmpeg::encoder::find_by_name("h264_qsv"))  // Intel QuickSync fallback
-            .or_else(|| ffmpeg::encoder::find_by_name("h264_nvenc")) // NVIDIA fallback
-            .or_else(|| ffmpeg::encoder::find_by_name("h264_amf"))   // AMD fallback
-            .or_else(|| ffmpeg::encoder::find(ffmpeg::codec::Id::H264)) // System fallback
-            .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
+        // GPU-first encoder selection with retry logic and fallback chain
+        log::info!("Initializing encoder with GPU-first priority");
 
-        #[cfg(not(target_os = "windows"))]
-        let codec = ffmpeg::encoder::find(ffmpeg::codec::Id::H264)
-            .ok_or_else(|| ScreenRecError::EncodingError("H.264 codec not found".to_string()))?;
+        let available_encoders = get_available_encoders();
+        if available_encoders.is_empty() {
+            return Err(ScreenRecError::EncodingError(
+                "No H.264 encoders available on this system".to_string()
+            ));
+        }
 
-        let encoder_name = codec.name();
-        log::info!("Using encoder: {}", encoder_name);
+        let retry_config = RetryConfig::default();
+        let mut tried_encoders = Vec::new();
 
-        // Create encoder context from codec
-        let encoder_ctx = ffmpeg::codec::context::Context::new_with_codec(codec);
-        let mut video_encoder = encoder_ctx.encoder().video().map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to get video encoder: {}", e))
-        })?;
+        // Try each encoder in priority order with retries
+        let mut encoder_result = None;
+        let mut selected_encoder_info = None;
 
-        // Configure encoder
-        video_encoder.set_width(width as u32);
-        video_encoder.set_height(height as u32);
-        video_encoder.set_format(ffmpeg::format::Pixel::YUV420P);
-        video_encoder.set_time_base(ffmpeg::Rational::new(1, fps as i32));
-        video_encoder.set_frame_rate(Some(ffmpeg::Rational::new(fps as i32, 1)));
+        for encoder_info in &available_encoders {
+            log::info!("Attempting encoder: {} (type: {:?}, priority: {})",
+                      encoder_info.name, encoder_info.encoder_type, encoder_info.priority);
+            tried_encoders.push(encoder_info.name.clone());
 
-        // Set quality and encoder-specific options
-        let mut opts = ffmpeg::Dictionary::new();
-
-        // Windows-specific optimizations for screen recording
-        #[cfg(target_os = "windows")]
-        {
-            // Check which encoder we're using and apply appropriate options
-            if encoder_name == "libx264" {
-                // libx264-specific options
-                let crf = Self::quality_to_crf(quality);
-                opts.set("crf", &crf.to_string());
-                opts.set("preset", "slow");             // Use slow preset for better quality
-                // No tune - stillimage was causing aggressive P-frame compression
-                opts.set("profile", "high");            // Use H.264 High Profile for better compression
-
-                // Keyframe settings - keyframe every 2 seconds for seeking and quality
-                let gop_size = (fps * 2).to_string();   // GOP size = 2 seconds of frames
-                opts.set("g", &gop_size);               // Set keyframe interval
-                opts.set("keyint_min", &gop_size);      // Minimum keyframe interval
-
-                // Encoding settings for screen content
-                opts.set("bf", "0");                    // No B-frames for lower latency and better quality
-                opts.set("refs", "3");                  // Number of reference frames
-
-                // Screen recording specific optimizations
-                opts.set("sc_threshold", "0");          // Disable scene cut detection (not needed for screen)
-                opts.set("qmin", "10");                 // Minimum quantizer (prevents too much compression)
-                opts.set("qmax", "25");                 // Maximum quantizer (tighter quality control)
-
-                // Force higher bitrate for better quality
-                opts.set("crf_max", "18");              // Cap worst-case CRF to maintain quality
-
-                // Windows Media Foundation compatibility
-                opts.set("movflags", "+faststart");     // Enable fast start for MP4
-            } else if encoder_name == "h264_mf" {
-                // Windows Media Foundation encoder - use bitrate-based quality
-                // Calculate reasonable bitrate for screen recording
-                // Base: 0.1 bits per pixel (conservative for screen content)
-                // Quality multiplier: 0.5x to 2.5x based on quality setting (1-10)
-                let base_bpp = 0.1; // bits per pixel
-                let quality_multiplier = 0.5 + (quality as f64 / 10.0) * 2.0; // 0.5 to 2.5
-                let bitrate = (width * height) as f64 * (fps as f64) * base_bpp * quality_multiplier;
-                video_encoder.set_bit_rate((bitrate / 1000.0) as usize); // Convert to kbps
-
-                log::info!("h264_mf bitrate: {} kbps (quality: {})", (bitrate / 1000.0) as usize, quality);
-
-                // Keyframe interval - more frequent for better quality
-                let gop_size = fps;  // GOP size = 1 second (not 2) for better quality
-                opts.set("g", &gop_size.to_string());
-
-                // Rate control mode - use quality-based VBR
-                opts.set("rate_control", "quality");
-
-                // Quality setting for h264_mf (0-100, higher is better)
-                let mf_quality = ((quality as f32 / 10.0) * 100.0).min(100.0) as i32;
-                opts.set("quality", &mf_quality.to_string());
-
-                // Low latency mode for better frame quality
-                opts.set("low_latency", "1");
-            } else if encoder_name == "h264_qsv" || encoder_name == "h264_nvenc" || encoder_name == "h264_amf" {
-                // Hardware encoder options (QSV/NVENC/AMF)
-                let crf = Self::quality_to_crf(quality);
-                opts.set("qp", &crf.to_string());  // Use QP instead of CRF for hardware encoders
-                opts.set("preset", "medium");
-
-                let gop_size = (fps * 2).to_string();
-                opts.set("g", &gop_size);
-            } else {
-                // Generic fallback for unknown encoders
-                let crf = Self::quality_to_crf(quality);
-                opts.set("crf", &crf.to_string());
-                opts.set("preset", "medium");
+            match try_init_encoder_with_retries(
+                &encoder_info.name,
+                width as u32,
+                height as u32,
+                fps,
+                quality,
+                &retry_config,
+            ) {
+                Ok((encoder, info)) => {
+                    log::info!("✓ Successfully initialized encoder: {} ({:?})",
+                              info.name, info.encoder_type);
+                    encoder_result = Some(encoder);
+                    selected_encoder_info = Some(info);
+                    break;
+                }
+                Err(e) => {
+                    log::warn!("Failed to initialize encoder '{}': {}", encoder_info.name, e);
+                    // Continue to next encoder in fallback chain
+                }
             }
         }
 
-        #[cfg(not(target_os = "windows"))]
-        {
-            // Non-Windows platforms - use standard libx264 options
-            let crf = Self::quality_to_crf(quality);
-            opts.set("crf", &crf.to_string());
-            opts.set("preset", "medium");
-        }
-
-        // Open encoder with options
-        let encoder = video_encoder.open_with(opts).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to open encoder: {}", e))
+        let encoder = encoder_result.ok_or_else(|| {
+            ScreenRecError::EncodingError(format!(
+                "All encoders failed. Tried: {:?}", tried_encoders
+            ))
         })?;
+
+        let encoder_info = selected_encoder_info.unwrap();
+        let encoder_name = encoder_info.name.clone();
+
+        // Get codec for stream setup
+        let codec = ffmpeg::encoder::find_by_name(&encoder_name)
+            .ok_or_else(|| ScreenRecError::EncodingError("Selected encoder codec not found".to_string()))?;
+
+        log::info!("Using encoder: {} (type: {:?})", encoder_name, encoder_info.encoder_type);
 
         // Create video stream
         let mut stream = octx.add_stream(codec).map_err(|e| {
@@ -233,7 +456,59 @@ impl VideoEncoder {
             last_packet_keyframe: false,
             last_packet_pts: None,
             last_packet_dts: None,
+            encoder_info,
         })
+    }
+
+    /// Attempt to recover from encoder failure by switching to fallback encoder
+    fn try_recover_encoder(&mut self, error: &ScreenRecError) -> Result<()> {
+        log::error!("Encoder failure detected: {}. Attempting recovery...", error);
+
+        let available_encoders = get_available_encoders();
+        let current_priority = self.encoder_info.priority;
+
+        // Find next encoder with lower priority (higher number)
+        let fallback_encoder = available_encoders.iter()
+            .find(|e| e.priority > current_priority)
+            .cloned();
+
+        match fallback_encoder {
+            Some(fallback_info) => {
+                log::info!("Attempting fallback to encoder: {} ({:?})",
+                          fallback_info.name, fallback_info.encoder_type);
+
+                // Single attempt, no retries during recording
+                match try_init_encoder_once(
+                    &fallback_info.name,
+                    self.width as u32,
+                    self.height as u32,
+                    self.fps,
+                    8, // Default quality for recovery
+                ) {
+                    Ok(new_encoder) => {
+                        log::info!("✓ Successfully switched to fallback encoder: {}", fallback_info.name);
+
+                        // Hot-swap the encoder
+                        self.encoder = new_encoder;
+                        self.encoder_info = fallback_info;
+
+                        Ok(())
+                    }
+                    Err(e) => {
+                        log::error!("Failed to initialize fallback encoder: {}", e);
+                        Err(ScreenRecError::EncoderRuntimeFailure(
+                            format!("Failed to recover encoder: {}", e)
+                        ))
+                    }
+                }
+            }
+            None => {
+                log::error!("No fallback encoder available for recovery");
+                Err(ScreenRecError::EncoderRuntimeFailure(
+                    "No fallback encoder available".to_string()
+                ))
+            }
+        }
     }
 
     pub fn encode_frame(&mut self, frame: Frame) -> Result<FrameMetadata> {
@@ -264,10 +539,28 @@ impl VideoEncoder {
         // Convert RGB to YUV420P
         Self::rgb_to_yuv420p(&processed_data, self.width, self.height, &mut yuv_frame)?;
 
-        // Send frame to encoder
-        self.encoder.send_frame(&yuv_frame).map_err(|e| {
-            ScreenRecError::EncodingError(format!("Failed to send frame: {}", e))
-        })?;
+        // Send frame to encoder with recovery on failure
+        match self.encoder.send_frame(&yuv_frame) {
+            Ok(_) => {
+                // Success, continue
+            }
+            Err(e) => {
+                let error = ScreenRecError::EncoderRuntimeFailure(
+                    format!("Failed to send frame: {}", e)
+                );
+                log::warn!("Frame encoding failed, attempting recovery...");
+
+                // Try to recover with fallback encoder (one attempt only)
+                self.try_recover_encoder(&error)?;
+
+                // Retry frame with new encoder
+                self.encoder.send_frame(&yuv_frame).map_err(|e| {
+                    ScreenRecError::EncoderRuntimeFailure(
+                        format!("Failed to send frame after recovery: {}", e)
+                    )
+                })?;
+            }
+        }
 
         // Receive and write packets (this updates last_packet_* fields)
         self.receive_packets()?;
