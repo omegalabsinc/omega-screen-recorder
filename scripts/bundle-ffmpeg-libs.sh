@@ -79,6 +79,25 @@ for lib in "${FFMPEG_LIBS[@]}"; do
     fi
 done
 
+# Fix inter-library dependencies to use @rpath
+echo "Fixing inter-library dependencies..."
+for lib in "${FFMPEG_LIBS[@]}"; do
+    if [ -f "$LIB_DIR/$lib" ]; then
+        # For each library, update references to other FFmpeg libraries
+        for dep_lib in "${FFMPEG_LIBS[@]}"; do
+            # Try to change paths from various possible Homebrew locations
+            install_name_tool -change "/opt/homebrew/Cellar/ffmpeg@7/7.1.2_1/lib/$dep_lib" "@rpath/$dep_lib" "$LIB_DIR/$lib" 2>/dev/null || true
+            install_name_tool -change "/opt/homebrew/Cellar/ffmpeg@7/7.1.2/lib/$dep_lib" "@rpath/$dep_lib" "$LIB_DIR/$lib" 2>/dev/null || true
+            install_name_tool -change "/opt/homebrew/opt/ffmpeg@7/lib/$dep_lib" "@rpath/$dep_lib" "$LIB_DIR/$lib" 2>/dev/null || true
+            install_name_tool -change "/usr/local/opt/ffmpeg@7/lib/$dep_lib" "@rpath/$dep_lib" "$LIB_DIR/$lib" 2>/dev/null || true
+            install_name_tool -change "$FFMPEG_LIB_PATH/$dep_lib" "@rpath/$dep_lib" "$LIB_DIR/$lib" 2>/dev/null || true
+        done
+
+        # Add @loader_path to help libraries find each other
+        install_name_tool -add_rpath "@loader_path" "$LIB_DIR/$lib" 2>/dev/null || true
+    fi
+done
+
 # Update binary to use @rpath and set rpath to look in ./lib directory
 echo "Updating binary to use @rpath..."
 for lib in "${FFMPEG_LIBS[@]}"; do
