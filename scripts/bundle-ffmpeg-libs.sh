@@ -6,8 +6,9 @@ set -e
 
 BINARY_PATH="$1"
 if [ -z "$BINARY_PATH" ]; then
-    echo "Usage: $0 <path-to-binary>"
-    echo "Example: $0 ./target/release/omgrec"
+    echo "Usage: $0 <path-to-binary> [arch]"
+    echo "Example: $0 ./target/release/omgrec arm64"
+    echo "Example: $0 ./target/x86_64-apple-darwin/release/omgrec x86_64"
     exit 1
 fi
 
@@ -16,12 +17,24 @@ if [ ! -f "$BINARY_PATH" ]; then
     exit 1
 fi
 
-# Create lib directory next to the binary
-BINARY_DIR=$(dirname "$BINARY_PATH")
-LIB_DIR="$BINARY_DIR/lib"
-mkdir -p "$LIB_DIR"
+# Detect architecture from binary or use provided argument
+ARCH="$2"
+if [ -z "$ARCH" ]; then
+    # Auto-detect architecture from binary
+    BINARY_ARCH=$(file "$BINARY_PATH" | grep -o 'arm64\|x86_64')
+    if [ -z "$BINARY_ARCH" ]; then
+        echo "Error: Could not detect architecture. Please specify: arm64 or x86_64"
+        exit 1
+    fi
+    ARCH="$BINARY_ARCH"
+fi
 
-echo "Bundling FFmpeg libraries for $BINARY_PATH..."
+echo "Bundling FFmpeg libraries for $BINARY_PATH (architecture: $ARCH)..."
+
+# Create architecture-specific lib directory next to the binary
+BINARY_DIR=$(dirname "$BINARY_PATH")
+LIB_DIR="$BINARY_DIR/lib-$ARCH"
+mkdir -p "$LIB_DIR"
 
 # List of FFmpeg libraries to bundle
 FFMPEG_LIBS=(
@@ -73,9 +86,9 @@ for lib in "${FFMPEG_LIBS[@]}"; do
     install_name_tool -change "$FFMPEG_LIB_PATH/$lib" "@rpath/$lib" "$BINARY_PATH" 2>/dev/null || true
 done
 
-# Add rpath to look in ./lib directory relative to binary
-install_name_tool -add_rpath "@executable_path/lib" "$BINARY_PATH" 2>/dev/null || true
-install_name_tool -add_rpath "@loader_path/lib" "$BINARY_PATH" 2>/dev/null || true
+# Add rpath to look in architecture-specific lib directory relative to binary
+install_name_tool -add_rpath "@executable_path/lib-$ARCH" "$BINARY_PATH" 2>/dev/null || true
+install_name_tool -add_rpath "@loader_path/lib-$ARCH" "$BINARY_PATH" 2>/dev/null || true
 
 # Re-sign the binary after modifying it (required on macOS)
 echo "Re-signing binary..."

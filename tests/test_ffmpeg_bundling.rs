@@ -19,7 +19,21 @@ mod ffmpeg_bundling_tests {
 
     /// Check if bundling has been done - skip tests if not
     fn is_bundled() -> bool {
-        Path::new("./target/release/lib").exists()
+        // Check for architecture-specific lib folders
+        Path::new("./target/release/lib-arm64").exists()
+        || Path::new("./target/release/lib-x86_64").exists()
+        || Path::new("./target/release/lib").exists() // Legacy
+    }
+
+    /// Get the architecture-specific lib directory
+    fn get_lib_dir() -> String {
+        if Path::new("./target/release/lib-arm64").exists() {
+            "lib-arm64".to_string()
+        } else if Path::new("./target/release/lib-x86_64").exists() {
+            "lib-x86_64".to_string()
+        } else {
+            "lib".to_string() // Fallback
+        }
     }
 
     /// Run bundling script if not already done
@@ -88,10 +102,12 @@ mod ffmpeg_bundling_tests {
     fn test_ffmpeg_libs_exist() {
         ensure_bundled();
 
-        let lib_dir = Path::new("./target/release/lib");
+        let lib_dir_name = get_lib_dir();
+        let lib_dir = Path::new("./target/release").join(&lib_dir_name);
         assert!(
             lib_dir.exists(),
-            "lib/ directory doesn't exist - run bundle script first"
+            "{} directory doesn't exist - run bundle script first",
+            lib_dir_name
         );
 
         // Check all required FFmpeg libraries are present
@@ -109,8 +125,9 @@ mod ffmpeg_bundling_tests {
             let lib_path = lib_dir.join(lib);
             assert!(
                 lib_path.exists(),
-                "Required library {} not found in lib/",
-                lib
+                "Required library {} not found in {}/",
+                lib,
+                lib_dir_name
             );
         }
     }
@@ -168,10 +185,16 @@ mod ffmpeg_bundling_tests {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
 
-        // Should have @executable_path/lib rpath
+        let lib_dir = get_lib_dir();
+        let expected_rpath = format!("@executable_path/{}", lib_dir);
+        let expected_loader_path = format!("@loader_path/{}", lib_dir);
+
+        // Should have architecture-specific @executable_path/lib-{arch} rpath
         assert!(
-            stdout.contains("@executable_path/lib") || stdout.contains("@loader_path/lib"),
-            "Binary doesn't have @executable_path/lib or @loader_path/lib rpath configured"
+            stdout.contains(&expected_rpath) || stdout.contains(&expected_loader_path),
+            "Binary doesn't have {} or {} rpath configured",
+            expected_rpath,
+            expected_loader_path
         );
     }
 
@@ -180,10 +203,11 @@ mod ffmpeg_bundling_tests {
     fn test_bundled_dylibs_use_rpath() {
         ensure_bundled();
 
+        let lib_dir = get_lib_dir();
         let libs_to_check = vec!["libavcodec.61.dylib", "libavutil.59.dylib"];
 
         for lib in libs_to_check {
-            let lib_path = format!("./target/release/lib/{}", lib);
+            let lib_path = format!("./target/release/{}/{}", lib_dir, lib);
 
             // Check the library's install name
             let output = Command::new("otool")

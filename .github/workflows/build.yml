@@ -115,24 +115,24 @@ jobs:
         # Build the release binary
         cargo build --release --target aarch64-apple-darwin
 
-        # Bundle FFmpeg libraries with the binary
-        echo "=== Bundling FFmpeg libraries ==="
+        # Bundle FFmpeg libraries with the binary (ARM64)
+        echo "=== Bundling FFmpeg libraries (arm64) ==="
         chmod +x ./scripts/bundle-ffmpeg-libs.sh
-        ./scripts/bundle-ffmpeg-libs.sh ./target/aarch64-apple-darwin/release/omgrec
+        ./scripts/bundle-ffmpeg-libs.sh ./target/aarch64-apple-darwin/release/omgrec arm64
 
         # Create distribution package
         mkdir -p target/package-macos-arm64
         cp ./target/aarch64-apple-darwin/release/omgrec target/package-macos-arm64/
-        cp -r ./target/aarch64-apple-darwin/release/lib target/package-macos-arm64/
+        cp -r ./target/aarch64-apple-darwin/release/lib-arm64 target/package-macos-arm64/
 
         echo "=== Package contents ==="
         ls -lh target/package-macos-arm64/
-        ls -lh target/package-macos-arm64/lib/
+        ls -lh target/package-macos-arm64/lib-arm64/
 
     - name: Create zip archive
       run: |
         cd target/package-macos-arm64
-        zip -r ../omgrec-macos-arm64.zip omgrec lib/
+        zip -r ../omgrec-macos-arm64.zip omgrec lib-arm64/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -221,24 +221,24 @@ jobs:
         # Build the release binary
         cargo build --release --target x86_64-apple-darwin
 
-        # Bundle FFmpeg libraries with the binary
-        echo "=== Bundling FFmpeg libraries ==="
+        # Bundle FFmpeg libraries with the binary (x86_64)
+        echo "=== Bundling FFmpeg libraries (x86_64) ==="
         chmod +x ./scripts/bundle-ffmpeg-libs.sh
-        ./scripts/bundle-ffmpeg-libs.sh ./target/x86_64-apple-darwin/release/omgrec
+        ./scripts/bundle-ffmpeg-libs.sh ./target/x86_64-apple-darwin/release/omgrec x86_64
 
         # Create distribution package
         mkdir -p target/package-macos-x86_64
         cp ./target/x86_64-apple-darwin/release/omgrec target/package-macos-x86_64/
-        cp -r ./target/x86_64-apple-darwin/release/lib target/package-macos-x86_64/
+        cp -r ./target/x86_64-apple-darwin/release/lib-x86_64 target/package-macos-x86_64/
 
         echo "=== Package contents ==="
         ls -lh target/package-macos-x86_64/
-        ls -lh target/package-macos-x86_64/lib/
+        ls -lh target/package-macos-x86_64/lib-x86_64/
 
     - name: Create zip archive
       run: |
         cd target/package-macos-x86_64
-        zip -r ../omgrec-macos-x86_64.zip omgrec lib/
+        zip -r ../omgrec-macos-x86_64.zip omgrec lib-x86_64/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
