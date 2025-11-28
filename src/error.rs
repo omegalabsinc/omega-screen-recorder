@@ -31,12 +31,15 @@ pub enum ScreenRecError {
     DatabaseError(String),
 
     #[error("Encoder busy or in use: {0}")]
+    #[allow(dead_code)]
     EncoderBusy(String),
 
     #[error("Hardware encoder unavailable: {0}")]
+    #[allow(dead_code)]
     HardwareEncoderUnavailable(String),
 
     #[error("Encoder initialization failed after {1} retries: {0}")]
+    #[allow(dead_code)]
     EncoderInitializationFailed(String, u32),
 
     #[error("Audio device unavailable, tried: {0:?}")]

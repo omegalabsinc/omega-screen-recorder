@@ -1,7 +1,7 @@
 name: Build and Release
 
-# This workflow builds self-contained macOS binaries with bundled FFmpeg libraries
-# Users do NOT need to install FFmpeg - all required dylibs are included
+# This workflow builds macOS binaries using subprocess-based FFmpeg encoding
+# FFmpeg is NOT bundled - users must have FFmpeg installed or provide --ffmpeg-path
 
 on:
   push:
@@ -30,20 +30,6 @@ jobs:
         toolchain: stable
         target: aarch64-apple-darwin
 
-    - name: Install FFmpeg and build dependencies
-      run: |
-        # Install FFmpeg 7.x
-        brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
-        brew tap homebrew/core
-        # Install FFmpeg 7 specifically
-        brew install ffmpeg@7 2>/dev/null || brew install ffmpeg
-        brew install pkg-config nasm
-
-        # Link ffmpeg@7 if it was installed
-        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
-          brew link --overwrite ffmpeg@7
-        fi
-
     - name: Cache cargo registry
       uses: actions/cache@v4
       with:
@@ -64,75 +50,25 @@ jobs:
 
     - name: Build and package binary
       run: |
-        # Find where FFmpeg is actually installed
-        if [ -d "/opt/homebrew/opt/ffmpeg@7" ]; then
-          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg@7"
-        elif [ -d "/opt/homebrew/opt/ffmpeg" ]; then
-          FFMPEG_PREFIX="/opt/homebrew/opt/ffmpeg"
-        else
-          FFMPEG_PREFIX="/opt/homebrew"
-        fi
-
-        echo "=== FFmpeg Setup ==="
-        echo "FFmpeg prefix: $FFMPEG_PREFIX"
-
-        # Verify FFmpeg headers exist
-        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
-          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
-          ls -la "$FFMPEG_PREFIX/include" | grep libav
-        else
-          echo "⚠️ FFmpeg headers not found at expected location"
-        fi
-        echo ""
-
-        # Set up environment variables
-        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
-        export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
-        export FFMPEG_DIR="$FFMPEG_PREFIX"
-        export FFMPEG_PREFIX="$FFMPEG_PREFIX"
-        export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
-        export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
-
-        # Additional environment variables
-        export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
-        export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
-        export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
-
-        # For bindgen
-        export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
-
-        echo "=== Environment Variables ==="
-        echo "FFMPEG_DIR: $FFMPEG_DIR"
-        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
-        echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
-        echo ""
-
-        echo "=== FFmpeg version ==="
-        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
-        echo ""
-
-        # Build the release binary
+        # macOS uses subprocess-based FFmpeg encoder (no FFmpeg needed at build time)
+        echo "=== Building macOS ARM64 binary ==="
         cargo build --release --target aarch64-apple-darwin
 
-        # Bundle FFmpeg libraries with the binary (ARM64)
-        echo "=== Bundling FFmpeg libraries (arm64) ==="
-        chmod +x ./scripts/bundle-ffmpeg-libs.sh
-        ./scripts/bundle-ffmpeg-libs.sh ./target/aarch64-apple-darwin/release/omgrec arm64
-
-        # Create distribution package
+        # Create simple package (binary only - no library bundling)
         mkdir -p target/package-macos-arm64
         cp ./target/aarch64-apple-darwin/release/omgrec target/package-macos-arm64/
-        cp -r ./target/aarch64-apple-darwin/release/lib-arm64 target/package-macos-arm64/
+
+        # Create README using script
+        chmod +x ./scripts/create-package-readme.sh
+        ./scripts/create-package-readme.sh arm64 target/package-macos-arm64
 
         echo "=== Package contents ==="
         ls -lh target/package-macos-arm64/
-        ls -lh target/package-macos-arm64/lib-arm64/
 
     - name: Create zip archive
       run: |
         cd target/package-macos-arm64
-        zip -r ../omgrec-macos-arm64.zip omgrec lib-arm64/
+        zip -r ../omgrec-macos-arm64.zip omgrec README.txt
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -154,91 +90,27 @@ jobs:
         toolchain: stable
         target: x86_64-apple-darwin
 
-    - name: Install FFmpeg and build dependencies
-      run: |
-        # Install FFmpeg 7.x
-        brew uninstall --ignore-dependencies ffmpeg 2>/dev/null || true
-        brew tap homebrew/core
-        # Install FFmpeg 7 specifically
-        brew install ffmpeg@7 2>/dev/null || brew install ffmpeg
-        brew install pkg-config nasm
-
-        # Link ffmpeg@7 if it was installed (Intel uses /usr/local)
-        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
-          brew link --overwrite ffmpeg@7
-        fi
-
     - name: Build and package binary
       run: |
-        # Find where FFmpeg is actually installed (Intel paths on macos-13)
-        if [ -d "/usr/local/opt/ffmpeg@7" ]; then
-          FFMPEG_PREFIX="/usr/local/opt/ffmpeg@7"
-        elif [ -d "/usr/local/opt/ffmpeg" ]; then
-          FFMPEG_PREFIX="/usr/local/opt/ffmpeg"
-        else
-          FFMPEG_PREFIX="/usr/local"
-        fi
-
-        echo "=== FFmpeg Setup ==="
-        echo "FFmpeg prefix: $FFMPEG_PREFIX"
-
-        # Verify FFmpeg headers exist
-        if [ -d "$FFMPEG_PREFIX/include/libavcodec" ]; then
-          echo "✅ FFmpeg headers found at: $FFMPEG_PREFIX/include"
-          ls -la "$FFMPEG_PREFIX/include" | grep libav
-        else
-          echo "⚠️ FFmpeg headers not found at expected location"
-        fi
-        echo ""
-
-        # Set up environment variables
-        export PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
-        export FFMPEG_PKG_CONFIG_PATH="$FFMPEG_PREFIX/lib/pkgconfig"
-        export FFMPEG_DIR="$FFMPEG_PREFIX"
-        export FFMPEG_PREFIX="$FFMPEG_PREFIX"
-        export FFMPEG_INCLUDE_DIR="$FFMPEG_PREFIX/include"
-        export FFMPEG_LIB_DIR="$FFMPEG_PREFIX/lib"
-
-        # Additional environment variables
-        export C_INCLUDE_PATH="$FFMPEG_PREFIX/include:$C_INCLUDE_PATH"
-        export CPLUS_INCLUDE_PATH="$FFMPEG_PREFIX/include:$CPLUS_INCLUDE_PATH"
-        export LIBRARY_PATH="$FFMPEG_PREFIX/lib:$LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="$FFMPEG_PREFIX/lib:$DYLD_LIBRARY_PATH"
-
-        # For bindgen
-        export BINDGEN_EXTRA_CLANG_ARGS="-I$FFMPEG_PREFIX/include -I/usr/include"
-
-        echo "=== Environment Variables ==="
-        echo "FFMPEG_DIR: $FFMPEG_DIR"
-        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
-        echo "BINDGEN_EXTRA_CLANG_ARGS: $BINDGEN_EXTRA_CLANG_ARGS"
-        echo ""
-
-        echo "=== FFmpeg version ==="
-        pkg-config --modversion libavcodec || echo "libavcodec not found via pkg-config"
-        echo ""
-
-        # Build the release binary
+        # macOS uses subprocess-based FFmpeg encoder (no FFmpeg needed at build time)
+        echo "=== Building macOS x86_64 binary ==="
         cargo build --release --target x86_64-apple-darwin
 
-        # Bundle FFmpeg libraries with the binary (x86_64)
-        echo "=== Bundling FFmpeg libraries (x86_64) ==="
-        chmod +x ./scripts/bundle-ffmpeg-libs.sh
-        ./scripts/bundle-ffmpeg-libs.sh ./target/x86_64-apple-darwin/release/omgrec x86_64
-
-        # Create distribution package
+        # Create simple package (binary only - no library bundling)
         mkdir -p target/package-macos-x86_64
         cp ./target/x86_64-apple-darwin/release/omgrec target/package-macos-x86_64/
-        cp -r ./target/x86_64-apple-darwin/release/lib-x86_64 target/package-macos-x86_64/
+
+        # Create README using script
+        chmod +x ./scripts/create-package-readme.sh
+        ./scripts/create-package-readme.sh x86_64 target/package-macos-x86_64
 
         echo "=== Package contents ==="
         ls -lh target/package-macos-x86_64/
-        ls -lh target/package-macos-x86_64/lib-x86_64/
 
     - name: Create zip archive
       run: |
         cd target/package-macos-x86_64
-        zip -r ../omgrec-macos-x86_64.zip omgrec lib-x86_64/
+        zip -r ../omgrec-macos-x86_64.zip omgrec README.txt
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

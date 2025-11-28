@@ -23,7 +23,9 @@ pub struct SubprocessEncoder {
     frame_count: u64,
     pts_offset: i64,
     gop_size: u32,
+    #[allow(dead_code)]
     encoder_info: EncoderInfo,
+    #[allow(dead_code)]
     ffmpeg_path: String,
 }
 
