@@ -3,8 +3,11 @@ use crate::audio::AudioSample;
 use crate::capture::Frame;
 use crate::db::Database;
 use crate::error::{Result, ScreenRecError};
+#[cfg(not(target_os = "macos"))]
 use ffmpeg_next as ffmpeg;
-use std::path::{Path, PathBuf};
+#[cfg(not(target_os = "macos"))]
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
@@ -39,6 +42,9 @@ pub struct EncoderInfo {
     pub priority: u8,  // Lower is higher priority
 }
 
+// VideoEncoder struct is only used on Windows/Linux
+// macOS uses SubprocessEncoder from encoder_subprocess.rs
+#[cfg(not(target_os = "macos"))]
 pub struct VideoEncoder {
     output_path: PathBuf,
     encoder: ffmpeg::encoder::Video,
@@ -56,6 +62,7 @@ pub struct VideoEncoder {
 }
 
 /// Get platform-specific encoder priority list (GPU first)
+#[cfg(not(target_os = "macos"))]
 fn get_encoder_priority_list() -> Vec<EncoderInfo> {
     #[cfg(target_os = "windows")]
     {
@@ -89,6 +96,7 @@ fn get_encoder_priority_list() -> Vec<EncoderInfo> {
 }
 
 /// Get available encoders sorted by priority
+#[cfg(not(target_os = "macos"))]
 fn get_available_encoders() -> Vec<EncoderInfo> {
     let priority_list = get_encoder_priority_list();
     let mut available = Vec::new();
@@ -107,12 +115,14 @@ fn get_available_encoders() -> Vec<EncoderInfo> {
 }
 
 /// Retry configuration for encoder initialization
+#[cfg(not(target_os = "macos"))]
 struct RetryConfig {
     max_retries: u32,
     initial_delay_ms: u64,
     backoff_multiplier: f64,
 }
 
+#[cfg(not(target_os = "macos"))]
 impl Default for RetryConfig {
     fn default() -> Self {
         Self {
@@ -123,6 +133,7 @@ impl Default for RetryConfig {
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 impl RetryConfig {
     fn get_delay_ms(&self, attempt: u32) -> u64 {
         if attempt == 0 {
@@ -134,6 +145,7 @@ impl RetryConfig {
 }
 
 /// Configure encoder-specific options
+#[cfg(not(target_os = "macos"))]
 fn configure_encoder_options(
     encoder_name: &str,
     quality: u8,
@@ -218,6 +230,7 @@ fn configure_encoder_options(
 }
 
 /// Single attempt to initialize encoder (no retries)
+#[cfg(not(target_os = "macos"))]
 fn try_init_encoder_once(
     encoder_name: &str,
     width: u32,
@@ -262,6 +275,7 @@ fn try_init_encoder_once(
 }
 
 /// Try to initialize an encoder with retries
+#[cfg(not(target_os = "macos"))]
 fn try_init_encoder_with_retries(
     encoder_name: &str,
     width: u32,
@@ -318,6 +332,7 @@ fn try_init_encoder_with_retries(
     ))
 }
 
+#[cfg(not(target_os = "macos"))]
 impl VideoEncoder {
     pub fn new_with_pts_offset<F>(
         output_path: &Path,
@@ -777,6 +792,7 @@ impl VideoEncoder {
 
 /// Process frames from the capture channel and encode them
 #[allow(dead_code)]
+#[cfg(not(target_os = "macos"))]
 pub async fn process_frames(
     mut rx: mpsc::Receiver<Frame>,
     mut encoder: VideoEncoder,
@@ -829,6 +845,7 @@ pub async fn process_frames_chunked(
     task_id: Option<String>,
     session_id: Option<i64>,
     mut shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>,
+    #[cfg(target_os = "macos")] ffmpeg_path: Option<String>,
 ) -> Result<Vec<RecordingOutput>> {
     log::info!("Starting chunked frame processing with {}-second chunks", chunk_duration_secs);
 
@@ -846,6 +863,26 @@ pub async fn process_frames_chunked(
 
     log::info!("Creating chunk {}: {} (PTS offset: {})", chunk_index, chunk_path.display(), next_pts_offset);
 
+    // Create platform-specific encoder
+    #[cfg(target_os = "macos")]
+    let mut current_encoder = {
+        use crate::encoder_subprocess::SubprocessEncoder;
+        let ffmpeg = ffmpeg_path.as_ref().ok_or_else(|| {
+            ScreenRecError::ConfigError("ffmpeg_path required on macOS".to_string())
+        })?;
+        SubprocessEncoder::new_with_pts_offset(
+            &chunk_path,
+            width,
+            height,
+            fps,
+            quality,
+            next_pts_offset,
+            None::<fn(&str)>,
+            ffmpeg,
+        )?
+    };
+
+    #[cfg(not(target_os = "macos"))]
     let mut current_encoder = VideoEncoder::new_with_pts_offset(
         &chunk_path,
         width,
@@ -900,15 +937,37 @@ pub async fn process_frames_chunked(
 
                             log::info!("Creating chunk {}: {} (PTS offset: {})", chunk_index, chunk_path.display(), next_pts_offset);
 
-                            current_encoder = VideoEncoder::new_with_pts_offset(
-                                &chunk_path,
-                                width,
-                                height,
-                                fps,
-                                quality,
-                                next_pts_offset,
-                                None::<fn(&str)>,
-                            )?;
+                            // Create platform-specific encoder
+                            #[cfg(target_os = "macos")]
+                            {
+                                use crate::encoder_subprocess::SubprocessEncoder;
+                                let ffmpeg = ffmpeg_path.as_ref().ok_or_else(|| {
+                                    ScreenRecError::ConfigError("ffmpeg_path required on macOS".to_string())
+                                })?;
+                                current_encoder = SubprocessEncoder::new_with_pts_offset(
+                                    &chunk_path,
+                                    width,
+                                    height,
+                                    fps,
+                                    quality,
+                                    next_pts_offset,
+                                    None::<fn(&str)>,
+                                    ffmpeg,
+                                )?;
+                            }
+
+                            #[cfg(not(target_os = "macos"))]
+                            {
+                                current_encoder = VideoEncoder::new_with_pts_offset(
+                                    &chunk_path,
+                                    width,
+                                    height,
+                                    fps,
+                                    quality,
+                                    next_pts_offset,
+                                    None::<fn(&str)>,
+                                )?;
+                            }
 
                             // Insert new video chunk into database
                             if let (Some(ref db), Some(ref device)) = (&db, &device_name) {
@@ -987,15 +1046,37 @@ pub async fn process_frames_chunked(
 
                     log::info!("Creating chunk {}: {} (PTS offset: {})", chunk_index, chunk_path.display(), next_pts_offset);
 
-                    current_encoder = VideoEncoder::new_with_pts_offset(
-                        &chunk_path,
-                        width,
-                        height,
-                        fps,
-                        quality,
-                        next_pts_offset,
-                        None::<fn(&str)>,
-                    )?;
+                    // Create platform-specific encoder
+                    #[cfg(target_os = "macos")]
+                    {
+                        use crate::encoder_subprocess::SubprocessEncoder;
+                        let ffmpeg = ffmpeg_path.as_ref().ok_or_else(|| {
+                            ScreenRecError::ConfigError("ffmpeg_path required on macOS".to_string())
+                        })?;
+                        current_encoder = SubprocessEncoder::new_with_pts_offset(
+                            &chunk_path,
+                            width,
+                            height,
+                            fps,
+                            quality,
+                            next_pts_offset,
+                            None::<fn(&str)>,
+                            ffmpeg,
+                        )?;
+                    }
+
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        current_encoder = VideoEncoder::new_with_pts_offset(
+                            &chunk_path,
+                            width,
+                            height,
+                            fps,
+                            quality,
+                            next_pts_offset,
+                            None::<fn(&str)>,
+                        )?;
+                    }
 
                     // Insert new video chunk into database
                     if let (Some(ref db), Some(ref device)) = (&db, &device_name) {

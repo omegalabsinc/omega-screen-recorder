@@ -5,6 +5,8 @@ mod cli;
 mod db;
 mod display_info;
 mod encoder;
+#[cfg(target_os = "macos")]
+mod encoder_subprocess;
 mod error;
 mod ffmpeg_utils;
 mod interactions;
@@ -256,6 +258,31 @@ async fn main() -> Result<()> {
             let recording_type_str = recording_type.to_string();
             let task_id_for_encoder = task_id.clone();
 
+            #[cfg(target_os = "macos")]
+            let encoder_handle = {
+                let ffmpeg_path_for_encoder = Some(ffmpeg_binary.clone());
+                tokio::spawn(async move {
+                    encoder::process_frames_chunked(
+                        frame_rx,
+                        output_dir_for_encoder,
+                        capture_width,
+                        capture_height,
+                        fps,
+                        quality,
+                        chunk_duration,
+                        Some(db_for_encoder),
+                        Some(device_name_for_encoder),
+                        Some(recording_type_str),
+                        task_id_for_encoder,
+                        session_id,
+                        Some(shutdown_rx),
+                        ffmpeg_path_for_encoder,
+                    )
+                    .await
+                })
+            };
+
+            #[cfg(not(target_os = "macos"))]
             let encoder_handle = tokio::spawn(async move {
                 encoder::process_frames_chunked(
                     frame_rx,
