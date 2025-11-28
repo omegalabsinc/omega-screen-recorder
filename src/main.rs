@@ -640,8 +640,53 @@ async fn concatenate_chunks(
     output_path: Option<std::path::PathBuf>,
     ffmpeg_path: Option<std::path::PathBuf>,
 ) -> Result<()> {
-    println!("🔄 [PROGRESS] Starting concatenation for task: {}", task_id);
-    log::info!("Starting chunk concatenation for task_id: {}", task_id);
+    const MAX_RETRIES: u32 = 3;
+    let mut last_error = None;
+
+    for attempt in 1..=MAX_RETRIES {
+        if attempt > 1 {
+            log::info!("Retry attempt {}/{} for task {}", attempt, MAX_RETRIES, task_id);
+            println!("🔄 [PROGRESS] Retry attempt {}/{}", attempt, MAX_RETRIES);
+
+            // Wait before retrying (exponential backoff: 2s, 4s, 8s)
+            let wait_secs = 2u64.pow(attempt - 1);
+            log::info!("Waiting {}s before retry...", wait_secs);
+            tokio::time::sleep(tokio::time::Duration::from_secs(wait_secs)).await;
+        }
+
+        println!("🔄 [PROGRESS] Starting concatenation for task: {} (attempt {}/{})", task_id, attempt, MAX_RETRIES);
+        log::info!("Starting chunk concatenation for task_id: {} (attempt {}/{})", task_id, attempt, MAX_RETRIES);
+
+        match concatenate_chunks_impl(task_id, output_path.clone(), ffmpeg_path.clone()).await {
+            Ok(()) => {
+                if attempt > 1 {
+                    log::info!("✅ Concatenation succeeded on attempt {}/{}", attempt, MAX_RETRIES);
+                }
+                return Ok(());
+            }
+            Err(e) => {
+                log::error!("Concatenation attempt {}/{} failed: {}", attempt, MAX_RETRIES, e);
+                println!("❌ [PROGRESS] Attempt {}/{} failed: {}", attempt, MAX_RETRIES, e);
+                last_error = Some(e);
+
+                if attempt < MAX_RETRIES {
+                    log::warn!("Will retry concatenation...");
+                }
+            }
+        }
+    }
+
+    // All retries exhausted
+    Err(last_error.unwrap_or_else(|| {
+        error::ScreenRecError::EncodingError("All concatenation attempts failed".to_string())
+    }))
+}
+
+async fn concatenate_chunks_impl(
+    task_id: &str,
+    output_path: Option<std::path::PathBuf>,
+    ffmpeg_path: Option<std::path::PathBuf>,
+) -> Result<()> {
 
     // Find and validate FFmpeg binary
     println!("🔄 [PROGRESS] Validating FFmpeg installation...");
@@ -756,6 +801,18 @@ async fn concatenate_chunks(
 
         // Only include files that actually exist
         if chunk_path.exists() {
+            // Get file size first - skip extremely small files (likely corrupted)
+            let file_size = std::fs::metadata(&chunk_path)
+                .map(|m| m.len())
+                .unwrap_or(0);
+
+            if file_size < 1024 {
+                log::warn!("Skipping chunk {} - file too small ({} bytes, likely corrupted): {}",
+                    idx + 1, file_size, chunk_path.display());
+                invalid_chunks += 1;
+                continue;
+            }
+
             // Get chunk duration
             let duration_result = std::process::Command::new(&ffprobe_cmd)
                 .args(&[
@@ -765,6 +822,27 @@ async fn concatenate_chunks(
                     chunk_path.to_str().unwrap()
                 ])
                 .output();
+
+            // Parse duration and validate it's a valid number
+            let duration_opt = duration_result
+                .ok()
+                .and_then(|result| String::from_utf8(result.stdout).ok())
+                .and_then(|duration_str| {
+                    let trimmed = duration_str.trim();
+                    // Check for "N/A" or invalid duration strings
+                    if trimmed == "N/A" || trimmed.is_empty() {
+                        None
+                    } else {
+                        trimmed.parse::<f64>().ok().and_then(|d| {
+                            // Duration must be positive and reasonable (< 1 hour per chunk)
+                            if d > 0.0 && d < 3600.0 {
+                                Some(d)
+                            } else {
+                                None
+                            }
+                        })
+                    }
+                });
 
             // Validate that the chunk has valid video streams using ffprobe
             let has_valid_stream = std::process::Command::new(&ffprobe_cmd)
@@ -781,23 +859,78 @@ async fn concatenate_chunks(
                 })
                 .unwrap_or(false);
 
-            if has_valid_stream {
-                // Log chunk duration
-                if let Ok(result) = duration_result {
-                    if let Ok(duration_str) = String::from_utf8(result.stdout) {
-                        if let Ok(duration) = duration_str.trim().parse::<f64>() {
-                            total_chunk_duration += duration;
-                            log::info!("Chunk {}: {:.2}s - {}", idx, duration, chunk_path.file_name().unwrap_or_default().to_string_lossy());
-                        }
+            // Get video codec info to ensure it's actually H.264
+            let has_valid_codec = std::process::Command::new(&ffprobe_cmd)
+                .args(&[
+                    "-v", "quiet",
+                    "-select_streams", "v:0",
+                    "-show_entries", "stream=codec_name",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    chunk_path.to_str().unwrap()
+                ])
+                .output()
+                .map(|output| {
+                    if output.status.success() {
+                        let codec = String::from_utf8_lossy(&output.stdout);
+                        let codec_name = codec.trim();
+                        // Accept h264 or hevc
+                        codec_name == "h264" || codec_name == "hevc"
+                    } else {
+                        false
                     }
-                }
+                })
+                .unwrap_or(false);
+
+            // Check if file can be read without errors by ffprobe
+            let is_readable = std::process::Command::new(&ffprobe_cmd)
+                .args(&[
+                    "-v", "error",
+                    "-i", chunk_path.to_str().unwrap(),
+                    "-f", "null",
+                    "-"
+                ])
+                .output()
+                .map(|output| {
+                    output.status.success() && output.stderr.is_empty()
+                })
+                .unwrap_or(false);
+
+            // Only include chunk if ALL validations pass
+            let is_valid = has_valid_stream
+                && duration_opt.is_some()
+                && has_valid_codec
+                && is_readable;
+
+            if is_valid {
+                let duration = duration_opt.unwrap();
+                total_chunk_duration += duration;
+                log::info!("Chunk {}: {:.2}s - {}", idx + 1, duration, chunk_path.file_name().unwrap_or_default().to_string_lossy());
 
                 // Escape single quotes in the path by replacing ' with '\''
                 let path_str = chunk_path.to_string_lossy().replace("'", r"'\''");
                 concat_content.push_str(&format!("file '{}'\n", path_str));
                 existing_chunks += 1;
             } else {
-                log::warn!("Skipping chunk with no video stream: {}", chunk_path.display());
+                // Detailed error reporting
+                let mut reasons = Vec::new();
+                if !has_valid_stream {
+                    reasons.push("no video stream");
+                }
+                if duration_opt.is_none() {
+                    reasons.push("invalid/missing duration");
+                }
+                if !has_valid_codec {
+                    reasons.push("unsupported codec");
+                }
+                if !is_readable {
+                    reasons.push("contains errors");
+                }
+
+                log::warn!("Skipping chunk {} ({}): {}",
+                    idx + 1,
+                    reasons.join(", "),
+                    chunk_path.display()
+                );
                 invalid_chunks += 1;
             }
         } else {
@@ -837,6 +970,25 @@ async fn concatenate_chunks(
 
     // Determine final output path
     let final_output_path = output_path.unwrap_or_else(|| output_dir.join("final.mp4"));
+
+    // Clean up any existing output files from previous failed attempts
+    if final_output_path.exists() {
+        log::warn!("Removing existing output file from previous attempt: {}", final_output_path.display());
+        std::fs::remove_file(&final_output_path).ok();
+    }
+
+    // Also clean up metadata files if they exist
+    let metadata_path = output_dir.join("metadata.json");
+    let frames_path = output_dir.join("frames.json");
+    if metadata_path.exists() {
+        log::warn!("Removing existing metadata.json from previous attempt");
+        std::fs::remove_file(&metadata_path).ok();
+    }
+    if frames_path.exists() {
+        log::warn!("Removing existing frames.json from previous attempt");
+        std::fs::remove_file(&frames_path).ok();
+    }
+
     println!("🎬 [PROGRESS] Starting FFmpeg concatenation...");
     println!("   Output: {}", final_output_path.display());
     log::info!("Concatenating chunks to: {}", final_output_path.display());
@@ -865,21 +1017,17 @@ async fn concatenate_chunks(
             "-c:v".to_string(), "libx264".to_string(),
             "-preset".to_string(), "medium".to_string(),
             "-crf".to_string(), "23".to_string(),
+            // Frame rate params (only for re-encoding)
+            "-r".to_string(), fps.to_string(),
+            "-fps_mode".to_string(), "cfr".to_string(),
         ]);
     } else {
         // No normalization needed, use copy mode
-        // Add -fflags +genpts to regenerate presentation timestamps for smooth concatenation
+        // Note: Cannot use -r or -fps_mode with -c copy as they require re-encoding
         ffmpeg_args.extend(vec![
-            "-fflags".to_string(), "+genpts".to_string(),
             "-c".to_string(), "copy".to_string(),
         ]);
     }
-
-    // Add explicit frame rate parameters to ensure correct playback speed
-    ffmpeg_args.extend(vec![
-        "-r".to_string(), fps.to_string(),
-        "-fps_mode".to_string(), "cfr".to_string(),
-    ]);
 
     ffmpeg_args.push(final_output_path.to_str().unwrap().to_string());
 
@@ -895,6 +1043,7 @@ async fn concatenate_chunks(
     if !concat_result.status.success() {
         let stderr = String::from_utf8_lossy(&concat_result.stderr);
         println!("❌ [PROGRESS] FFmpeg concatenation failed");
+        log::error!("FFmpeg stderr: {}", stderr);
         return Err(error::ScreenRecError::EncodingError(format!(
             "FFmpeg concat failed: {}",
             stderr
@@ -903,6 +1052,28 @@ async fn concatenate_chunks(
 
     // Clean up concat list file
     let _ = std::fs::remove_file(&concat_list_path);
+
+    // Validate the output file was created and has valid content
+    if !final_output_path.exists() {
+        println!("❌ [PROGRESS] Output file was not created");
+        return Err(error::ScreenRecError::EncodingError(
+            "FFmpeg did not create output file".to_string()
+        ));
+    }
+
+    // Check file size - if it's too small (< 1KB), it's likely corrupted
+    let file_size = std::fs::metadata(&final_output_path)
+        .map(|m| m.len())
+        .unwrap_or(0);
+
+    if file_size < 1024 {
+        println!("❌ [PROGRESS] Output file is too small ({} bytes) - likely corrupted", file_size);
+        log::error!("Output file is only {} bytes, removing corrupted file", file_size);
+        std::fs::remove_file(&final_output_path).ok();
+        return Err(error::ScreenRecError::EncodingError(
+            format!("FFmpeg produced invalid output file ({} bytes)", file_size)
+        ));
+    }
 
     println!("✅ [PROGRESS] Video concatenation complete!");
     log::info!("✅ Final video created: {}", final_output_path.display());
