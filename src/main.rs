@@ -881,25 +881,12 @@ async fn concatenate_chunks_impl(
                 })
                 .unwrap_or(false);
 
-            // Check if file can be read without errors by ffprobe
-            let is_readable = std::process::Command::new(&ffprobe_cmd)
-                .args(&[
-                    "-v", "error",
-                    "-i", chunk_path.to_str().unwrap(),
-                    "-f", "null",
-                    "-"
-                ])
-                .output()
-                .map(|output| {
-                    output.status.success() && output.stderr.is_empty()
-                })
-                .unwrap_or(false);
-
-            // Only include chunk if ALL validations pass
+            // Only include chunk if validations pass
+            // Note: We skip deep frame-level validation as it's too slow (decodes every frame)
+            // The 4 checks above (size, duration, stream, codec) are sufficient
             let is_valid = has_valid_stream
                 && duration_opt.is_some()
-                && has_valid_codec
-                && is_readable;
+                && has_valid_codec;
 
             if is_valid {
                 let duration = duration_opt.unwrap();
@@ -921,9 +908,6 @@ async fn concatenate_chunks_impl(
                 }
                 if !has_valid_codec {
                     reasons.push("unsupported codec");
-                }
-                if !is_readable {
-                    reasons.push("contains errors");
                 }
 
                 log::warn!("Skipping chunk {} ({}): {}",

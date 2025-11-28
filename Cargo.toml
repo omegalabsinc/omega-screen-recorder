@@ -1,6 +1,6 @@
 [package]
 name = "screenrec"
-version = "0.1.0"
+version = "1.4.5"
 edition = "2021"
 authors = ["Omega Labs"]
 description = "High-performance cross-platform screen recording CLI tool"
